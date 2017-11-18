@@ -1,0 +1,11 @@
+.DS_Store
+.gitignore
+.idea/
+build/**
+cmake-build-debug/
+*.a
+*.dylib
+*.dll
+*.so
+*.cpp.o
+

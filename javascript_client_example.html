@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>WebSocket Test</title>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script>
+        function writeMessage(message, incoming) {
+            var list = $('#message-list');
+            var old = list.val();
+            old += "\n";
+            if (incoming) {
+                old += " >>> " + message;
+            } else {
+                old += " <<< " + message;
+            }
+
+            list.val(old);
+        }
+
+        function writeNotifier() {
+            var list = $('#message-list');
+            var old = list.val();
+            old += " - received";
+            list.val(old);
+        }
+
+        function showImage() {
+
+        }
+
+        var ws;
+        var friendId;
+        var id;
+
+        window.onload = function () {
+            var url_string = window.location.href; //window.location.href
+            var url = new URL(url_string);
+            id = url.searchParams.get("id");
+            friendId = url.searchParams.get("friendId");
+
+            ws = new WebSocket("ws://localhost:8080/chat?id=" + id);
+            ws.onmessage = function (evt) {
+                var result = JSON.parse(evt.data);
+                console.log(result);
+                if (result.type === 'text') {
+                    writeMessage(result.text, true);
+                } else if (result.type === "notification_received") {
+                    writeNotifier();
+                } else if (result.type === "b64image") {
+                    // var buffer = atob(result.data.blob);
+                    var img = $("#image-rcvd");
+                    img.attr("src", result.data.blob);
+                    img.css("display", 'block');
+                }
+            };
+            ws.onerror = function (err) {
+                console.log(err);
+            };
+            ws.onclose = function (evt) {
+                var code = evt.code;
+                var reason = evt.reason;
+                writeMessage("Service disconnected[" + code + "]: " + reason, true);
+            };
+            ws.onopen = function (evt) {
+                writeMessage("Connected", true);
+            }
+        };
+        window.onclose = function () {
+            ws.close();
+            console.log("Client disconnected")
+        };
+
+        $(document).ready(function () {
+            $("#file-input").change(function () {
+                var input = document.getElementById("file-input");
+                var file = input.files[0];
+                var reader = new FileReader();
+                reader.onloadend = function () {
+
+                    var payload = {
+                        sender: parseInt(id),
+                        recipients: [],
+                        text: "",
+                        type: 'b64image',
+                        data: {
+                            blob: reader.result
+                        }
+                    };
+                    if (friendId !== null) {
+                        payload.recipients[0] = parseInt(friendId);
+                    }
+
+                    var sPayload = JSON.stringify(payload);
+                    console.log("Size of binary: " + payload.data.blob.length);
+                    console.log("Size of payload: " + sPayload.length);
+                    // console.log(sPayload);
+                    ws.send(sPayload);
+                };
+
+                if (file) {
+                    reader.readAsDataURL(file);
+                }
+
+
+            });
+        });
+
+        function send() {
+            var input = $('#message');
+            var messageText = input.val();
+            input.val("");
+
+            if (messageText.length === 0) {
+                return false;
+            }
+
+            writeMessage(messageText, false);
+
+            var payload = {
+                sender: 1,
+                recipients: [],
+                text: messageText,
+                type: 'text'
+            };
+
+            if (friendId !== null) {
+                payload.recipients[0] = parseInt(friendId);
+            }
+
+            var sPayload = JSON.stringify(payload);
+            console.log("Sending payload: " + sPayload);
+            ws.send(sPayload);
+            return false;
+        }
+    </script>
+</head>
+<body>
+
+<img id="image-rcvd" style="display: none"/>
+<textarea id="message-list" contenteditable="false" disabled="disabled" style="width:100%; height: 300px">
+
+</textarea>
+<form onsubmit="return send();">
+    <input type="text" id="message" placeholder="Type message here"/>
+    <input type="submit" value="Send" onsubmit="return send();"/>
+</form>
+
+<input type="file" id="file-input" style="width: 300px; height: auto;"/>
+
+
+<script>
+
+</script>
+</body>
+</html>

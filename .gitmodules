@@ -1,0 +1,3 @@
+[submodule "libs/ini-parser"]
+	path = libs/ini-parser
+	url = git@github.com:edwardstock/ini-parser.git
