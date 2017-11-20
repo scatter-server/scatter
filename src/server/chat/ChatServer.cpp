@@ -7,7 +7,11 @@
  */
 
 #include "ChatServer.h"
-wss::ChatServer::ChatServer(const std::string &host, unsigned short port, const std::string &regexPath) {
+wss::ChatServer::ChatServer(const std::string &host, unsigned short port, const std::string &regexPath) :
+    enableTls(false),
+    crtPath(),
+    keyPath(),
+    maxMessageSize(10 * 1024 * 1024) {
     server.config.port = port;
     server.config.thread_pool_size = 10;
 
@@ -23,8 +27,8 @@ wss::ChatServer::ChatServer(const std::string &host, unsigned short port, const 
 }
 
 wss::ChatServer::~ChatServer() {
-    delete endpoint;
-    delete workerThread;
+    if (workerThread != nullptr)
+        delete workerThread;
 }
 
 void wss::ChatServer::setThreadPoolSize(std::size_t size) {
@@ -54,7 +58,7 @@ void wss::ChatServer::detachThread() {
     }
 }
 
-void wss::ChatServer::onMessage(WsConnectionPtr connection, const WsMessagePtr &message) {
+void wss::ChatServer::onMessage(WsConnectionPtr connection, WsMessagePtr message) {
 //    L_DEBUG_F("OnMessage", "Server Received message (opcode: %d, len: %lu) in thread: %lu", message->fin_rsv_opcode, message->size(), getThreadName());
 
     MessagePayload payload;
@@ -139,7 +143,7 @@ const std::string wss::ChatServer::readFrameBuffer(wss::UserId id, bool clear) {
     return out;
 }
 
-void wss::ChatServer::onConnected(const WsConnectionPtr &connection) {
+void wss::ChatServer::onConnected(WsConnectionPtr connection) {
     QueryParams params;
     bool parsed = parseRawQuery("?" + connection->query_string, params);
     if (!parsed) {
@@ -170,7 +174,7 @@ void wss::ChatServer::onConnected(const WsConnectionPtr &connection) {
 
     redeliverMessagesTo(id);
 }
-void wss::ChatServer::onDisconnected(const WsConnectionPtr &connection, int status, const std::string &reason) {
+void wss::ChatServer::onDisconnected(WsConnectionPtr connection, int status, const std::string &reason) {
     if (!hasConnectionFor(connection->getId())) {
         return;
     }
@@ -332,7 +336,7 @@ bool wss::ChatServer::parseRawQuery(const std::string &query, wss::QueryParams &
 
     // remove the URL part
     if (!std::getline(iss, url, '?')) {
-        L_ERR("Parse query", "Error parsing request url: url does not have any GET parameters");
+        L_ERR("Parse query", "Error parsing request host: host does not have any GET parameters");
         return false;
     }
 
@@ -360,4 +364,12 @@ std::size_t wss::ChatServer::getThreadName() {
         ids[id] = nextindex++;
 
     return ids[id];
+}
+void wss::ChatServer::enableTLS(const std::string &crtPath, const std::string &keyPath) {
+    enableTls = true;
+    this->crtPath = crtPath;
+    this->keyPath = keyPath;
+}
+void wss::ChatServer::setMessageSizeLimit(size_t bytes) {
+    maxMessageSize = bytes;
 }

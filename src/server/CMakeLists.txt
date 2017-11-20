@@ -18,7 +18,7 @@ set(BIN_SRC
     restapi/ChatRestApi.h
     helpers/helpers.h
     helpers/helpers.cpp
-    )
+    ../client/HttpClient.cpp ../client/HttpClient.h ../client/QueryBuilder.hpp)
 
 
 add_executable(${PROJECT_NAME}
@@ -32,8 +32,10 @@ add_executable(${PROJECT_NAME}
 include(../../cmakes/dependencies.cmake)
 linkdeps(${PROJECT_NAME})
 
+
 add_subdirectory(../../libs/ini-parser PARENT_SCOPE)
 add_dependencies(${PROJECT_NAME} iniparser)
+target_link_libraries(${PROJECT_NAME} iniparser)
 
 
 

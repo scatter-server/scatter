@@ -8,6 +8,7 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 set(COMMON_LIBS_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/json/json.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/args/cmdline.hpp
     )
 set(WS_COMMON_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/ws/crypto.hpp
@@ -43,6 +44,8 @@ set(HTTP_CLIENT_SRC
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/ws)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/json)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/http)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/ini-parser/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/args)
 
 add_subdirectory(src/server)
 add_subdirectory(src/benchmark)

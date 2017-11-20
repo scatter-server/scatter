@@ -75,6 +75,7 @@ class ChatServer {
     const unsigned char RSV_OPCODE_TEXT = 129;
     const unsigned char RSV_OPCODE_BINARY = 130;
 
+    void setMessageSizeLimit(size_t bytes);
  public:
     ChatServer(const std::string &host, unsigned short port, const std::string &regexPath);
     ~ChatServer();
@@ -85,12 +86,14 @@ class ChatServer {
     void waitThread();
     void detachThread();
 
+    void enableTLS(const std::string &crtPath, const std::string &keyPath);
+
     bool send(const MessagePayload &payload);
 
  protected:
-    void onMessage(WsConnectionPtr connection, const WsMessagePtr &payload);
-    void onConnected(const WsConnectionPtr &connection);
-    void onDisconnected(const WsConnectionPtr &connection, int status, const std::string &reason);
+    void onMessage(WsConnectionPtr connection, WsMessagePtr payload);
+    void onConnected(WsConnectionPtr connection);
+    void onDisconnected(WsConnectionPtr connection, int status, const std::string &reason);
 
     inline bool hasConnectionFor(UserId id);
     inline void setConnectionFor(UserId id, const WsConnectionPtr &connection);
@@ -106,6 +109,13 @@ class ChatServer {
     int redeliverMessagesTo(const MessagePayload &payload);
 
  private:
+    // secure
+    bool enableTls;
+    std::string crtPath;
+    std::string keyPath;
+    std::size_t maxMessageSize; // 10 megabytes by default
+
+
     std::recursive_mutex connLock;
     std::mutex frameBufferLok;
 

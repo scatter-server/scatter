@@ -6639,7 +6639,7 @@ class basic_json {
 
         result["copyright"] = "(C) 2013-2017 Niels Lohmann";
         result["name"] = "JSON for Modern C++";
-        result["url"] = "https://github.com/nlohmann/json";
+        result["host"] = "https://github.com/nlohmann/json";
         result["version"] =
             {
                 {"string", "2.1.1"},
