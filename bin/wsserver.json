@@ -1,0 +1,43 @@
+{
+  "server": {
+    "endpoint": "/chat",
+    "address": "*",
+    "port": 8080,
+    "workers": 16,
+    "secure": {
+      "enabled": false,
+      "crtPath": "../certs/debug.crt",
+      "keyPath": "../cert/debug.key"
+    },
+    "tmpDir": "/tmp"
+  },
+  "restApi": {
+    "enabled": false,
+    "auth": {
+      "basic": {
+        "user": "chat_user",
+        "password": "chat_password"
+      }
+    }
+  },
+  "chat": {
+    "message": {
+      "maxSize": "10M"
+    }
+  },
+  "event": {
+    "enableRetry": true,
+    "retryIntervalSeconds": 10,
+    "retryCount": 3,
+    "targets": [
+      {
+        "type": "postback",
+        "url": "http://example.com/postback",
+        "auth": {
+          "type": "bearer",
+          "value": "TOKEN"
+        }
+      }
+    ]
+  }
+}

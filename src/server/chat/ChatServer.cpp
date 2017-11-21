@@ -112,6 +112,10 @@ void wss::ChatServer::onMessage(WsConnectionPtr connection, WsMessagePtr message
     }
 
     send(payload);
+
+    for (auto &listener: eventListeners) {
+        listener(payload);
+    }
 }
 
 bool wss::ChatServer::hasFrameBuffer(wss::UserId id) {

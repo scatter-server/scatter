@@ -19,6 +19,7 @@
 #include <stdexcept>
 #include <vector>
 #include <time.h>
+#include <functional>
 #include <toolboxpp.h>
 #include "server_ws.hpp"
 #include "json.hpp"
@@ -34,7 +35,7 @@ using namespace std::placeholders;
 
 using QueryParams = std::unordered_map<std::string, std::string>;
 using MessageQueue = wss::BlockingQueue<MessagePayload>;
-
+using MessageEventCallback = std::function<void(const wss::MessagePayload &)>;
 namespace cal = boost::gregorian;
 namespace pt = boost::posix_time;
 
@@ -90,6 +91,10 @@ class ChatServer {
 
     bool send(const MessagePayload &payload);
 
+    void addListener(MessageEventCallback callback) {
+        eventListeners.push_back(callback);
+    }
+
  protected:
     void onMessage(WsConnectionPtr connection, WsMessagePtr payload);
     void onConnected(WsConnectionPtr connection);
@@ -115,6 +120,9 @@ class ChatServer {
     std::string keyPath;
     std::size_t maxMessageSize; // 10 megabytes by default
 
+
+    // events
+    std::vector<MessageEventCallback> eventListeners;
 
     std::recursive_mutex connLock;
     std::mutex frameBufferLok;

@@ -48,4 +48,9 @@ function (linkdeps DEPS_PROJECT)
 	endif ()
 	target_link_libraries(${DEPS_PROJECT} ${TOOLBOXPP_LIBRARIES})
 
+	# CURL
+	find_package(CURL REQUIRED)
+	target_link_libraries(${DEPS_PROJECT} ${CURL_LIBRARIES})
+	target_include_directories(${DEPS_PROJECT} PUBLIC ${CURL_INCLUDE_DIRS})
+
 endfunction ()

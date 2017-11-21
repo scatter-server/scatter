@@ -13,11 +13,14 @@
 #include <string>
 #include <utility>
 #include <iostream>
+#include <exception>
+#include <regex>
 #include <boost/asio.hpp>
 #include <toolboxpp.h>
+#include <curl/curl.h>
 
 namespace wss {
-namespace client {
+namespace web {
 
 using QueryData = std::vector<std::pair<std::string, std::string>>;
 using HeaderData = std::unordered_map<std::string, std::string>;
@@ -71,6 +74,20 @@ class QueryBuilder {
     }
 
  public:
+    static QueryBuilder parse(const std::string &toParse) {
+        const std::string pattern = R"((http|https)\:\/\/([a-zA-Z0-9\.\-]+)(.*))";
+        std::smatch match = toolboxpp::strings::matchRegexp(pattern, toParse);
+        if (match.size() < 4) {
+            throw std::runtime_error("Unable to parse url: " + toParse);
+        }
+
+        QueryBuilder builder(match[2], match[3], match[1] == "https");
+
+        return builder;
+    }
+
+    QueryBuilder() { };
+
     explicit QueryBuilder(const std::string &host) :
         https(false),
         host(host),
@@ -85,9 +102,9 @@ class QueryBuilder {
         method(GET) {
     }
 
-    QueryBuilder(std::string url, bool https, Method method) :
+    QueryBuilder(std::string host, bool https, Method method) :
         https(https),
-        host(std::move(url)),
+        host(std::move(host)),
         method(method) {
     }
 
@@ -209,47 +226,25 @@ class QueryBuilder {
         return path;
     }
 
-    void buildOStream(std::ostream *os) {
-        using toolboxpp::strings::glue;
-        const bool isPost = method == POST || method == PUT;
-        std::vector<std::string> queryForGlue;
-        std::stringstream qss;
+    bool hasHeaders() const {
+        return !headers.empty();
+    }
 
-        for (auto q: query) {
-            qss << q.first << "=" << q.second;
-            queryForGlue.push_back(qss.str());
-            qss.str("");
-            qss.clear();
+    std::string getUrl() const {
+        std::stringstream ss;
+        ss << (https ? "https" : "http");
+        ss << "://" << host << "/" << path;
+
+        return ss.str();
+    }
+
+    std::vector<std::string> getHeadersGlued() const {
+        std::vector<std::string> out;
+        for (auto &h: headers) {
+            out.push_back(h.first + ": " + h.second);
         }
 
-        if (!queryForGlue.empty() && !isPost) {
-            *os << methodToString(method) << " " << path << "?" << glue("&", queryForGlue) << " HTTP/1.1\r\n";
-        } else {
-            *os << methodToString(method) << " " << path << " HTTP/1.1\r\n";
-        }
-
-        addHeader("Host", host);
-        addHeader("Connection", "close");
-        addHeader("Accept", "*/*");
-        addHeader("User-Agent", "WsServer/1.0 HttpClient");
-        addHeader("Upgrade-Insecure-Requests", "1");
-
-        std::string postData;
-        if (isPost) {
-            postData = glue("&", queryForGlue);
-            addHeader("Content-Type", "application/x-www-form-urlencoded");
-            addHeader("Content-Length", postData.length());
-        }
-
-        for (auto &s: headers) {
-            *os << s.first << ": " << s.second << "\r\n";
-        }
-
-        *os << "\r\n";
-
-        if (isPost) {
-            *os << postData;
-        }
+        return out;
     }
 };
 
