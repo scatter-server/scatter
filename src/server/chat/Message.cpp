@@ -80,6 +80,39 @@ wss::MessagePayload::MessagePayload(const WsMessagePtr &message) noexcept {
     }
 }
 
+MessagePayload::MessagePayload(const MessagePayload &another) {
+    *this = another;
+}
+MessagePayload::MessagePayload(MessagePayload &&another) {
+    *this = another;
+}
+MessagePayload &MessagePayload::operator=(const MessagePayload &another) {
+    sender = another.sender;
+    recipients = another.recipients;
+    text = another.text;
+    type = another.type;
+    data = another.data;
+    valid = another.valid;
+    errorCause = another.errorCause;
+
+    return *this;
+}
+
+MessagePayload &MessagePayload::operator=(MessagePayload &&another) {
+    sender = another.sender;
+    recipients.insert(recipients.begin(), another.recipients.begin(), another.recipients.end());
+    another.recipients.clear();
+    text = another.text;
+    another.text.clear();
+    type = another.type;
+    another.type.clear();
+    data = std::move(another.data);
+    valid = another.valid;
+    errorCause = another.errorCause;
+    another.errorCause.clear();
+    return *this;
+}
+
 void MessagePayload::validate() {
     if (recipients.empty()) {
         valid = false;

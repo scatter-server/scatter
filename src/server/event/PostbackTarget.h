@@ -21,7 +21,7 @@ namespace event {
 class PostbackTarget : public Target {
  public:
     explicit PostbackTarget(const json &config);
-    bool send(const wss::MessagePayload &payload) override;
+    bool send(const wss::MessagePayload &payload, std::string *error = nullptr) override;
     std::string getType() override;
 
  protected:

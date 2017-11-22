@@ -43,6 +43,11 @@ class MessagePayload {
     MessagePayload(UserId from, UserId to, std::string &&message);
     MessagePayload(UserId from, const std::vector<UserId> &to, const std::string &message);
     MessagePayload(UserId from, std::vector<UserId> &&to, std::string &&message);
+    MessagePayload(const MessagePayload &payload);
+    MessagePayload(MessagePayload &&payload);
+    MessagePayload &operator=(const MessagePayload &payload);
+    MessagePayload &operator=(MessagePayload &&payload);
+
     explicit MessagePayload(const std::string &json) noexcept;
     explicit MessagePayload(const WsMessagePtr &message) noexcept;
     explicit MessagePayload(const nlohmann::json &obj) noexcept;

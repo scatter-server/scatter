@@ -79,7 +79,7 @@ void setServerConfig(wss::ChatServer *webSocket, nlohmann::json &config) {
 }
 
 bool setEventConfig(wss::ChatServer *webSocket, nlohmann::json &config) {
-    if (hasKey(config, "event")) {
+    if (!hasKey(config, "event")) {
         return true;
     }
 
@@ -168,11 +168,6 @@ int main(int argc, char **argv) {
     setChatConfig(&webSocket, config);
     setServerConfig(&webSocket, config);
 
-    bool hasSet = setEventConfig(&webSocket, config);
-    if (!hasSet) {
-        return 1;
-    }
-
     webSocket.setThreadPoolSize(static_cast<size_t>(
                                     serverConfig.value("workers", std::thread::hardware_concurrency() * 2)
                                 ));
@@ -180,15 +175,20 @@ int main(int argc, char **argv) {
 
     // run ws server
     webSocket.run();
-    if (enableApi) {
-        wss::ChatRestApi restApi("*", 8081);
-        restApi.attachToChat(&webSocket);
-        // run rest server
-        restApi.run();
-        restApi.waitThread();
-    } else {
-        webSocket.waitThread();
+    bool hasSet = setEventConfig(&webSocket, config);
+    if (!hasSet) {
+        return 1;
     }
+
+//    if (enableApi) {
+//        wss::ChatRestApi restApi("*", 8081);
+//        restApi.attachToChat(&webSocket);
+//        // run rest server
+//        restApi.run();
+//        restApi.waitThread();
+//    } else {
+//        webSocket.waitThread();
+//    }
 
     return 0;
 }

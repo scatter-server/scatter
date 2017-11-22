@@ -26,17 +26,14 @@
     }
   },
   "event": {
+    "enabled": true,
     "enableRetry": true,
     "retryIntervalSeconds": 10,
     "retryCount": 3,
     "targets": [
       {
         "type": "postback",
-        "url": "http://example.com/postback",
-        "auth": {
-          "type": "bearer",
-          "value": "TOKEN"
-        }
+        "url": "http://localhost"
       }
     ]
   }

@@ -120,7 +120,7 @@ class Target {
         config(config),
         valid(true),
         errorMessage() { }
-    virtual bool send(const wss::MessagePayload &payload) = 0;
+    virtual bool send(const wss::MessagePayload &payload, std::string *error = nullptr) = 0;
     virtual std::string getType() = 0;
 
     bool isValid() const {

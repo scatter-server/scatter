@@ -8,14 +8,19 @@
 
 #include "PostbackTarget.h"
 
-bool wss::event::PostbackTarget::send(const wss::MessagePayload &payload) {
+bool wss::event::PostbackTarget::send(const wss::MessagePayload &payload, std::string *error) {
     request.setBody(payload.toJson())
            .setMethod(wss::web::Request::POST);
 
     auth.performAuth(request);
 
     wss::web::Response response = getClient().execute(request);
-    return response.isSuccess();
+    bool success = response.isSuccess();
+    if (!success) {
+        *error = response.statusMessage;
+    }
+
+    return success;
 }
 
 std::string wss::event::PostbackTarget::getType() {
@@ -54,8 +59,6 @@ wss::event::PostbackTarget::PostbackTarget(const nlohmann::json &config) :
         } else {
             setAuth(WebAuth());
         }
-
-        throw std::runtime_error("Unsupported target: " + config.value("type", "unknown"));
     } catch (const std::exception &e) {
         setErrorMessage("Invalid postback target configuration. " + std::string(e.what()));
     }

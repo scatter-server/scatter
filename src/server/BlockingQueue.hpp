@@ -56,7 +56,7 @@ class BlockingQueue {
         conditionVariable.notify_one();
     }
 
-    T pop() {
+    T front() {
         std::unique_lock<std::mutex> lock(mutex);
         while (queue.empty()) {
             conditionVariable.wait(lock);
@@ -69,6 +69,11 @@ class BlockingQueue {
         return result;
     }
 
+    void pop() {
+        std::unique_lock<std::mutex> lock(mutex);
+        queue.pop();
+    }
+
     bool empty() {
         std::lock_guard<std::mutex> lock(mutex);
         bool result = queue.empty();
@@ -77,12 +82,16 @@ class BlockingQueue {
     }
 
     std::size_t size() const {
-        return queue.size();
+        std::lock_guard<std::mutex> lock(mutex);
+        std::size_t result = queue.size();
+        conditionVariable.notify_one();
+
+        return result;
     }
  private:
     std::queue<T> queue;
     mutable std::mutex mutex;
-    std::condition_variable conditionVariable;
+    mutable std::condition_variable conditionVariable;
 };
 
 };

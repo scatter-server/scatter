@@ -260,7 +260,8 @@ int wss::ChatServer::redeliverMessagesTo(UserId id) {
     auto &queue = getUndeliveredMessages(id);
     L_DEBUG_F("Server", "Redeliver %lu message(s) to user %lu", queue.size(), id);
     while (!queue.empty()) {
-        MessagePayload payload = queue.pop();
+        MessagePayload payload = queue.front();
+        queue.pop();
         send(payload);
         cnt++;
     }

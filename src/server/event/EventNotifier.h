@@ -16,7 +16,10 @@
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
+#include <deque>
+#include <algorithm>
 #include <boost/thread.hpp>
+#include <math.h>
 #include <boost/asio/io_service.hpp>
 #include "../chat/ChatServer.h"
 #include "EventConfig.h"
@@ -24,6 +27,8 @@
 
 namespace wss {
 namespace event {
+
+using toolboxpp::Logger;
 
 class EventNotifier {
  public:
@@ -57,9 +62,9 @@ class EventNotifier {
 
         if (eq(type, "postback")) {
             return std::make_shared<wss::event::PostbackTarget>(json);
-        } //@TODO другие варианты
-
-        throw std::runtime_error("Unsupported target type: " + type);
+        } else {
+            throw std::runtime_error("Unsupported target type: " + type);
+        }
     }
 
     void addTarget(const nlohmann::json &targetConfig) {
@@ -86,14 +91,23 @@ class EventNotifier {
         }
     }
 
+    /**
+     * onMessage -> addMessage uniqueLock[sendQueue[w]]
+     * dequeueMessages -> uniqueLock[sendQueue[rw], undeliveredQueue[w], undeliveredRetries[rw]]
+     * dequeueUndelivered ->
+     */
     void subscribe() {
-        threadGroup.create_thread(
-            boost::bind(&boost::asio::io_service::run, &ioService)
-        );
+        for (int i = 0; i < 4; i++) {
+            threadGroup.create_thread(
+                boost::bind(&boost::asio::io_service::run, &ioService)
+            );
+        }
 
         ws.addMessageListener(std::bind(&EventNotifier::onMessage, this, std::placeholders::_1));
         ws.addStopListener(std::bind(&EventNotifier::onStop, this));
         ioService.post(boost::bind(&EventNotifier::dequeueMessages, this));
+
+        threadGroup.join_all();
     }
 
     void onStop() {
@@ -102,8 +116,28 @@ class EventNotifier {
     }
 
  private:
-    std::condition_variable handler, uHandler;
-    std::condition_variable_any emitter;
+    struct SendStatus {
+      wss::MessagePayload payload;
+      std::time_t sendTime;
+      int sendTries = 0;
+      SendStatus() = default;
+      ~SendStatus() = default;
+      SendStatus(const SendStatus &another) = default;
+      SendStatus(SendStatus &&another) = default;
+      SendStatus &operator=(const SendStatus &another) {
+          this->payload = another.payload;
+          this->sendTries = another.sendTries;
+          this->sendTime = another.sendTime;
+          return *this;
+      }
+      SendStatus &operator=(SendStatus &&another) {
+          this->payload = std::move(another.payload);
+          this->sendTries = another.sendTries;
+          this->sendTime = another.sendTime;
+          return *this;
+      }
+    };
+
 
     std::atomic_bool running;
 
@@ -115,72 +149,102 @@ class EventNotifier {
     boost::asio::io_service::work work;
 
     std::unordered_map<std::string, std::shared_ptr<Target>> targets;
-    std::unordered_map<std::string, std::queue<wss::MessagePayload>> sendQueue;
-    std::unordered_map<std::string, std::queue<wss::MessagePayload>> undeliveredQueue;
-    std::unordered_map<std::string, int> undeliveredRetries;
+    std::unordered_map<std::string, std::deque<SendStatus>> sendQueue;
 
-    void sendTry(const std::string &targetName, std::queue<wss::MessagePayload> queue) {
-        // iterate target queue
-        while (!queue.empty()) {
-            // if can't send
-            if (!targets[targetName]->send(queue.front())) {
+    boost::shared_mutex dataMutex;
 
-                int tries = undeliveredRetries.count(targetName) ? undeliveredRetries[targetName] : 0;
+    const char *getThreadId() {
+        std::stringstream ss;
+        ss << boost::this_thread::get_id();
+        const char *tid = ss.str().c_str();
+        return tid;
+    }
 
-                // if tries < 3
-                if (tries < 3) {
-                    tries++;
-                    // adding to undelivered queue, we will try to resend later
-                    undeliveredQueue[targetName].push(queue.front());
-                    undeliveredRetries[targetName] = tries;
+    void sendTry(std::unordered_map<std::string, std::deque<SendStatus>> targetQueueMap) {
+        boost::shared_lock<boost::shared_mutex> lock(dataMutex);
+
+        // iterate target-queue
+        for (auto &&targetQueue: targetQueueMap) {
+            const std::string targetName = targetQueue.first;
+            while (!targetQueue.second.empty()) {
+                // if can't send
+                SendStatus status = targetQueue.second.front();
+                // remove top element
+                targetQueue.second.pop_front();
+
+                std::string sendResult;
+                if (!targets[targetName]->send(status.payload, &sendResult)) {
+                    L_DEBUG_F("Event-Send",
+                              "[%s] Can't send message to target %s: %s",
+                              getThreadId(),
+                              targetName.c_str(),
+                              sendResult.c_str());
+                    L_DEBUG_F("Event-Send", "Send tries: %d", status.sendTries);
+
+                    // if tries < maxRetries
+                    if (status.sendTries < maxRetries) {
+                        status.sendTries++;
+                        status.sendTime = std::time(nullptr);
+                        L_DEBUG_F("Event-Send",
+                                  "Adding to queue again, will try again after %d seconds",
+                                  intervalSeconds);
+                        sendQueue[targetName].push_back(std::move(status));
+                    } else {
+                        L_DEBUG_F("Event-Send", "After %d times, removing from queue.", maxRetries);
+                    }
                 } else {
-                    // else we exceed retries, erasing counters and just pop message from queue
-                    undeliveredRetries.erase(targetName);
+                    L_DEBUG_F("Event-Send", "[%s] Message has sent to target: %s", getThreadId(), targetName.c_str());
                 }
             }
-
-            // remove top element
-            queue.pop();
         }
+
+        targetQueueMap.clear();
     }
 
     void dequeueMessages() {
+        const auto &ready = [this](SendStatus status) {
+          const long diff = abs(std::time(nullptr) - status.sendTime);
+          return diff >= intervalSeconds;
+        };
+
         while (running) {
-            handler.notify_one();
-            std::mutex m;
-            m.lock();
-            emitter.wait(m);
-            // iterate all targets
-            for (auto &sq: sendQueue) {
-                sendTry(sq.first, sq.second);
+            std::unordered_map<std::string, std::deque<SendStatus>> tmp;
+            {
+                boost::shared_lock<boost::shared_mutex> slock(dataMutex);
+                // iterate all targets
+                for (auto &sq: sendQueue) {
+                    for (auto &q: sendQueue[sq.first]) {
+                        const long diff = abs(std::time(nullptr) - q.sendTime);
+                        if (ready(q)) {
+                            tmp[sq.first].push_back(q);
+                        }
+                    }
+
+                    sq.second.erase(
+                        std::remove_if(sq.second.begin(), sq.second.end(), ready),
+                        sq.second.end()
+                    );
+                }
+
             }
-            m.unlock();
+
+            if (!tmp.empty()) {
+                L_DEBUG_F("Event-DeQueue", "[%s] DeQueue messages: %lu", getThreadId(), tmp.size());
+                sendTry(tmp);
+                tmp.clear();
+            }
 
             boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
         }
     }
 
-    void dequeueUndeliveredMessages() {
-        while (running) {
-            // iterate all targets
-            for (auto &sq: undeliveredQueue) {
-                sendTry(sq.first, sq.second);
-            }
-
-            boost::this_thread::sleep_for(boost::chrono::seconds(intervalSeconds));
-        }
-    }
-
     void addMessage(const wss::MessagePayload &payload) {
-        std::mutex mutex;
-        std::unique_lock<std::mutex> lock(mutex);
-
-        handler.wait(lock);
+        boost::upgrade_lock<boost::shared_mutex> lock(dataMutex);
+        boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
         for (auto &target: targets) {
-            sendQueue[target.first].push(payload);
+            sendQueue[target.first].push_back(SendStatus{payload, 0L, 1});
         }
-
-        emitter.notify_one();
+        L_DEBUG_F("Event-Enqueue", "[%s] Adding message to send queue", getThreadId());
     }
 
     void onMessage(const wss::MessagePayload &payload) {
