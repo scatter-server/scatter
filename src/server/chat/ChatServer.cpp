@@ -20,9 +20,13 @@ wss::ChatServer::ChatServer(const std::string &host, unsigned short port, const 
     };
 
     endpoint = &server.endpoint[regexPath];
-    endpoint->on_message = std::bind(&wss::ChatServer::onMessage, this, _1, _2);
-    endpoint->on_open = std::bind(&wss::ChatServer::onConnected, this, _1);
-    endpoint->on_close = std::bind(&wss::ChatServer::onDisconnected, this, _1, _2, _3);
+    endpoint->on_message = std::bind(&wss::ChatServer::onMessage, this, std::placeholders::_1, std::placeholders::_2);
+    endpoint->on_open = std::bind(&wss::ChatServer::onConnected, this, std::placeholders::_1);
+    endpoint->on_close = std::bind(&wss::ChatServer::onDisconnected,
+                                   this,
+                                   std::placeholders::_1,
+                                   std::placeholders::_2,
+                                   std::placeholders::_3);
 
 }
 
@@ -203,18 +207,21 @@ void wss::ChatServer::removeConnectionFor(UserId id) {
     idConnectionMap.erase(id);
 }
 const wss::WsConnectionPtr wss::ChatServer::getConnectionFor(UserId id) {
+    std::lock_guard<std::recursive_mutex> locker(connLock);
     return idConnectionMap[id];
 }
 
 const std::vector<wss::WsConnectionPtr> wss::ChatServer::getConnectionsFor(const wss::MessagePayload &payload) {
     std::vector<wss::WsConnectionPtr> out;
+    {
+        std::lock_guard<std::recursive_mutex> locker(connLock);
+        for (UserId id: payload.getRecipients()) {
+            if (!hasConnectionFor(id)) {
+                continue;
+            }
 
-    for (UserId id: payload.getRecipients()) {
-        if (!hasConnectionFor(id)) {
-            continue;
+            out.push_back(getConnectionFor(id));
         }
-
-        out.push_back(getConnectionFor(id));
     }
 
     return out;
@@ -229,24 +236,30 @@ int wss::ChatServer::redeliverMessagesTo(const wss::MessagePayload &payload) {
     return cnt;
 }
 bool wss::ChatServer::hasUndeliveredMessages(UserId id) {
+    std::lock_guard<std::mutex> locker(undeliveredLock);
     L_DEBUG_F("Server", "Check for undelivered messages for user %lu: %lu", id, undeliveredMessagesMap[id].size());
     return undeliveredMessagesMap[id].size() > 0;
 }
 wss::MessageQueue &wss::ChatServer::getUndeliveredMessages(UserId id) {
+    std::lock_guard<std::mutex> locker(undeliveredLock);
     return undeliveredMessagesMap[id];
 }
 
 std::vector<wss::MessageQueue *>
 wss::ChatServer::getUndeliveredMessages(const MessagePayload &payload) {
     std::vector<wss::MessageQueue *> out;
-    for (UserId id: payload.getRecipients()) {
-        out.push_back(&undeliveredMessagesMap[id]);
+    {
+        std::lock_guard<std::mutex> locker(undeliveredLock);
+        for (UserId id: payload.getRecipients()) {
+            out.push_back(&undeliveredMessagesMap[id]);
+        }
     }
 
     return out;
 }
+
 void wss::ChatServer::enqueueUndeliveredMessage(const wss::MessagePayload &payload) {
-    // map is just for reading (STL guaranteed safe for multiple threads read), and queue is blocking by mutex and condition_variable
+    std::unique_lock<std::mutex> uniqueLock(undeliveredLock);
     for (auto recipient: payload.getRecipients()) {
         undeliveredMessagesMap[recipient].push(payload);
     }

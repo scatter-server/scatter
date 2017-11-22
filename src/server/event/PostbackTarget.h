@@ -21,20 +21,20 @@ namespace event {
 class PostbackTarget : public Target {
  public:
     explicit PostbackTarget(const json &config);
-    bool send(const wss::MessagePayload &payload, std::string *error = nullptr) override;
+    bool send(const wss::MessagePayload &payload, std::string &error) override;
     std::string getType() override;
 
  protected:
     wss::web::HttpClient &getClient();
-    WebAuth getAuth();
+    std::unique_ptr<WebAuth> &getAuth();
 
  private:
     wss::web::Request request;
-    WebAuth auth;
+    std::unique_ptr<WebAuth> auth;
     wss::web::HttpClient client;
     std::string url;
-
-    void setAuth(WebAuth &&auth);
+    template<class T>
+    void setAuth(T &&auth);
 
 };
 

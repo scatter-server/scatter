@@ -33,7 +33,12 @@
     "targets": [
       {
         "type": "postback",
-        "url": "http://localhost"
+        "url": "http://api.dev.mdsclub.ru/v1/chat/send",
+        "auth": {
+          "type": "header",
+          "name": "X-Api-Token",
+          "value": "7ppOeHwnA7PMJyl9ciZY97UTBBDqCEME"
+        }
       }
     ]
   }

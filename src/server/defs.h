@@ -28,7 +28,6 @@ using WsMessagePtr = std::shared_ptr<WsServer::Message>;
 using json = nlohmann::json;
 
 using HttpServer = SimpleWeb::Server<SimpleWeb::HTTP>;
-using HttpClient = SimpleWeb::Client<SimpleWeb::HTTP>;
 using HttpResponse = std::shared_ptr<HttpServer::Response>;
 using HttpRequest = std::shared_ptr<HttpServer::Request>;
 

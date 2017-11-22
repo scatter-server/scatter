@@ -7,17 +7,23 @@
  */
 
 #include "PostbackTarget.h"
+#include <type_traits>
 
-bool wss::event::PostbackTarget::send(const wss::MessagePayload &payload, std::string *error) {
+bool wss::event::PostbackTarget::send(const wss::MessagePayload &payload, std::string &error) {
+    getClient().enableVerbose(true);
+
     request.setBody(payload.toJson())
-           .setMethod(wss::web::Request::POST);
+           .setMethod(wss::web::Request::POST)
+           .setHeader({"Content-Length", std::to_string(request.getBody().length())})
+           .setHeader({"Content-Type", "application/json"});
 
-    auth.performAuth(request);
-
+    auth->performAuth(request);;
     wss::web::Response response = getClient().execute(request);
     bool success = response.isSuccess();
+    std::stringstream ss;
+    ss << response.statusMessage << "\n" << response.data;
     if (!success) {
-        *error = response.statusMessage;
+        error = ss.str();
     }
 
     return success;
@@ -63,13 +69,15 @@ wss::event::PostbackTarget::PostbackTarget(const nlohmann::json &config) :
         setErrorMessage("Invalid postback target configuration. " + std::string(e.what()));
     }
 }
-void wss::event::PostbackTarget::setAuth(wss::event::WebAuth &&auth) {
-    this->auth = std::move(auth);
+template<class T>
+void wss::event::PostbackTarget::setAuth(T &&auth) {
+    static_assert(std::is_base_of<wss::event::WebAuth, T>::value, "Only subclass of Base can be passed");
+    this->auth = std::make_unique<T>(auth);
 }
 wss::web::HttpClient &wss::event::PostbackTarget::getClient() {
     return client;
 }
-wss::event::WebAuth wss::event::PostbackTarget::getAuth() {
+std::unique_ptr<wss::event::WebAuth> &wss::event::PostbackTarget::getAuth() {
     return auth;
 }
 

@@ -31,7 +31,7 @@ class RestServer {
 
     void run();
     void stop();
-    void waitThread();
+    void joinThread();
     void detachThread();
 
     RestServer &addEndpoint(const std::string &path, const std::string &methodName, ResponseCallback &&callback);

@@ -21,11 +21,12 @@
 #include <time.h>
 #include <functional>
 #include <toolboxpp.h>
+#include <boost/thread.hpp>
 #include "server_ws.hpp"
 #include "json.hpp"
 #include "../defs.h"
 #include "Message.h"
-#include "../BlockingQueue.hpp"
+#include "../threadsafe.hpp"
 #include "../helpers/helpers.h"
 
 namespace wss {
@@ -34,7 +35,7 @@ using namespace std;
 using namespace std::placeholders;
 
 using QueryParams = std::unordered_map<std::string, std::string>;
-using MessageQueue = wss::BlockingQueue<MessagePayload>;
+using MessageQueue = std::queue<MessagePayload>;
 namespace cal = boost::gregorian;
 namespace pt = boost::posix_time;
 
@@ -130,6 +131,7 @@ class ChatServer {
 
     std::recursive_mutex connLock;
     std::mutex frameBufferLok;
+    std::mutex undeliveredLock;
 
     std::thread *workerThread;
 
@@ -139,7 +141,7 @@ class ChatServer {
     std::unordered_map<UserId, time_t> transferTimers;
     std::unordered_map<UserId, std::shared_ptr<std::stringstream>> frameBuffer;
     std::unordered_map<UserId, WsConnectionPtr> idConnectionMap;
-    std::unordered_map<UserId, wss::BlockingQueue<wss::MessagePayload>> undeliveredMessagesMap;
+    std::unordered_map<UserId, std::queue<wss::MessagePayload>> undeliveredMessagesMap;
 
     bool hasFrameBuffer(UserId id);
     bool writeFrameBuffer(UserId id, const std::string &input, bool clear = false);

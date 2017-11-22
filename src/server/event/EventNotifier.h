@@ -19,7 +19,7 @@
 #include <deque>
 #include <algorithm>
 #include <boost/thread.hpp>
-#include <math.h>
+#include <cmath>
 #include <boost/asio/io_service.hpp>
 #include "../chat/ChatServer.h"
 #include "EventConfig.h"
@@ -85,16 +85,10 @@ class EventNotifier {
         targets.insert({target->getType(), std::move(target)});
     }
 
-    void send(const wss::MessagePayload &payload) {
-        for (auto &target: targets) {
-            target.second->send(payload);
-        }
-    }
-
     /**
+     * Locks overview:
      * onMessage -> addMessage uniqueLock[sendQueue[w]]
-     * dequeueMessages -> uniqueLock[sendQueue[rw], undeliveredQueue[w], undeliveredRetries[rw]]
-     * dequeueUndelivered ->
+     * dequeueMessages -> uniqueLock[sendQueue[rw]]
      */
     void subscribe() {
         for (int i = 0; i < 4; i++) {
@@ -107,6 +101,10 @@ class EventNotifier {
         ws.addStopListener(std::bind(&EventNotifier::onStop, this));
         ioService.post(boost::bind(&EventNotifier::dequeueMessages, this));
 
+        join();
+    }
+
+    void join() {
         threadGroup.join_all();
     }
 
@@ -118,7 +116,7 @@ class EventNotifier {
  private:
     struct SendStatus {
       wss::MessagePayload payload;
-      std::time_t sendTime;
+      std::time_t sendTime = 0;
       int sendTries = 0;
       SendStatus() = default;
       ~SendStatus() = default;
@@ -130,7 +128,7 @@ class EventNotifier {
           this->sendTime = another.sendTime;
           return *this;
       }
-      SendStatus &operator=(SendStatus &&another) {
+      SendStatus &operator=(SendStatus &&another) noexcept {
           this->payload = std::move(another.payload);
           this->sendTries = another.sendTries;
           this->sendTime = another.sendTime;
@@ -173,12 +171,12 @@ class EventNotifier {
                 targetQueue.second.pop_front();
 
                 std::string sendResult;
-                if (!targets[targetName]->send(status.payload, &sendResult)) {
-                    L_DEBUG_F("Event-Send",
-                              "[%s] Can't send message to target %s: %s",
-                              getThreadId(),
-                              targetName.c_str(),
-                              sendResult.c_str());
+                if (!targets[targetName]->send(status.payload, sendResult)) {
+
+                    std::stringstream ss;
+                    ss << "[" << getThreadId() << "] Can't send message to target " << targetName << ": " << sendResult;
+                    Logger::get().debug("Event-Send", ss.str());
+
                     L_DEBUG_F("Event-Send", "Send tries: %d", status.sendTries);
 
                     // if tries < maxRetries
@@ -198,7 +196,7 @@ class EventNotifier {
             }
         }
 
-        targetQueueMap.clear();
+//        targetQueueMap.clear();
     }
 
     void dequeueMessages() {
@@ -209,14 +207,15 @@ class EventNotifier {
 
         while (running) {
             std::unordered_map<std::string, std::deque<SendStatus>> tmp;
+
             {
                 boost::shared_lock<boost::shared_mutex> slock(dataMutex);
                 // iterate all targets
                 for (auto &sq: sendQueue) {
-                    for (auto &q: sendQueue[sq.first]) {
-                        const long diff = abs(std::time(nullptr) - q.sendTime);
-                        if (ready(q)) {
-                            tmp[sq.first].push_back(q);
+                    for (auto &status: sendQueue[sq.first]) {
+                        const long diff = abs(std::time(nullptr) - status.sendTime);
+                        if (ready(status)) {
+                            tmp[sq.first].push_back(status);
                         }
                     }
 

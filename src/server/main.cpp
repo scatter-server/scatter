@@ -78,7 +78,7 @@ void setServerConfig(wss::ChatServer *webSocket, nlohmann::json &config) {
     }
 }
 
-bool setEventConfig(wss::ChatServer *webSocket, nlohmann::json &config) {
+bool setEventConfig(wss::event::EventNotifier &notifier, nlohmann::json &config) {
     if (!hasKey(config, "event")) {
         return true;
     }
@@ -102,7 +102,6 @@ bool setEventConfig(wss::ChatServer *webSocket, nlohmann::json &config) {
         return false;
     }
 
-    EventNotifier notifier(*webSocket);
     notifier.setMaxTries(eventConfig.value("retryCount", 3));
     notifier.setRetryIntervalSeconds(eventConfig.value("retryIntervalSeconds", 10));
 
@@ -123,12 +122,27 @@ bool setEventConfig(wss::ChatServer *webSocket, nlohmann::json &config) {
         i++;
     }
 
-    notifier.subscribe();
-
     return true;
 }
 
+#include "web/HttpClient.h"
+
 int main(int argc, char **argv) {
+    using namespace wss::web;
+
+
+
+//    HttpClient client;
+//    client.enableVerbose(true);
+//    Request request("http://api.dev.mdsclub.ru/v1/chat/send");
+//    request.setMethod(Request::Method::POST)
+//           .setBody(R"({\"sender\":1, \"recipients\":[2], \"type\":\"text\", \"text\":\"test\"})")
+//           .setHeader({"X-Api-Token", "7ppOeHwnA7PMJyl9ciZY97UTBBDqCEME"})
+//           .setHeader({"Content-Type", "application/json"});
+//
+//    Response response = client.execute(request);
+//    response.dump();
+
     cmdline::parser args;
     args.add<std::string>("config", 'C', "Use: wsserver -C [--config] /path/to/wsserver.json", true);
     args.parse(argc, argv);
@@ -172,13 +186,19 @@ int main(int argc, char **argv) {
                                     serverConfig.value("workers", std::thread::hardware_concurrency() * 2)
                                 ));
 
-
     // run ws server
     webSocket.run();
-    bool hasSet = setEventConfig(&webSocket, config);
-    if (!hasSet) {
-        return 1;
+
+    if (hasKey(config, "event") && config["event"].value("enabled", false)) {
+        wss::event::EventNotifier notifier(webSocket);
+        bool hasError = setEventConfig(notifier, config);
+        if (!hasError) {
+            return 1;
+        }
+
+        notifier.join();
     }
+
 
 //    if (enableApi) {
 //        wss::ChatRestApi restApi("*", 8081);

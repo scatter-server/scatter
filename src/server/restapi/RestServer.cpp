@@ -37,8 +37,8 @@ void wss::RestServer::stop() {
     this->server.stop();
 }
 
-void wss::RestServer::waitThread() {
-    if (workerThread != nullptr) {
+void wss::RestServer::joinThread() {
+    if (workerThread != nullptr && workerThread->joinable()) {
         workerThread->join();
     }
 }

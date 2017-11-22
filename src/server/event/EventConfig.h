@@ -66,7 +66,7 @@ class BasicAuth : public WebAuth {
             static_cast<unsigned int>(glued.length())
         );
 
-        request.addHeader({"Authorization", "Basic " + encoded});
+        request.setHeader({"Authorization", "Basic " + encoded});
     }
  private:
     std::string username, password;
@@ -88,7 +88,7 @@ class HeaderAuth : public WebAuth {
         return "header";
     }
     void performAuth(wss::web::Request &request) override {
-        request.addHeader({name, value});
+        request.setHeader({name, value});
     }
 
  private:
@@ -120,7 +120,7 @@ class Target {
         config(config),
         valid(true),
         errorMessage() { }
-    virtual bool send(const wss::MessagePayload &payload, std::string *error = nullptr) = 0;
+    virtual bool send(const wss::MessagePayload &payload, std::string &error) = 0;
     virtual std::string getType() = 0;
 
     bool isValid() const {

@@ -31,7 +31,7 @@ set(SERVER_SRC
     src/server/defs.h
     src/server/chat/Message.h
     src/server/chat/Message.cpp
-    src/server/BlockingQueue.hpp
+    src/server/threadsafe.hpp
     src/server/restapi/RestServer.cpp
     src/server/restapi/RestServer.h
     src/server/restapi/ChatRestApi.cpp
