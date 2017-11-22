@@ -35,7 +35,6 @@ using namespace std::placeholders;
 
 using QueryParams = std::unordered_map<std::string, std::string>;
 using MessageQueue = wss::BlockingQueue<MessagePayload>;
-using MessageEventCallback = std::function<void(const wss::MessagePayload &)>;
 namespace cal = boost::gregorian;
 namespace pt = boost::posix_time;
 
@@ -91,8 +90,12 @@ class ChatServer {
 
     bool send(const MessagePayload &payload);
 
-    void addListener(MessageEventCallback callback) {
-        eventListeners.push_back(callback);
+    void addMessageListener(std::function<void(const wss::MessagePayload &)> callback) {
+        messageListeners.push_back(callback);
+    }
+
+    void addStopListener(std::function<void()> callback) {
+        stopListeners.push_back(callback);
     }
 
  protected:
@@ -122,7 +125,8 @@ class ChatServer {
 
 
     // events
-    std::vector<MessageEventCallback> eventListeners;
+    std::vector<std::function<void(const wss::MessagePayload &)>> messageListeners;
+    std::vector<std::function<void()>> stopListeners;
 
     std::recursive_mutex connLock;
     std::mutex frameBufferLok;

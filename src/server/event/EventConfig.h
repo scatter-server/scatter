@@ -11,9 +11,9 @@
 
 #include <string>
 #include <curl/curl.h>
+#include "../helpers/base64.h"
 #include "../chat/Message.h"
 #include "../web/HttpClient.h"
-#include "PostbackTarget.h"
 
 namespace wss {
 namespace event {
@@ -33,10 +33,15 @@ namespace event {
  */
 class WebAuth {
  public:
-    WebAuth() = default;
-    virtual std::string getType() = 0;
-    virtual void performAuth(wss::web::QueryBuilder &queryBuilder) = 0;
+    virtual std::string getType() {
+        return "noauth";
+    }
+
+    virtual void performAuth(wss::web::Request &request) {
+        //do nothing
+    };
 };
+
 
 class BasicAuth : public WebAuth {
  public:
@@ -49,13 +54,19 @@ class BasicAuth : public WebAuth {
         password(password) {
     }
 
-    string getType() override {
+    std::string getType() override {
         return "basic";
     }
-    void performAuth(wss::web::QueryBuilder &queryBuilder) override {
-//        curl_easy_setopt(curl, CURLOPT_HTTPAUTH, (long) CURLAUTH_BASIC);
-//        curl_easy_setopt(curl, CURLOPT_USERNAME, username.c_str());
-//        curl_easy_setopt(curl, CURLOPT_PASSWORD, password.c_str());
+    void performAuth(wss::web::Request &request) override {
+        std::stringstream ss;
+        ss << username << ":" << password;
+        const std::string glued = ss.str();
+        const std::string encoded = wss::helpers::base64_encode(
+            reinterpret_cast<const unsigned char *>(glued.c_str()),
+            static_cast<unsigned int>(glued.length())
+        );
+
+        request.addHeader({"Authorization", "Basic " + encoded});
     }
  private:
     std::string username, password;
@@ -73,15 +84,11 @@ class HeaderAuth : public WebAuth {
         value(value) {
     }
 
-    string getType() override {
+    std::string getType() override {
         return "header";
     }
-    void performAuth(CURL *curl) override {
-        struct curl_slist *headers = nullptr;
-        const std::string authHeader = std::string(name + ": " + value);
-        curl_slist_append(headers, authHeader.c_str());
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
+    void performAuth(wss::web::Request &request) override {
+        request.addHeader({name, value});
     }
 
  private:
@@ -90,88 +97,54 @@ class HeaderAuth : public WebAuth {
 
 class BearerAuth : public HeaderAuth {
  public:
-    BearerAuth(const std::string &value) :
+    explicit BearerAuth(std::string &&value) :
         HeaderAuth("Authorization", std::string("Bearer " + value)) { }
 
-    string getType() override {
+    std::string getType() override {
         return "bearer";
     }
-    void performAuth(CURL *curl) override {
-        HeaderAuth::performAuth(curl);
+    void performAuth(wss::web::Request &request) override {
+        HeaderAuth::performAuth(request);
     }
 };
 
 /**
  * Available:
- * postback:
+ * postback: PostbackTarget
  *  "url": "http://example.com/postback",
  *
- * Every target can require an Auth config
  */
-class WebTarget {
+class Target {
  public:
-    static std::unique_ptr<WebTarget> create(const nlohmann::json &config) {
-        using namespace toolboxpp::strings;
-        if (equalsIgnoreCase(config.at("type"), "postback")) {
-            std::unique_ptr<WebTarget> target = std::make_unique<wss::event::PostbackTarget>(config);
-
-            if (config.find("auth") != config.end()) {
-                const std::string authType = config["auth"].at("type");
-
-                if (equalsIgnoreCase(authType, "basic")) {
-                    target->setAuth(BasicAuth(
-                        config["auth"].at("user"),
-                        config["auth"].at("password")
-                    ));
-                } else if (equalsIgnoreCase(authType, "header")) {
-                    target->setAuth(HeaderAuth(
-                        config["auth"].at("name"),
-                        config["auth"].at("value")
-                    ));
-                } else if (equalsIgnoreCase(authType, "bearer")) {
-                    target->setAuth(BearerAuth(
-                        config["auth"].at("value")
-                    ));
-                } else {
-                    throw std::runtime_error("Unsupported auth method: " + authType);
-                }
-            }
-
-            return target;
-
-        }
-
-        throw std::runtime_error("Unsupported target " + config.at("type"));
-    }
-
-    WebTarget(nlohmann::json config) {
-
-    }
-
+    explicit Target(const nlohmann::json &config) :
+        config(config),
+        valid(true),
+        errorMessage() { }
     virtual bool send(const wss::MessagePayload &payload) = 0;
     virtual std::string getType() = 0;
 
-    void setAuth(WebAuth &&auth) {
-        this->auth = std::move(auth);
+    bool isValid() const {
+        return valid;
     }
 
-    void performAuth() {
-//        if (auth == nullptr) return;
-//        auth->performAuth(client.getCurl());
+    std::string getErrorMessage() const {
+        return errorMessage;
     }
 
  protected:
-    wss::web::HttpClient &getClient() {
-        return client;
+    void setErrorMessage(const std::string &msg) {
+        errorMessage = msg;
+        valid = false;
     }
 
-    WebAuth getAuth() {
-        return auth;
+    void setErrorMessage(std::string &&msg) {
+        errorMessage = std::move(msg);
+        valid = false;
     }
-
  private:
-    WebAuth auth;
-    wss::web::HttpClient client;
+    nlohmann::json config;
+    bool valid;
+    std::string errorMessage;
 };
 
 }

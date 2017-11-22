@@ -86,39 +86,44 @@ bool setEventConfig(wss::ChatServer *webSocket, nlohmann::json &config) {
     using namespace wss::event;
 
     json eventConfig = config["event"];
-    bool enabledEvent = eventConfig.value("enabled", false);
-    if (enabledEvent) {
-        int retryIntervalSeconds = eventConfig.value("retryIntervalSeconds", 10);
-        int retryCount = eventConfig.value("retryCount", 3);
-        if (!hasKey(eventConfig, "targets")) {
-            cerr << "If event marked as enabled, you must set at lease one target" << endl;
-            return false;
-        }
-
-        json targets = eventConfig["targets"];
-        if (!targets.is_array()) {
-            cerr << "event.targets must be an array of objects" << endl;
-            return false;
-        }
-
-        wss::event::EventNotifier notifier(webSocket);
-
-        int i = 0;
-        for (auto &target: targets) {
-            if (!hasKey(target, "type")) {
-                cerr << "event.targets[" << i << "].type - required" << endl;
-                return false;
-            }
-
-            notifier.addTarget(
-                wss::event::WebTarget::create(target)
-            );
-
-            i++;
-        }
-
-        notifier.subscribe();
+    const bool enabledEvent = eventConfig.value("enabled", false);
+    if (!enabledEvent) {
+        return true;
     }
+
+    if (!hasKey(eventConfig, "targets")) {
+        cerr << "If event marked as enabled, you must set at least one target" << endl;
+        return false;
+    }
+
+    json targets = eventConfig["targets"];
+    if (!targets.is_array()) {
+        cerr << "event.targets must be an array of objects" << endl;
+        return false;
+    }
+
+    EventNotifier notifier(*webSocket);
+    notifier.setMaxTries(eventConfig.value("retryCount", 3));
+    notifier.setRetryIntervalSeconds(eventConfig.value("retryIntervalSeconds", 10));
+
+    int i = 0;
+    for (auto &target: targets) {
+        if (!hasKey(target, "type")) {
+            cerr << "event.targets[" << i << "].type - required" << endl;
+            return false;
+        }
+
+        try {
+            notifier.addTarget(target);
+        } catch (const std::runtime_error &e) {
+            cerr << e.what() << endl;
+            return false;
+        }
+
+        i++;
+    }
+
+    notifier.subscribe();
 
     return true;
 }

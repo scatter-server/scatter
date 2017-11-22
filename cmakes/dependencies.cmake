@@ -21,18 +21,6 @@ function (linkdeps DEPS_PROJECT)
 		target_include_directories(${DEPS_PROJECT} PUBLIC ${Boost_INCLUDE_DIR})
 	endif ()
 
-	#net lib
-	find_library(CPP_NET_LIBRARIES_URI cppnetlib-uri)
-	if (CPP_NET_LIBRARIES_URI-NOTFOUND)
-		message(CRITICAL cppnetlib-uri not found)
-	endif ()
-	target_link_libraries(${DEPS_PROJECT} ${CPP_NET_LIBRARIES_URI})
-	find_library(CPP_NET_LIBRARIES_CONN cppnetlib-client-connections)
-	if (CPP_NET_LIBRARIES_CONN-NOTFOUND)
-		message(CRITICAL cppnetlib-client-connections not found)
-	endif ()
-	target_link_libraries(${DEPS_PROJECT} ${CPP_NET_LIBRARIES_CONN})
-
 	# OpenSSL
 	if (APPLE)
 		set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")

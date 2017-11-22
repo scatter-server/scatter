@@ -113,7 +113,7 @@ void wss::ChatServer::onMessage(WsConnectionPtr connection, WsMessagePtr message
 
     send(payload);
 
-    for (auto &listener: eventListeners) {
+    for (auto &listener: messageListeners) {
         listener(payload);
     }
 }

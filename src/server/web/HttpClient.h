@@ -33,6 +33,8 @@ class Request {
     std::vector<std::pair<std::string, std::string>> params;
 
  public:
+    Request() :
+        url(), method(GET), body() { }
     explicit Request(const std::string &url) :
         url(url),
         method(GET),
@@ -43,6 +45,16 @@ class Request {
         url(std::move(url)),
         method(GET),
         body() {
+    }
+
+    Request &setUrl(const std::string &url) {
+        this->url = url;
+        return *this;
+    }
+
+    Request &setUrl(std::string &&url) {
+        this->url = std::move(url);
+        return *this;
     }
 
     Request &setBody(const std::string &body) {

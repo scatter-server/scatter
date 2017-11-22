@@ -41,7 +41,7 @@ set(SERVER_SRC
     src/server/web/HttpClient.cpp
     src/server/web/HttpClient.h
     src/server/web/QueryBuilder.hpp
-    src/server/event/EventNotifier.h src/server/event/PostbackTarget.cpp src/server/event/PostbackTarget.h src/server/event/EventConfig.h)
+    src/server/event/EventNotifier.h src/server/event/PostbackTarget.cpp src/server/event/PostbackTarget.h src/server/event/EventConfig.h src/server/helpers/base64.cpp src/server/helpers/base64.h)
 
 add_executable(${PROJECT_NAME}
                ${SERVER_SRC}
