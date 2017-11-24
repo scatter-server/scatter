@@ -16,7 +16,7 @@ include(cmakes/sources_sets.cmake)
 include(cmakes/dependencies.cmake)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/ws)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/json)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/json/src)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/http)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/ini-parser/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/args)
@@ -41,7 +41,16 @@ set(SERVER_SRC
     src/server/web/HttpClient.cpp
     src/server/web/HttpClient.h
     src/server/web/QueryBuilder.hpp
-    src/server/event/EventNotifier.h src/server/event/PostbackTarget.cpp src/server/event/PostbackTarget.h src/server/event/EventConfig.h src/server/helpers/base64.cpp src/server/helpers/base64.h src/server/StandaloneService.h src/server/event/EventNotifier.cpp src/server/ServerStarter.cpp src/server/ServerStarter.h)
+    src/server/event/EventNotifier.h
+    src/server/event/PostbackTarget.cpp
+    src/server/event/PostbackTarget.h
+    src/server/event/EventConfig.h
+    src/server/helpers/base64.cpp
+    src/server/helpers/base64.h
+    src/server/StandaloneService.h
+    src/server/event/EventNotifier.cpp
+    src/server/ServerStarter.cpp
+    src/server/ServerStarter.h)
 
 add_executable(${PROJECT_NAME}
                ${SERVER_SRC}

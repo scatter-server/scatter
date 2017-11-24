@@ -4,3 +4,6 @@
 [submodule "libs/ws"]
 	path = libs/ws
 	url = git@github.com:edwardstock/Simple-WebSocket-Server.git
+[submodule "libs/json"]
+	path = libs/json
+	url = git@github.com:nlohmann/json.git

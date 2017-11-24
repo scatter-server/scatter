@@ -1,5 +1,5 @@
 set(COMMON_LIBS_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/json/json.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/json/src/json.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/args/cmdline.hpp
     )
 set(WS_COMMON_SRC
