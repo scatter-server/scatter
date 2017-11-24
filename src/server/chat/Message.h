@@ -12,12 +12,14 @@
 #include <string>
 #include <iostream>
 #include <type_traits>
+#include <toolboxpp.h>
 #include "json.hpp"
 #include "../defs.h"
 
 namespace wss {
 
 extern const char *TYPE_TEXT;
+extern const char *TYPE_BINARY;
 extern const char *TYPE_B64_IMAGE;
 extern const char *TYPE_URL_IMAGE;
 extern const char *TYPE_NOTIFICATION_RECEIVED;
@@ -39,6 +41,9 @@ class MessagePayload {
     friend void to_json(json &j, const MessagePayload &in);
     friend void from_json(const json &j, MessagePayload &in);
  public:
+    static MessagePayload createSendStatus(UserId to);
+    static MessagePayload createSendStatus(const MessagePayload &payload);
+
     MessagePayload() = default;
     MessagePayload(UserId from, UserId to, const std::string &message);
     MessagePayload(UserId from, UserId to, std::string &&message);
@@ -64,6 +69,14 @@ class MessagePayload {
      * @return
      */
     const std::vector<UserId> getRecipients() const;
+
+    /**
+     * Message type
+     * @return
+     */
+    const std::string getType() const {
+        return type;
+    }
     /**
      * Text message
      * @return
@@ -80,19 +93,34 @@ class MessagePayload {
      * @param id
      * @return
      */
-    const bool isMyMessage(UserId id) const;
+    bool isMyMessage(UserId id) const;
     /**
      * If can't parse input json or some input data is not valid, false will returned
      * @return
      */
-    const bool isValid() const;
+    bool isValid() const;
+    /**
+     * Check message type
+     * @param type
+     * @return
+     */
+    bool typeIs(const char *type) const;
 
-    const bool isBinary() const;
+    /**
+     * Whether message type is just send status
+     * @return
+     */
+    bool isSentStatus() const;
+    /**
+     * Whether message type is binary
+     * @return
+     */
+    bool isBinary() const;
     /**
      * Check recipients count is only one
      * @return
      */
-    const bool isSingleRecipient();
+    bool isSingleRecipient() const;
     /**
      * Error message
      * @return Empty string if no one error. Check @see isValid() before

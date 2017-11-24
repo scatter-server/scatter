@@ -15,6 +15,7 @@ using std::cerr;
 using std::endl;
 
 const char *wss::TYPE_TEXT = "text";
+const char *wss::TYPE_BINARY = "binary";
 const char *wss::TYPE_B64_IMAGE = "b64image";
 const char *wss::TYPE_URL_IMAGE = "url_image";
 const char *wss::TYPE_NOTIFICATION_RECEIVED = "notification_received";
@@ -107,17 +108,24 @@ const std::string wss::MessagePayload::toJson() const {
 const std::string wss::MessagePayload::getText() const {
     return text;
 }
-const bool wss::MessagePayload::isMyMessage(UserId id) const {
+bool wss::MessagePayload::isMyMessage(UserId id) const {
     return getSender() == id;
 }
-const bool MessagePayload::isValid() const {
+bool MessagePayload::isValid() const {
     return valid && !recipients.empty();
 }
-const bool MessagePayload::isSingleRecipient() {
+bool MessagePayload::isSingleRecipient() const {
     return recipients.size() == 1;
 }
-const bool MessagePayload::isBinary() const {
-    return strcmp(type.c_str(), TYPE_B64_IMAGE) == 0;
+bool MessagePayload::isBinary() const {
+    return typeIs(TYPE_B64_IMAGE);
+}
+bool MessagePayload::isSentStatus() const {
+    return typeIs(TYPE_NOTIFICATION_RECEIVED);
+}
+bool MessagePayload::typeIs(const char *t) const {
+    const char *lc = type.c_str();
+    return strcmp(lc, t) == 0;
 }
 const std::string MessagePayload::getError() const {
     return errorCause;
@@ -171,6 +179,18 @@ void wss::from_json(const json &j, MessagePayload &in) {
     in.recipients = j.at("recipients").get<std::vector<UserId>>();
 
     in.data = j.value("data", json());
+}
+
+MessagePayload MessagePayload::createSendStatus(UserId to) {
+    MessagePayload payload;
+    payload.sender = 0;
+    payload.addRecipient(to);
+    payload.type = TYPE_NOTIFICATION_RECEIVED;
+
+    return payload;
+}
+MessagePayload MessagePayload::createSendStatus(const MessagePayload &payload) {
+    return createSendStatus(payload.getSender());
 }
 
 

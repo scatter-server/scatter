@@ -180,8 +180,6 @@ class ChatMessageServer : public virtual StandaloneService {
     const unsigned char RSV_OPCODE_PONG = 10;
     const unsigned char RSV_OPCODE_TEXT = 129;
     const unsigned char RSV_OPCODE_BINARY = 130;
-
-    void setMessageSizeLimit(size_t bytes);
  public:
     ChatMessageServer(const std::string &host, unsigned short port, const std::string &regexPath);
     ~ChatMessageServer();
@@ -194,19 +192,16 @@ class ChatMessageServer : public virtual StandaloneService {
     void stopService() override;
 
     void enableTLS(const std::string &crtPath, const std::string &keyPath);
+    void setMessageSizeLimit(size_t bytes);
+    void setEnabledMessageStatus(bool enabled);
 
     void send(
         const MessagePayload &payload,
         std::function<void(wss::MessagePayload &&payload)> &&successPayload = [](wss::MessagePayload &&) { }
     );
 
-    void addMessageListener(std::function<void(wss::MessagePayload &&)> callback) {
-        messageListeners.push_back(callback);
-    }
-
-    void addStopListener(std::function<void()> callback) {
-        stopListeners.push_back(callback);
-    }
+    void addMessageListener(std::function<void(wss::MessagePayload &&)> callback);
+    void addStopListener(std::function<void()> callback);
 
  protected:
     void onMessage(ConnectionInfo &connection, WsMessagePtr payload);
@@ -232,7 +227,10 @@ class ChatMessageServer : public virtual StandaloneService {
     bool enableTls;
     std::string crtPath;
     std::string keyPath;
+
+    // chat
     std::size_t maxMessageSize; // 10 megabytes by default
+    bool enableMessageStatus = false;
 
 
     // events

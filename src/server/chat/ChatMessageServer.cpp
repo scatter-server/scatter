@@ -25,7 +25,6 @@ wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned shor
       onMessage(findOrCreateConnection(connectionPtr), messagePtr);
     };
 
-//    endpoint->on_message = std::bind(&wss::ChatMessageServer::onMessage, this, std::placeholders::_1, std::placeholders::_2);
     endpoint->on_open = std::bind(&wss::ChatMessageServer::onConnected, this, std::placeholders::_1);
     endpoint->on_close = std::bind(&wss::ChatMessageServer::onDisconnected,
                                    this,
@@ -36,7 +35,6 @@ wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned shor
 }
 
 wss::ChatMessageServer::~ChatMessageServer() {
-    // raii
     stopService();
     joinThreads();
 }
@@ -122,8 +120,19 @@ void wss::ChatMessageServer::onMessage(ConnectionInfo &connection, WsMessagePtr 
 }
 
 void wss::ChatMessageServer::onMessageSent(wss::MessagePayload &&payload) {
-    for (auto &listener: messageListeners) {
-        listener(std::move(payload));
+    if (!payload.isSentStatus()) {
+        try {
+            wss::MessagePayload status = MessagePayload::createSendStatus(payload);
+            send(status);
+        } catch (const ConnectionNotFound &e) {
+            L_DEBUG_F("OnMessageSent",
+                      "Connection not found for %lu. Will send when user comes again.",
+                      payload.getSender());
+        }
+
+        for (auto &listener: messageListeners) {
+            listener(std::move(payload));
+        }
     }
 }
 
@@ -380,6 +389,19 @@ void wss::ChatMessageServer::setMessageSizeLimit(size_t bytes) {
     maxMessageSize = bytes;
     server.config.max_message_size = maxMessageSize;
 }
+
+void wss::ChatMessageServer::setEnabledMessageStatus(bool enabled) {
+    enableMessageStatus = enabled;
+}
+
+void wss::ChatMessageServer::addMessageListener(std::function<void(wss::MessagePayload &&)> callback) {
+    messageListeners.push_back(callback);
+}
+void wss::ChatMessageServer::addStopListener(std::function<void()> callback) {
+    stopListeners.push_back(callback);
+}
+
+
 
 const char *wss::ConnectionNotFound::what() const throw() {
     return "Connection not found or already disconnected";
