@@ -25,10 +25,10 @@ int lastRecipient;
 std::atomic_int connected;
 
 // CONFIG
-const int RUN_TIMES = 8;
-const int CONCURRENCY = 150;
+const int RUN_TIMES = 5;
+const int CONCURRENCY = 100;
 const int MESSAGES = 100;
-const boost::int_least64_t SLEEP_MS = 300;
+const boost::int_least64_t SLEEP_MS = 100;
 
 std::recursive_mutex lock;
 std::unordered_map<int, bool> conns;
@@ -41,6 +41,16 @@ struct stats_t {
   std::atomic_long payloadTransferredBytes;
   double timeTaken = 0;
 
+  std::vector<int> calcTime(long ms) {
+      int seconds = (int) (ms / 1000) % 60;
+      int minutes = (int) ((ms / (1000 * 60)) % 60);
+      int hours = (int) ((ms / (1000 * 60 * 60)) % 24);
+
+      return {
+          hours, minutes, seconds
+      };
+  }
+
   void calculate() {
       auto *minMax = new double[3];
       calcMinMaxTime(minMax);
@@ -50,19 +60,22 @@ struct stats_t {
       }
       double transferSpeedKbps = ((payloadTransferredBytes * 8) / totalSendTimes) / 1000;
 
+      const std::vector<int> times = calcTime(static_cast<long>(totalSendTimes));
       cout
           << endl
           << "         MIN send time: " << (minMax[0]) << "ms" << endl
           << "         MAX send time: " << (minMax[1]) << "ms" << endl
           << "         AVG send time: " << (minMax[2]) << "ms" << endl
           << "            Total sent: " << sendTimes.size() << endl
-          << "Time taken for sending: " << totalSendTimes << "ms" << endl
           << "         Sent messages: " << sentMessages << endl
           << "        Error messages: " << errorMessages << endl
           << "     Total connections: " << totalConnections << endl
           << "   Transferred payload: " << payloadTransferredBytes << " bytes (" << (payloadTransferredBytes / 1000)
           << " Kb)" << endl
           << "Average transfer speed: " << transferSpeedKbps << " Kb/s (" << (transferSpeedKbps / 1000) << " Mb/s)"
+          << endl
+          << "Benchmark time (total): " << totalSendTimes << "ms (" << times[1] << " minutes" << " " << times[2]
+          << " seconds)" << endl
           << endl;
 
       delete[] minMax;
@@ -188,15 +201,10 @@ void connect(int sen, int rec) {
 void connectAll(asio::io_service *service) {
     for (int i = 2; i < CONCURRENCY + 2; i++) {
         _statistics.totalConnections++;
-        service->post(boost::bind(connect, i, i - 1));
+        service->post(boost::bind(connect, i, i));
 
-        if (lastSender > lastRecipient) {
-            lastSender -= 1;
-            lastRecipient += 1;
-        } else {
-            lastSender = lastRecipient + 1;
-            lastRecipient = lastSender - 1;
-        }
+        lastSender++;
+        lastRecipient++;
     }
 }
 
@@ -208,12 +216,11 @@ void watchdog(asio::io_service &service) {
 
     boost::this_thread::sleep_for(boost::chrono::seconds(2));
     service.stop();
-
 }
 
 void run() {
-    lastSender = 1;
-    lastRecipient = 2;
+    lastSender = 2;
+    lastRecipient = 1;
 
     asio::io_service ioService;
     boost::thread_group threadGroup;
