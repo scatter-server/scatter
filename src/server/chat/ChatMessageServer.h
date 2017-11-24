@@ -20,6 +20,7 @@
 #include <exception>
 #include <utility>
 #include <vector>
+#include <atomic>
 #include <ctime>
 #include <functional>
 #include <toolboxpp.h>
@@ -48,53 +49,73 @@ struct ConnectionNotFound : std::exception {
   const char *what() const throw() override;
 };
 
-struct ConnectionStat {
-  time_t connectedAt;
-  std::size_t bytesTransferred;
-  std::size_t sentMessages;
-  std::size_t receivedMessages;
-  ConnectionStat() :
+struct Statistics {
+  std::atomic<UserId> id;
+  std::atomic<time_t> lastConnectionTime;
+  std::atomic_size_t connectedTimes;
+  std::atomic_size_t bytesTransferred;
+  std::atomic_size_t sentMessages;
+  std::atomic_size_t receivedMessages;
+
+  Statistics() :
+      id(0),
       bytesTransferred(0),
+      connectedTimes(0),
       sentMessages(0),
       receivedMessages(0),
-      connectedAt(time(nullptr)) { }
+      lastConnectionTime(time(nullptr)) { }
 
-  ConnectionStat &addBytesTransferred(std::size_t bytes) {
+  Statistics &setId(UserId _id) {
+      id = _id;
+      return *this;
+  }
+
+  Statistics &addConnection() {
+      lastConnectionTime = time(nullptr);
+      connectedTimes++;
+      return *this;
+  }
+
+  Statistics &addBytesTransferred(std::size_t bytes) {
       bytesTransferred += bytes;
       return *this;
   }
-  ConnectionStat &addSentMessages(std::size_t sent) {
+  Statistics &addSentMessages(std::size_t sent) {
       sentMessages += sent;
       return *this;
   }
-  ConnectionStat &addSendMessage() {
+  Statistics &addSendMessage() {
       return addSentMessages(1);
   }
 
-  ConnectionStat &addReceivedMessages(std::size_t received) {
+  Statistics &addReceivedMessages(std::size_t received) {
       receivedMessages += received;
       return *this;
   }
 
-  ConnectionStat &addReceivedMessage() {
+  Statistics &addReceivedMessage() {
       return addReceivedMessages(1);
   }
 
-  time_t getSessionTime() const {
-      return time(nullptr) - connectedAt;
+  std::atomic_size_t getConnectedTimes() {
+      return connectedTimes;
   }
 
-  time_t getConnectionTime() const {
-      return connectedAt;
+  std::atomic_size_t getSessionTime() const {
+      return time(nullptr) - lastConnectionTime;
   }
 
-  size_t getBytesTransferred() const {
+  std::atomic<time_t> getConnectionTime() const {
+      return lastConnectionTime;
+  }
+
+  std::atomic_size_t getBytesTransferred() const {
       return bytesTransferred;
   }
-  size_t getSentMessages() const {
+  std::atomic_size_t getSentMessages() const {
       return sentMessages;
   }
-  size_t getReceivedMessages() const {
+  std::atomic_size_t getReceivedMessages() const {
       return receivedMessages;
   }
 
@@ -103,10 +124,9 @@ struct ConnectionStat {
 class ConnectionInfo {
  private:
     WsConnectionPtr connection;
-    std::unique_ptr<ConnectionStat> stat;
 
  public:
-    ConnectionInfo() : stat(std::make_unique<ConnectionStat>()) { }
+    ConnectionInfo() { }
     ConnectionInfo(const ConnectionInfo &other) = delete;
     ConnectionInfo(ConnectionInfo &&other) = delete;
     ConnectionInfo &operator=(ConnectionInfo &&other) = delete;
@@ -119,7 +139,6 @@ class ConnectionInfo {
     void setConnection(const WsConnectionPtr &c) {
         if (!connection) {
             connection = c;
-            time(&stat->connectedAt);
         }
     }
 
@@ -205,7 +224,7 @@ class ChatMessageServer : public virtual StandaloneService {
 
  protected:
     void onMessage(ConnectionInfo &connection, WsMessagePtr payload);
-    void onMessageSent(wss::MessagePayload &&payload);
+    void onMessageSent(wss::MessagePayload &&payload, std::size_t bytesTransferred);
     void onConnected(WsConnectionPtr connection);
     void onDisconnected(WsConnectionPtr connection, int status, const std::string &reason);
 
@@ -222,6 +241,8 @@ class ChatMessageServer : public virtual StandaloneService {
     int redeliverMessagesTo(UserId id);
     int redeliverMessagesTo(const MessagePayload &payload);
 
+    std::unique_ptr<wss::Statistics> &getStat(UserId id);
+
  private:
     // secure
     bool enableTls;
@@ -231,7 +252,6 @@ class ChatMessageServer : public virtual StandaloneService {
     // chat
     std::size_t maxMessageSize; // 10 megabytes by default
     bool enableMessageDeliveryStatus = false;
-
 
     // events
     std::vector<std::function<void(wss::MessagePayload &&)>> messageListeners;
@@ -246,10 +266,10 @@ class ChatMessageServer : public virtual StandaloneService {
     WsServer::Endpoint *endpoint;
     WsServer server;
 
-    std::unordered_map<UserId, time_t> transferTimers;
     std::unordered_map<UserId, std::shared_ptr<std::stringstream>> frameBuffer;
     std::unordered_map<UserId, ConnectionInfo> connectionMap;
     std::unordered_map<UserId, std::queue<wss::MessagePayload>> undeliveredMessagesMap;
+    std::unordered_map<UserId, std::unique_ptr<Statistics>> statistics;
 
     // @TODO вынести все на сторону сервера и убрать отсюда
     bool hasFrameBuffer(UserId id);
