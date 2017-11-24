@@ -101,7 +101,7 @@ const std::string wss::MessagePayload::toJson() const {
     json obj;
     to_json(obj, *this);
 
-    std::string result = obj.dump();
+    const std::string result = obj.dump();
     return result;
 }
 const std::string wss::MessagePayload::getText() const {
