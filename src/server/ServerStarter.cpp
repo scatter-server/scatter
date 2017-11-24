@@ -184,8 +184,7 @@ void wss::ServerStarter::configureChat(nlohmann::json &config) {
             maxBytes = sz * 1024;
         }
         webSocket->setMessageSizeLimit(maxBytes);
-
-        webSocket->setEnabledMessageStatus(chatConfig.value("enableMessageStatus", false));
+        webSocket->setEnabledMessageDeliveryStatus(chatConfig["message"].value("enableDeliveryStatus", false));
     }
 }
 void wss::ServerStarter::configureServer(nlohmann::json &config) {

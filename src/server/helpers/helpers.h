@@ -12,6 +12,9 @@
 #include <string>
 #include <ctime>
 #include <boost/date_time.hpp>
+#include <boost/random/random_device.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
+#include <boost/crc.hpp>
 #include <chrono>
 #include <unordered_map>
 #include <cmath>
@@ -64,6 +67,13 @@ std::string getNowISODateTime();
  * 7077888 bytes will be 7.1MB or 6.8MiB in binary
  */
 std::string humanReadableBytes(unsigned long bytes, bool si = true);
+
+/**
+ *
+ * @param length Generated length
+ * @return Random alpha-num string wrapped with crc32 hash
+ */
+const std::string generateRandomStringCRC32(unsigned short length);
 
 };
 };

@@ -193,7 +193,7 @@ class ChatMessageServer : public virtual StandaloneService {
 
     void enableTLS(const std::string &crtPath, const std::string &keyPath);
     void setMessageSizeLimit(size_t bytes);
-    void setEnabledMessageStatus(bool enabled);
+    void setEnabledMessageDeliveryStatus(bool enabled);
 
     void send(
         const MessagePayload &payload,
@@ -230,7 +230,7 @@ class ChatMessageServer : public virtual StandaloneService {
 
     // chat
     std::size_t maxMessageSize; // 10 megabytes by default
-    bool enableMessageStatus = false;
+    bool enableMessageDeliveryStatus = false;
 
 
     // events

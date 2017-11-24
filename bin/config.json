@@ -25,9 +25,9 @@
   },
   "chat": {
     "message": {
-      "maxSize": "10M"
-    },
-    "enableMessageStatus": true
+      "maxSize": "10M",
+      "enableDeliveryStatus": false
+    }
   },
   "event": {
     "enabled": true,

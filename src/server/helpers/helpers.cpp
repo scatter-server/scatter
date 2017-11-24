@@ -54,3 +54,25 @@ std::string wss::helpers::humanReadableBytes(unsigned long bytes, bool si) {
 
     return std::string(buffer);
 }
+
+const std::string wss::helpers::generateRandomStringCRC32(unsigned short length) {
+    std::string chars(
+        "abcdefghijklmnopqrstuvwxyz"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "1234567890"
+            "!@#$%^&*()"
+            "`~-_=+[{]}\\|;:'\",<.>/? ");
+
+    boost::random::random_device rng;
+    boost::random::uniform_int_distribution<> index_dist(0, static_cast<int>(chars.size() - 1));
+    std::stringstream ss;
+    for (int i = 0; i < length; ++i) {
+        ss << chars[index_dist(rng)];
+    }
+
+    const std::string randomed = ss.str();
+    boost::crc_32_type result;
+    result.process_bytes(randomed.data(), randomed.length());
+
+    return std::to_string(result.checksum());
+}

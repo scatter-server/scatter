@@ -121,13 +121,10 @@ void wss::ChatMessageServer::onMessage(ConnectionInfo &connection, WsMessagePtr 
 
 void wss::ChatMessageServer::onMessageSent(wss::MessagePayload &&payload) {
     if (!payload.isSentStatus()) {
-        try {
+
+        if (enableMessageDeliveryStatus) {
             wss::MessagePayload status = MessagePayload::createSendStatus(payload);
             send(status);
-        } catch (const ConnectionNotFound &e) {
-            L_DEBUG_F("OnMessageSent",
-                      "Connection not found for %lu. Will send when user comes again.",
-                      payload.getSender());
         }
 
         for (auto &listener: messageListeners) {
@@ -390,8 +387,8 @@ void wss::ChatMessageServer::setMessageSizeLimit(size_t bytes) {
     server.config.max_message_size = maxMessageSize;
 }
 
-void wss::ChatMessageServer::setEnabledMessageStatus(bool enabled) {
-    enableMessageStatus = enabled;
+void wss::ChatMessageServer::setEnabledMessageDeliveryStatus(bool enabled) {
+    enableMessageDeliveryStatus = enabled;
 }
 
 void wss::ChatMessageServer::addMessageListener(std::function<void(wss::MessagePayload &&)> callback) {
