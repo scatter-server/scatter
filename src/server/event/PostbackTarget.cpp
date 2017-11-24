@@ -10,8 +10,6 @@
 #include <type_traits>
 
 bool wss::event::PostbackTarget::send(const wss::MessagePayload &payload, std::string &error) {
-    getClient().enableVerbose(true);
-
     request.setBody(payload.toJson())
            .setMethod(wss::web::Request::POST)
            .setHeader({"Content-Length", std::to_string(request.getBody().length())})

@@ -16,6 +16,7 @@ using std::endl;
 
 const char *wss::TYPE_TEXT = "text";
 const char *wss::TYPE_B64_IMAGE = "b64image";
+const char *wss::TYPE_URL_IMAGE = "url_image";
 const char *wss::TYPE_NOTIFICATION_RECEIVED = "notification_received";
 
 wss::MessagePayload::MessagePayload(UserId from, UserId to, std::string &&message) :
@@ -78,39 +79,6 @@ wss::MessagePayload::MessagePayload(const WsMessagePtr &message) noexcept {
     } catch (const std::exception &e) {
         handleJsonException(e, data);
     }
-}
-
-MessagePayload::MessagePayload(const MessagePayload &another) {
-    *this = another;
-}
-MessagePayload::MessagePayload(MessagePayload &&another) {
-    *this = another;
-}
-MessagePayload &MessagePayload::operator=(const MessagePayload &another) {
-    sender = another.sender;
-    recipients = another.recipients;
-    text = another.text;
-    type = another.type;
-    data = another.data;
-    valid = another.valid;
-    errorCause = another.errorCause;
-
-    return *this;
-}
-
-MessagePayload &MessagePayload::operator=(MessagePayload &&another) {
-    sender = another.sender;
-    recipients.insert(recipients.begin(), another.recipients.begin(), another.recipients.end());
-    another.recipients.clear();
-    text = another.text;
-    another.text.clear();
-    type = another.type;
-    another.type.clear();
-    data = std::move(another.data);
-    valid = another.valid;
-    errorCause = another.errorCause;
-    another.errorCause.clear();
-    return *this;
 }
 
 void MessagePayload::validate() {

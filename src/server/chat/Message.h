@@ -19,6 +19,7 @@ namespace wss {
 
 extern const char *TYPE_TEXT;
 extern const char *TYPE_B64_IMAGE;
+extern const char *TYPE_URL_IMAGE;
 extern const char *TYPE_NOTIFICATION_RECEIVED;
 
 class MessagePayload {
@@ -43,10 +44,10 @@ class MessagePayload {
     MessagePayload(UserId from, UserId to, std::string &&message);
     MessagePayload(UserId from, const std::vector<UserId> &to, const std::string &message);
     MessagePayload(UserId from, std::vector<UserId> &&to, std::string &&message);
-    MessagePayload(const MessagePayload &payload);
-    MessagePayload(MessagePayload &&payload);
-    MessagePayload &operator=(const MessagePayload &payload);
-    MessagePayload &operator=(MessagePayload &&payload);
+    MessagePayload(const MessagePayload &payload) = default;
+    MessagePayload(MessagePayload &&payload) = default;
+    MessagePayload &operator=(const MessagePayload &payload) = default;
+    MessagePayload &operator=(MessagePayload &&payload) = default;
 
     explicit MessagePayload(const std::string &json) noexcept;
     explicit MessagePayload(const WsMessagePtr &message) noexcept;

@@ -14,8 +14,6 @@
 #include <string>
 #include "json.hpp"
 #include "server_ws.hpp"
-#include "server_http.hpp"
-#include "client_http.hpp"
 
 namespace wss {
 
@@ -26,10 +24,6 @@ using WsMessageStream = WsServer::SendStream;
 using WsConnectionPtr = std::shared_ptr<WsServer::Connection>;
 using WsMessagePtr = std::shared_ptr<WsServer::Message>;
 using json = nlohmann::json;
-
-using HttpServer = SimpleWeb::Server<SimpleWeb::HTTP>;
-using HttpResponse = std::shared_ptr<HttpServer::Response>;
-using HttpRequest = std::shared_ptr<HttpServer::Request>;
 
 }
 

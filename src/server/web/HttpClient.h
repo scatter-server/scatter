@@ -15,9 +15,13 @@
 #include <ostream>
 #include "QueryBuilder.hpp"
 #include <boost/algorithm/string/trim.hpp>
+#include "../defs.h"
 
 namespace wss {
 namespace web {
+
+typedef std::pair<std::string, std::string> KeyValue;
+typedef std::vector<KeyValue> KeyValueVector;
 
 class Request {
  public:
@@ -29,8 +33,8 @@ class Request {
     std::string url;
     std::string body;
     Method method;
-    std::vector<std::pair<std::string, std::string>> headers;
-    std::vector<std::pair<std::string, std::string>> params;
+    KeyValueVector headers;
+    KeyValueVector params;
 
  public:
     Request() :
@@ -74,7 +78,7 @@ class Request {
         return *this;
     }
 
-    Request &setHeader(std::pair<std::string, std::string> &&keyValue) {
+    Request &setHeader(KeyValue &&keyValue) {
         using toolboxpp::strings::equalsIgnoreCase;
         bool found = false;
         for (auto &kv: headers) {
@@ -91,12 +95,12 @@ class Request {
         return *this;
     }
 
-    Request &addHeader(std::pair<std::string, std::string> &&keyValue) {
+    Request &addHeader(KeyValue &&keyValue) {
         headers.push_back(std::move(keyValue));
         return *this;
     }
 
-    Request &addParam(std::pair<std::string, std::string> &&keyValue) {
+    Request &addParam(KeyValue &&keyValue) {
         params.push_back(std::move(keyValue));
         return *this;
     }
@@ -153,11 +157,11 @@ class Request {
         return combined;
     }
 
-    std::vector<std::pair<std::string, std::string>> getHeaders() const {
+    KeyValueVector getHeaders() const {
         return headers;
     }
 
-    std::vector<std::pair<std::string, std::string>> getParams() const {
+    KeyValueVector getParams() const {
         return params;
     }
 
@@ -175,8 +179,39 @@ struct Response {
   int status;
   std::string statusMessage;
   std::string data;
-  std::vector<std::pair<std::string, std::string>> headers;
+  KeyValueVector headers;
   std::string _headersBuffer;
+
+  nlohmann::json parseJson() {
+      if (data.empty()) {
+          return nlohmann::json();
+      }
+
+      nlohmann::json out;
+      try {
+          out = nlohmann::json::parse(data);
+      } catch (const std::exception &e) {
+          std::cerr << "Can't parse incoming json data: " << e.what() << std::endl;
+      }
+
+      return out;
+  }
+
+  KeyValueVector parseFormUrlEncode() {
+      if (data.empty()) {
+          return {};
+      }
+
+      std::vector<std::string> groups = toolboxpp::strings::split(data, '&');
+      typedef std::vector<std::string>::iterator iter_t;
+
+      KeyValueVector kvData;
+      for (auto &&s: groups) {
+          kvData.push_back(toolboxpp::strings::splitPair(std::move(s), "="));
+      }
+
+      return kvData;
+  };
 
   void dump() {
       std::cout << "Response: " << std::endl

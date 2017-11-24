@@ -17,15 +17,19 @@
 #include <thread>
 #include <mutex>
 #include <stdexcept>
+#include <exception>
+#include <utility>
 #include <vector>
-#include <time.h>
+#include <ctime>
 #include <functional>
 #include <toolboxpp.h>
 #include <boost/thread.hpp>
+#include <future>
 #include "server_ws.hpp"
 #include "json.hpp"
-#include "../defs.h"
 #include "Message.h"
+#include "../defs.h"
+#include "../StandaloneService.h"
 #include "../threadsafe.hpp"
 #include "../helpers/helpers.h"
 
@@ -36,10 +40,111 @@ using namespace std::placeholders;
 
 using QueryParams = std::unordered_map<std::string, std::string>;
 using MessageQueue = std::queue<MessagePayload>;
+
 namespace cal = boost::gregorian;
 namespace pt = boost::posix_time;
 
-class ChatServer {
+struct ConnectionNotFound : std::exception {
+  const char *what() const throw() override;
+};
+
+struct ConnectionStat {
+  time_t connectedAt;
+  std::size_t bytesTransferred;
+  std::size_t sentMessages;
+  std::size_t receivedMessages;
+  ConnectionStat() :
+      bytesTransferred(0),
+      sentMessages(0),
+      receivedMessages(0),
+      connectedAt(time(nullptr)) { }
+
+  ConnectionStat &addBytesTransferred(std::size_t bytes) {
+      bytesTransferred += bytes;
+      return *this;
+  }
+  ConnectionStat &addSentMessages(std::size_t sent) {
+      sentMessages += sent;
+      return *this;
+  }
+  ConnectionStat &addSendMessage() {
+      return addSentMessages(1);
+  }
+
+  ConnectionStat &addReceivedMessages(std::size_t received) {
+      receivedMessages += received;
+      return *this;
+  }
+
+  ConnectionStat &addReceivedMessage() {
+      return addReceivedMessages(1);
+  }
+
+  time_t getSessionTime() const {
+      return time(nullptr) - connectedAt;
+  }
+
+  time_t getConnectionTime() const {
+      return connectedAt;
+  }
+
+  size_t getBytesTransferred() const {
+      return bytesTransferred;
+  }
+  size_t getSentMessages() const {
+      return sentMessages;
+  }
+  size_t getReceivedMessages() const {
+      return receivedMessages;
+  }
+
+};
+
+class ConnectionInfo {
+ private:
+    WsConnectionPtr connection;
+    std::unique_ptr<ConnectionStat> stat;
+
+ public:
+    ConnectionInfo() : stat(std::make_unique<ConnectionStat>()) { }
+    ConnectionInfo(const ConnectionInfo &other) = delete;
+    ConnectionInfo(ConnectionInfo &&other) = delete;
+    ConnectionInfo &operator=(ConnectionInfo &&other) = delete;
+    ConnectionInfo &operator=(const ConnectionInfo &other) = delete;
+
+    explicit ConnectionInfo(const WsConnectionPtr &rawConnection) :
+        connection(rawConnection) {
+    }
+
+    void setConnection(const WsConnectionPtr &c) {
+        if (!connection) {
+            connection = c;
+            time(&stat->connectedAt);
+        }
+    }
+
+    WsServer::Connection *get() const {
+        return connection.get();
+    }
+
+    WsServer::Connection *operator->() const noexcept {
+        return connection.operator->();
+    }
+
+    bool operator==(const ConnectionInfo &another) {
+        return another.connection->getId() == connection->getId();
+    }
+
+    operator bool() const noexcept {
+        if (!connection) {
+            return false;
+        }
+
+        return true;
+    }
+};
+
+class ChatMessageServer : public virtual StandaloneService {
  public:
     const int STATUS_OK = 1000;
     const int STATUS_GOING_AWAY = 1001;
@@ -78,20 +183,24 @@ class ChatServer {
 
     void setMessageSizeLimit(size_t bytes);
  public:
-    ChatServer(const std::string &host, unsigned short port, const std::string &regexPath);
-    ~ChatServer();
+    ChatMessageServer(const std::string &host, unsigned short port, const std::string &regexPath);
+    ~ChatMessageServer();
 
     void setThreadPoolSize(std::size_t size);
-    void run();
-    void stop();
-    void waitThread();
-    void detachThread();
+
+    void joinThreads() override;
+    void detachThreads() override;
+    void runService() override;
+    void stopService() override;
 
     void enableTLS(const std::string &crtPath, const std::string &keyPath);
 
-    bool send(const MessagePayload &payload);
+    void send(
+        const MessagePayload &payload,
+        std::function<void(wss::MessagePayload &&payload)> &&successPayload = [](wss::MessagePayload &&) { }
+    );
 
-    void addMessageListener(std::function<void(const wss::MessagePayload &)> callback) {
+    void addMessageListener(std::function<void(wss::MessagePayload &&)> callback) {
         messageListeners.push_back(callback);
     }
 
@@ -100,15 +209,16 @@ class ChatServer {
     }
 
  protected:
-    void onMessage(WsConnectionPtr connection, WsMessagePtr payload);
+    void onMessage(ConnectionInfo &connection, WsMessagePtr payload);
+    void onMessageSent(wss::MessagePayload &&payload);
     void onConnected(WsConnectionPtr connection);
     void onDisconnected(WsConnectionPtr connection, int status, const std::string &reason);
 
+    inline ConnectionInfo &findOrCreateConnection(WsConnectionPtr connection);
     inline bool hasConnectionFor(UserId id);
     inline void setConnectionFor(UserId id, const WsConnectionPtr &connection);
     inline void removeConnectionFor(UserId id);
-    inline const WsConnectionPtr getConnectionFor(UserId id);
-    const std::vector<WsConnectionPtr> getConnectionsFor(const MessagePayload &payload);
+    inline ConnectionInfo &getConnectionFor(UserId id);
 
     inline bool hasUndeliveredMessages(UserId id);
     MessageQueue &getUndeliveredMessages(UserId id);
@@ -126,23 +236,24 @@ class ChatServer {
 
 
     // events
-    std::vector<std::function<void(const wss::MessagePayload &)>> messageListeners;
+    std::vector<std::function<void(wss::MessagePayload &&)>> messageListeners;
     std::vector<std::function<void()>> stopListeners;
 
-    std::recursive_mutex connLock;
-    std::mutex frameBufferLok;
-    std::mutex undeliveredLock;
+    std::mutex frameBufferMutex;
+    std::recursive_mutex connectionMutex;
+    std::mutex undeliveredMutex;
 
-    std::thread *workerThread;
+    std::unique_ptr<std::thread> workerThread;
 
     WsServer::Endpoint *endpoint;
     WsServer server;
 
     std::unordered_map<UserId, time_t> transferTimers;
     std::unordered_map<UserId, std::shared_ptr<std::stringstream>> frameBuffer;
-    std::unordered_map<UserId, WsConnectionPtr> idConnectionMap;
+    std::unordered_map<UserId, ConnectionInfo> connectionMap;
     std::unordered_map<UserId, std::queue<wss::MessagePayload>> undeliveredMessagesMap;
 
+    // @TODO вынести все на сторону сервера и убрать отсюда
     bool hasFrameBuffer(UserId id);
     bool writeFrameBuffer(UserId id, const std::string &input, bool clear = false);
     const std::string readFrameBuffer(UserId id, bool clear = true);

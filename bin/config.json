@@ -9,10 +9,13 @@
       "crtPath": "../certs/debug.crt",
       "keyPath": "../cert/debug.key"
     },
-    "tmpDir": "/tmp"
+    "tmpDir": "/tmp",
+    "idleTimeoutSeconds": 600
   },
   "restApi": {
-    "enabled": false,
+    "enabled": true,
+    "address": "*",
+    "port": 8082,
     "auth": {
       "basic": {
         "user": "chat_user",

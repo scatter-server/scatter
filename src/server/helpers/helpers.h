@@ -14,6 +14,8 @@
 #include <boost/date_time.hpp>
 #include <chrono>
 #include <unordered_map>
+#include <cmath>
+#include <toolboxpp.h>
 
 namespace wss {
 namespace helpers {
@@ -52,6 +54,16 @@ std::string formatBoostPTime(const pt::ptime &t, const char *format);
  * @return
  */
 std::string getNowISODateTime();
+
+/**
+ *
+ * @param bytes
+ * @param si Internationl SI standard or binary format
+ * @return Human readable bytes: for example
+ * 1024 will be 1kB in SI or 1KiB in binary,
+ * 7077888 bytes will be 7.1MB or 6.8MiB in binary
+ */
+std::string humanReadableBytes(unsigned long bytes, bool si = true);
 
 };
 };

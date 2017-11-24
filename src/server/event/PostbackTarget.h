@@ -13,7 +13,7 @@
 #include "json.hpp"
 #include "EventConfig.h"
 #include "../web/HttpClient.h"
-#include "../chat/ChatServer.h"
+#include "../chat/ChatMessageServer.h"
 
 namespace wss {
 namespace event {

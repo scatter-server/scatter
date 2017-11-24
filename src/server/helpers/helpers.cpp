@@ -37,3 +37,20 @@ std::string wss::helpers::formatBoostPTime(const boost::posix_time::ptime &t, co
 std::string wss::helpers::getNowISODateTime() {
     return formatBoostPTime(pt::second_clock::local_time(), DATE_TIME_ISO_8601);
 }
+
+std::string wss::helpers::humanReadableBytes(unsigned long bytes, bool si) {
+    using namespace toolboxpp::strings;
+    int unit = si ? 1000 : 1024;
+    if (bytes < unit) return std::to_string(bytes) + " B";
+    auto exp = (std::size_t) (log(bytes) / log(unit));
+
+    std::string units = (si ? "kMGTPE" : "KMGTPE");
+    std::string pre = units.substr(exp - 1) + (si ? "" : "i");
+    const char *preC = pre.c_str();
+    std::stringstream out;
+
+    char buffer[512];
+    sprintf(buffer, "%.1f %sB", bytes / pow(unit, exp), preC);
+
+    return std::string(buffer);
+}

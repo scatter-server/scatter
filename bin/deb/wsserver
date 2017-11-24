@@ -9,8 +9,8 @@
 ### END INIT INFO
 
 NAME=wsserver
-SCRIPT="/usr/local/bin/wsserver"
-RUNAS=root
+SCRIPT="/usr/sbin/wsserver"
+RUNAS=wsserver
 
 PIDFILE=/var/run/$NAME.pid
 LOGFILE=/var/log/$NAME.log
