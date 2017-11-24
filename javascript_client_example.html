@@ -30,16 +30,16 @@
         }
 
         var ws;
-        var friendId;
-        var id;
+        var recipient;
+        var sender;
 
         window.onload = function () {
             var url_string = window.location.href; //window.location.href
             var url = new URL(url_string);
-            id = url.searchParams.get("id");
-            friendId = url.searchParams.get("friendId");
+            sender = url.searchParams.get("id");
+            recipient = url.searchParams.get("friendId");
 
-            ws = new WebSocket("ws://localhost:8080/chat?id=" + id);
+            ws = new WebSocket("ws://localhost:8080/chat?id=" + sender);
             ws.onmessage = function (evt) {
                 var result = JSON.parse(evt.data);
                 console.log(result);
@@ -79,7 +79,7 @@
                 reader.onloadend = function () {
 
                     var payload = {
-                        sender: parseInt(id),
+                        sender: parseInt(sender),
                         recipients: [],
                         text: "",
                         type: 'b64image',
@@ -87,8 +87,8 @@
                             blob: reader.result
                         }
                     };
-                    if (friendId !== null) {
-                        payload.recipients[0] = parseInt(friendId);
+                    if (recipient !== null) {
+                        payload.recipients[0] = parseInt(recipient);
                     }
 
                     var sPayload = JSON.stringify(payload);
@@ -118,14 +118,14 @@
             writeMessage(messageText, false);
 
             var payload = {
-                sender: 1,
+                sender: parseInt(sender),
                 recipients: [],
                 text: messageText,
                 type: 'text'
             };
 
-            if (friendId !== null) {
-                payload.recipients[0] = parseInt(friendId);
+            if (recipient !== null) {
+                payload.recipients[0] = parseInt(recipient);
             }
 
             var sPayload = JSON.stringify(payload);
