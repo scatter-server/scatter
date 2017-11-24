@@ -14,6 +14,7 @@ wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned shor
     maxMessageSize(10 * 1024 * 1024) {
     server.config.port = port;
     server.config.thread_pool_size = 10;
+    server.config.max_message_size = maxMessageSize;
 
     if (host.length() > 1) {
         server.config.address = host;
@@ -93,6 +94,9 @@ void wss::ChatMessageServer::onMessage(ConnectionInfo &connection, WsMessagePtr 
 
             using profile = toolboxpp::Profiler;
 
+            /**
+             * @Deprecated
+             */
             if (buffered.length() > maxMessageSize) {
                 connection->send_close(STATUS_MESSAGE_TOO_BIG,
                                        "Message to big. Maximum size: "
@@ -374,6 +378,7 @@ void wss::ChatMessageServer::enableTLS(const std::string &crtPath, const std::st
 }
 void wss::ChatMessageServer::setMessageSizeLimit(size_t bytes) {
     maxMessageSize = bytes;
+    server.config.max_message_size = maxMessageSize;
 }
 
 const char *wss::ConnectionNotFound::what() const throw() {
