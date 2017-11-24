@@ -97,25 +97,25 @@ struct Statistics {
       return addReceivedMessages(1);
   }
 
-  std::atomic_size_t getConnectedTimes() {
+  std::size_t getConnectedTimes() {
       return connectedTimes;
   }
 
-  std::atomic_size_t getSessionTime() const {
+  time_t getSessionTime() const {
       return time(nullptr) - lastConnectionTime;
   }
 
-  std::atomic<time_t> getConnectionTime() const {
+  time_t getConnectionTime() const {
       return lastConnectionTime;
   }
 
-  std::atomic_size_t getBytesTransferred() const {
+  std::size_t getBytesTransferred() const {
       return bytesTransferred;
   }
-  std::atomic_size_t getSentMessages() const {
+  std::size_t getSentMessages() const {
       return sentMessages;
   }
-  std::atomic_size_t getReceivedMessages() const {
+  std::size_t getReceivedMessages() const {
       return receivedMessages;
   }
 
