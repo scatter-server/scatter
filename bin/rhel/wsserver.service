@@ -15,8 +15,8 @@ Wants=network-online.target
 [Service]
 Type=forking
 PIDFile=/run/wsserver.pid
-ExecStartPre=/usr/sbin/wsserver -t -c /etc/wsserver/config.json
-ExecStart=/usr/sbin/wsserver -c /etc/wsserver/config.json
+ExecStartPre=/usr/sbin/wsserver --config /etc/wsserver/config.json --test=1
+ExecStart=/usr/sbin/wsserver --config /etc/wsserver/config.json
 ExecReload=/bin/kill -s HUP $MAINPID
 ExecStop=/bin/kill -s TERM $MAINPID
 
