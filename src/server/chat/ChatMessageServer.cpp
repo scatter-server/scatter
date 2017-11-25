@@ -44,6 +44,7 @@ wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned shor
     crtPath(),
     keyPath(),
     maxMessageSize(10 * 1024 * 1024) {
+    server = std::make_unique<WsServer>();
     server->config.port = port;
     server->config.thread_pool_size = 10;
     server->config.max_message_size = maxMessageSize;
