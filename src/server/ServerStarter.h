@@ -43,7 +43,7 @@ class ServerStarter {
     std::shared_ptr<wss::event::EventNotifier> eventNotifier;
 
  public:
-    ServerStarter(int argc, char **argv);
+    ServerStarter(int argc, const char **argv);
     ~ServerStarter();
 
     void stop();

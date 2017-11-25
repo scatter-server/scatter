@@ -10,7 +10,7 @@
 
 static wss::ServerStarter *self; // for signal instance
 
-wss::ServerStarter::ServerStarter(int argc, char **argv) : args() {
+wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
     args.add<std::string>("config", 'C', "Config file path /path/to/config.json", true);
     args.add<bool>("test", 'T', "Test config", false, false);
 
@@ -21,7 +21,7 @@ wss::ServerStarter::ServerStarter(int argc, char **argv) : args() {
         return;
     }
 
-    args.parse_check(argc, argv);
+    args.parse_check(argc, const_cast<char **>(argv));
     const std::string configPath = args.get<std::string>("config");
     isConfigTest = args.get<bool>("test");
 

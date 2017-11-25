@@ -16,7 +16,8 @@ using json = nlohmann::json;
 
 int main(int argc, char **argv) {
 
-    wss::ServerStarter server(argc, argv);
+    const char **args = const_cast<const char **>(argv);
+    wss::ServerStarter server(argc, args);
 
     if (!server.isValid()) {
         return 1;
