@@ -10,7 +10,7 @@ function (linkdeps DEPS_PROJECT)
 	# Boost
 	set(Boost_USE_STATIC_LIBS OFF)
 	set(Boost_USE_MULTITHREADED ON)
-	find_package(Boost 1.54.0 COMPONENTS system thread coroutine context REQUIRED)
+	find_package(Boost 1.54.0 COMPONENTS system thread coroutine context random REQUIRED)
 	target_link_libraries(${DEPS_PROJECT} ${Boost_LIBRARIES})
 	target_include_directories(${DEPS_PROJECT} PUBLIC ${Boost_INCLUDE_DIR})
 	message(STATUS "Boost includes: ${Boost_INCLUDE_DIR}; libs: ${Boost_LIBRARIES}")

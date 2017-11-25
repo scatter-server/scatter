@@ -25,7 +25,7 @@ class ChatRestServer : public RestServer {
     ChatRestServer(std::shared_ptr<ChatMessageServer> chatMessageServer, const std::string &host, unsigned short port);
  protected:
     // actions
-    ACTION_DEFINE(actionListConnected);
+    ACTION_DEFINE(actionStats);
     ACTION_DEFINE(actionSendMessage);
 
  protected:

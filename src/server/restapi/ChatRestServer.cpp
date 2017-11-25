@@ -21,15 +21,33 @@ wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatMessageServer> chatMessa
 
 void wss::ChatRestServer::createEndpoints() {
     RestServer::createEndpoints();
-    addEndpoint("connected_users", "GET", ACTION_BIND(ChatRestServer, actionListConnected));
+    addEndpoint("stats", "GET", ACTION_BIND(ChatRestServer, actionStats));
     addEndpoint("send_message", "POST", ACTION_BIND(ChatRestServer, actionSendMessage));
 }
 
-void wss::ChatRestServer::actionListConnected(wss::HttpResponse response, wss::HttpRequest request) {
+void wss::ChatRestServer::actionStats(wss::HttpResponse response, wss::HttpRequest request) {
     L_DEBUG_F("Http Server", "%s %s", request->method.c_str(), request->path.c_str())
     json content;
     content["success"] = true;
-    content["data"] = json();
+
+    std::vector<json> statItems(chatMessageServer->getStats().size());
+    L_DEBUG_F("Http Server", "Statistics: available %lu records", chatMessageServer->getStats().size());
+    std::size_t i = 0;
+    for (auto &idStat: chatMessageServer->getStats()) {
+        json statItem;
+        statItem["id"] = idStat.first;
+        statItem["lastConnection"] = idStat.second->getConnectionTime();
+        statItem["connectedTimes"] = idStat.second->getConnectedTimes();
+        statItem["lastSessionTime"] = idStat.second->getSessionTime();
+        statItem["sentMessages"] = idStat.second->getSentMessages();
+        statItem["receivedMessages"] = idStat.second->getReceivedMessages();
+        statItem["bytesTransferred"] = idStat.second->getBytesTransferred();
+
+        statItems[i] = std::move(statItem);
+        i++;
+    }
+
+    content["data"] = statItems;
 
     const std::string out = content.dump();
 
@@ -52,15 +70,8 @@ void wss::ChatRestServer::actionSendMessage(wss::HttpResponse response, wss::Htt
         return;
     }
 
-    using profile = toolboxpp::Profiler;
-
-    profile::get().begin("api-send");
     chatMessageServer->send(payload);
-    profile::get().end("api-send");
-
-    profile::get().begin("api-send-respond");
     setResponseStatus(response, HttpStatus::success_accepted, 0);
-    profile::get().end("api-send-respond");
 
 }
 void wss::ChatRestServer::setError(wss::HttpResponse &response,

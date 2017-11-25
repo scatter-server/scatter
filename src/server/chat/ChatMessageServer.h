@@ -57,6 +57,14 @@ struct Statistics {
   std::atomic_size_t sentMessages;
   std::atomic_size_t receivedMessages;
 
+  Statistics(UserId id) :
+      id(id),
+      bytesTransferred(0),
+      connectedTimes(0),
+      sentMessages(0),
+      receivedMessages(0),
+      lastConnectionTime(time(nullptr)) { }
+
   Statistics() :
       id(0),
       bytesTransferred(0),
@@ -126,7 +134,7 @@ class ConnectionInfo {
     WsConnectionPtr connection;
 
  public:
-    ConnectionInfo() { }
+    ConnectionInfo() = default;
     ConnectionInfo(const ConnectionInfo &other) = delete;
     ConnectionInfo(ConnectionInfo &&other) = delete;
     ConnectionInfo &operator=(ConnectionInfo &&other) = delete;
@@ -181,6 +189,10 @@ class ChatMessageServer : public virtual StandaloneService {
     const int STATUS_BAD_GATEWAY = 1014;
     const int STATUS_TLS_HANDSHAKE = 1015;
 
+    const int STATUS_INVALID_QUERY_PARAMS = 4000;
+    const int STATUS_INVALID_MESSAGE_PAYLOAD = 4001;
+    const int STATUS_ALREADY_CONNECTED = 4002;
+
     /**
      *  0000 0000 (0)   - продолжение фрагмента (FIN bit clear=0x0, rsv_opcode=0x1: fin & rsv_opcode == 0x0)
      *  0000 0001 (1)   - начало фрагментированных (текстовых) фреймов, FIN bit = 0x1
@@ -189,10 +201,12 @@ class ChatMessageServer : public virtual StandaloneService {
      *  1000 0010 (130) - бинарные данные
      *  1000 0000 (128) - конец фрагментированных (текстовых?) фреймов (129 ^ 1) (FIN bit = 0x1, opcode = 0x0)
      *  1000 0000 (128) - конец фрагментированных (бинарных?) фреймов - предположительно (130 ^ 2), нужно проверять
+     *
+     *  @link https://tools.ietf.org/html/rfc6455#page-65
      */
     const unsigned char RSV_OPCODE_FRAGMENT_CONTINUATION = 0;
     const unsigned char RSV_OPCODE_FRAGMENT_BEGIN_TEXT = 1;
-    const unsigned char RSV_OPCODE_FRAGMENT_BEGIN_BINARY = 2; // правда 2? https://tools.ietf.org/html/rfc6455#page-65
+    const unsigned char RSV_OPCODE_FRAGMENT_BEGIN_BINARY = 2;
     const unsigned char RSV_OPCODE_FRAGMENT_END = 128;
     const unsigned char RSV_OPCODE_CONNECTION_CLOSE = 8;
     const unsigned char RSV_OPCODE_PING = 9;
@@ -201,16 +215,17 @@ class ChatMessageServer : public virtual StandaloneService {
     const unsigned char RSV_OPCODE_BINARY = 130;
  public:
     ChatMessageServer(const std::string &host, unsigned short port, const std::string &regexPath);
+    ChatMessageServer(
+        const std::string &crtPath, const std::string &keyPath,
+        const std::string &host, unsigned short port, const std::string &regexPath);
     ~ChatMessageServer();
-
-    void setThreadPoolSize(std::size_t size);
 
     void joinThreads() override;
     void detachThreads() override;
     void runService() override;
     void stopService() override;
 
-    void enableTLS(const std::string &crtPath, const std::string &keyPath);
+    void setThreadPoolSize(std::size_t size);
     void setMessageSizeLimit(size_t bytes);
     void setEnabledMessageDeliveryStatus(bool enabled);
 
@@ -221,6 +236,8 @@ class ChatMessageServer : public virtual StandaloneService {
 
     void addMessageListener(std::function<void(wss::MessagePayload &&)> callback);
     void addStopListener(std::function<void()> callback);
+
+    const std::unordered_map<UserId, std::unique_ptr<Statistics>> &getStats();
 
  protected:
     void onMessage(ConnectionInfo &connection, WsMessagePtr payload);
@@ -243,6 +260,7 @@ class ChatMessageServer : public virtual StandaloneService {
 
     std::unique_ptr<wss::Statistics> &getStat(UserId id);
 
+
  private:
     // secure
     bool enableTls;
@@ -257,15 +275,24 @@ class ChatMessageServer : public virtual StandaloneService {
     std::vector<std::function<void(wss::MessagePayload &&)>> messageListeners;
     std::vector<std::function<void()>> stopListeners;
 
+    // mutex
     std::mutex frameBufferMutex;
     std::recursive_mutex connectionMutex;
     std::mutex undeliveredMutex;
 
+    // server
+    // гавно какое-то, но блин,
+    // либо делать 2 разные сборки с SSL и без
+    // либо переделывать класс полностью на шаблонные специализации
+    // либо еще куча вариантов
+    // @TODO в общем
+    std::unique_ptr<WsServer> server;
+    std::unique_ptr<WssServer> serverSecure;
+    WsServer::Endpoint *endpoint;
+    WssServer::Endpoint *endpointSecure;
     std::unique_ptr<std::thread> workerThread;
 
-    WsServer::Endpoint *endpoint;
-    WsServer server;
-
+    // data
     std::unordered_map<UserId, std::shared_ptr<std::stringstream>> frameBuffer;
     std::unordered_map<UserId, ConnectionInfo> connectionMap;
     std::unordered_map<UserId, std::queue<wss::MessagePayload>> undeliveredMessagesMap;
@@ -278,7 +305,6 @@ class ChatMessageServer : public virtual StandaloneService {
 
     bool parseRawQuery(const std::string &query, QueryParams &params);
     std::size_t getThreadName();
-
 };
 
 }

@@ -66,21 +66,6 @@ wss::MessagePayload::MessagePayload(const nlohmann::json &obj) noexcept {
     fromJson(obj);
     validate();
 }
-wss::MessagePayload::MessagePayload(const WsMessagePtr &message) noexcept {
-    const std::string data = message->string();
-    if (data.length() == 0) {
-        errorCause = "Empty message";
-        valid = false;
-        return;
-    }
-    try {
-        auto obj = json::parse(data);
-        fromJson(obj);
-        validate();
-    } catch (const std::exception &e) {
-        handleJsonException(e, data);
-    }
-}
 
 void MessagePayload::validate() {
     if (recipients.empty()) {

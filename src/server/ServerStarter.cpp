@@ -42,6 +42,7 @@ wss::ServerStarter::ServerStarter(int argc, char **argv) : args() {
         valid = false;
         return;
     }
+
     json serverConfig = config["server"];
     // check server config is an object
     if (!serverConfig.is_object()) {
@@ -60,8 +61,6 @@ wss::ServerStarter::ServerStarter(int argc, char **argv) : args() {
 
     // getting ws server ip
     std::string address = serverConfig.value("address", "*");
-    // getting is enabled wss protocol
-    bool secure = serverConfig.value("secure.enabled", false);
     // websocket endpoint path
     std::string endpoint = serverConfig.value("endpoint", "/chat/");
 
@@ -71,8 +70,41 @@ wss::ServerStarter::ServerStarter(int argc, char **argv) : args() {
         enableRestApi = config["restApi"].value("enabled", false);
     }
 
-    // creating ws service
-    webSocket = std::make_shared<wss::ChatMessageServer>(address, (std::uint16_t) port, "^" + endpoint + "?$");
+    // getting is enabled wss protocol
+    if (hasKey(serverConfig, "secure") && serverConfig["secure"].value("enabled", false)) {
+        const std::string crtPath = serverConfig["secure"].at("crtPath");
+        const std::string keyPath = serverConfig["secure"].at("crtPath");
+        if (crtPath.empty() || keyPath.empty()) {
+            cerr << "Certificate and private key paths can'be empty";
+            valid = false;
+            return;
+        }
+
+        using toolboxpp::fs::exists;
+        if (!exists(crtPath)) {
+            cerr << "Certificate file not found at " << crtPath << endl;
+            valid = false;
+            return;
+        }
+        if (!exists(keyPath)) {
+            cerr << "Private Key file not found at " << keyPath << endl;
+            valid = false;
+            return;
+        }
+
+        webSocket = std::make_shared<wss::ChatMessageServer>(
+            serverConfig["secure"].at("crtPath"),
+            serverConfig["secure"].at("keyPath"),
+            address,
+            (std::uint16_t) port,
+            "^" + endpoint + "?$"
+        );
+    } else {
+        // creating ws service
+        webSocket = std::make_shared<wss::ChatMessageServer>(address, (std::uint16_t) port, "^" + endpoint + "?$");
+    }
+
+
 
     // configuring ws service
     configureServer(config);
@@ -198,13 +230,6 @@ void wss::ServerStarter::configureServer(nlohmann::json &config) {
     webSocket->setThreadPoolSize(static_cast<size_t>(
                                      serverConfig.value("workers", std::thread::hardware_concurrency())
                                  ));
-
-    if (hasKey(serverConfig, "secure") && serverConfig["secure"].value("enabled", false)) {
-        webSocket->enableTLS(
-            serverConfig["secure"].value("crtPath", ""),
-            serverConfig["secure"].value("keyPath", "")
-        );
-    }
 }
 bool wss::ServerStarter::configureEventNotifier(nlohmann::json &config) {
     if (!hasKey(config, "event")) {

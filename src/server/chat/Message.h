@@ -55,7 +55,6 @@ class MessagePayload {
     MessagePayload &operator=(MessagePayload &&payload) = default;
 
     explicit MessagePayload(const std::string &json) noexcept;
-    explicit MessagePayload(const WsMessagePtr &message) noexcept;
     explicit MessagePayload(const nlohmann::json &obj) noexcept;
 
     /**
