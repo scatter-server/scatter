@@ -1,5 +1,4 @@
 .DS_Store
-.gitignore
 .idea/
 build/**
 cmake-build-debug/
@@ -8,4 +7,6 @@ cmake-build-debug/
 *.dll
 *.so
 *.cpp.o
+.mainframer
+remote-build.sh
 

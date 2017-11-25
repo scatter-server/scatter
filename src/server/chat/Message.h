@@ -132,6 +132,9 @@ class MessagePayload {
     MessagePayload &addRecipient(UserId to);
 };
 
+void to_json(wss::json &j, const wss::MessagePayload &in);
+void from_json(const wss::json &j, wss::MessagePayload &in);
+
 };
 
 #endif //WSSERVER_MESSAGE_HPP
