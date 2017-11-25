@@ -93,7 +93,7 @@ if ($ENV{USER} STREQUAL "root")
 	include(cmakes/FindLinuxPlatform.cmake)
 	if (IS_REDHAT)
 		install(
-			bin/rhel/wsserver.service DESTINATION /usr/lib/systemd/system
+			FILES ${CMAKE_CURRENT_SOURCE_DIR}/bin/rhel/wsserver.service DESTINATION /usr/lib/systemd/system
 			PERMISSIONS OWNER_READ OWNER_WRITE #0644
 			GROUP_READ
 			WORLD_READ
