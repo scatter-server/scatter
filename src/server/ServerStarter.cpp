@@ -102,7 +102,10 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
     }
     #else
     // creating ws service
-    webSocket = std::make_shared<wss::ChatMessageServer>(address, (std::uint16_t) port, "^" + endpoint + "?$");
+    std::stringstream endpointStream;
+    endpointStream << "^" << endpoint << "?$";
+    const std::string res = endpointStream.str();
+    webSocket = std::make_shared<wss::ChatMessageServer>(address, (std::uint16_t) port, res);
     #endif
 
 
