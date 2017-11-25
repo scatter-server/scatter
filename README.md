@@ -35,7 +35,7 @@
  
 
 ## Requirements
-* CMake 3.7+
+* CMake 3.0+
 * GCC/CLang: -stdlib=c++14
 * Boost (system thread coroutine context random, GCC < 4.9 - regex)
 * Boost.Asio
