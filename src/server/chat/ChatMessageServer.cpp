@@ -7,8 +7,40 @@
  */
 
 #include "ChatMessageServer.h"
+
+#ifdef USE_SECURE_SERVER
+wss::ChatMessageServer::ChatMessageServer(
+    const std::string &crtPath, const std::string &keyPath,
+    const std::string &host, unsigned short port, const std::string &regexPath) :
+    useSSL(true),
+    crtPath(),
+    keyPath(),
+    maxMessageSize(10 * 1024 * 1024) {
+    server = std::make_unique<WsServer>(crtPath, keyPath);
+    server->config.port = port;
+    server->config.thread_pool_size = 10;
+    server->config.max_message_size = maxMessageSize;
+
+    if (host.length() > 1) {
+        server->config.address = host;
+    };
+
+    endpoint = &server->endpoint[regexPath];
+    endpoint->on_message = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
+      onMessage(findOrCreateConnection(connectionPtr), messagePtr);
+    };
+
+    endpoint->on_open = std::bind(&wss::ChatMessageServer::onConnected, this, std::placeholders::_1);
+    endpoint->on_close = std::bind(&wss::ChatMessageServer::onDisconnected,
+                                   this,
+                                   std::placeholders::_1,
+                                   std::placeholders::_2,
+                                   std::placeholders::_3);
+
+}
+#else
 wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned short port, const std::string &regexPath) :
-    enableTls(false),
+    useSSL(false),
     crtPath(),
     keyPath(),
     maxMessageSize(10 * 1024 * 1024) {
@@ -33,37 +65,7 @@ wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned shor
                                    std::placeholders::_3);
 
 }
-
-wss::ChatMessageServer::ChatMessageServer(
-    const std::string &crtPath, const std::string &keyPath,
-    const std::string &host, unsigned short port, const std::string &regexPath) :
-    enableTls(false),
-    crtPath(),
-    keyPath(),
-    maxMessageSize(10 * 1024 * 1024) {
-    enableTls = true;
-    serverSecure = std::make_unique<WssServer>(crtPath, keyPath);
-    serverSecure->config.port = port;
-    serverSecure->config.thread_pool_size = 10;
-    serverSecure->config.max_message_size = maxMessageSize;
-
-    if (host.length() > 1) {
-        serverSecure->config.address = host;
-    };
-
-    endpointSecure = &serverSecure->endpoint[regexPath];
-    endpointSecure->on_message = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
-      onMessage(findOrCreateConnection(connectionPtr), messagePtr);
-    };
-
-    endpointSecure->on_open = std::bind(&wss::ChatMessageServer::onConnected, this, std::placeholders::_1);
-    endpointSecure->on_close = std::bind(&wss::ChatMessageServer::onDisconnected,
-                                         this,
-                                         std::placeholders::_1,
-                                         std::placeholders::_2,
-                                         std::placeholders::_3);
-
-}
+#endif
 
 wss::ChatMessageServer::~ChatMessageServer() {
     stopService();
@@ -71,8 +73,7 @@ wss::ChatMessageServer::~ChatMessageServer() {
 }
 
 void wss::ChatMessageServer::setThreadPoolSize(std::size_t size) {
-    getServerConfig().thread_pool_size = size;
-
+    server->config.thread_pool_size = size;
 }
 void wss::ChatMessageServer::joinThreads() {
     if (workerThread != nullptr) {
@@ -86,25 +87,17 @@ void wss::ChatMessageServer::detachThreads() {
 }
 void wss::ChatMessageServer::runService() {
     std::string hostname = "[any:address]";
-    if (not getServerConfig().address.empty()) {
-        hostname = getServerConfig().address;
+    if (not server->config.address.empty()) {
+        hostname = server->config.address;
     }
-    L_INFO_F("WebSocket Server", "Started at ws://%s:%d", hostname.c_str(), getServerConfig().port);
+    const char *proto = useSSL ? "wss" : "ws";
+    L_INFO_F("WebSocket Server", "Started at %s://%s:%d", proto, hostname.c_str(), server->config.port);
     workerThread = std::make_unique<std::thread>([this] {
-      if (enableTls) {
-          this->serverSecure->start();
-      } else {
-          this->server->start();
-      }
-
+      this->server->start();
     });
 }
 void wss::ChatMessageServer::stopService() {
-    if (enableTls) {
-        this->serverSecure->stop();
-    } else {
-        this->server->stop();
-    }
+    this->server->stop();
 }
 
 void wss::ChatMessageServer::onMessage(ConnectionInfo &connection, WsMessagePtr message) {
@@ -168,7 +161,6 @@ void wss::ChatMessageServer::onMessageSent(wss::MessagePayload &&payload, std::s
         for (auto &i: payload.getRecipients()) {
             getStat(i)->addReceivedMessage().addBytesTransferred(bytesTransferred);
         }
-
 
         if (enableMessageDeliveryStatus) {
             wss::MessagePayload status = MessagePayload::createSendStatus(payload);
@@ -375,19 +367,19 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload,
             connection
                 ->send(sendStream,
                        [this, uid, payload, handleUndeliverable, plSize](const SimpleWeb::error_code &errorCode) {
-                  if (errorCode) {
-                      // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
-                      L_ERR_F("Send message", "Server: Error sending message: %s, error message: %s",
-                              errorCode.category().name(),
-                              errorCode.message().c_str()
-                      );
-                      handleUndeliverable(uid);
-                  } else {
-                      MessagePayload sent = payload;
-                      sent.setRecipient(uid);
-                      onMessageSent(std::move(sent), plSize);
-                  }
-                }, fin_rcv_opcode);
+                         if (errorCode) {
+                             // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
+                             L_ERR_F("Send message", "Server: Error sending message: %s, error message: %s",
+                                     errorCode.category().name(),
+                                     errorCode.message().c_str()
+                             );
+                             handleUndeliverable(uid);
+                         } else {
+                             MessagePayload sent = payload;
+                             sent.setRecipient(uid);
+                             onMessageSent(std::move(sent), plSize);
+                         }
+                       }, fin_rcv_opcode);
         } catch (const ConnectionNotFound &e) {
             cout << "Connection not found exception. Adding payload to undelivered" << endl;
             handleUndeliverable(uid);
@@ -435,14 +427,9 @@ std::size_t wss::ChatMessageServer::getThreadName() {
 
     return ids[id];
 }
-
 void wss::ChatMessageServer::setMessageSizeLimit(size_t bytes) {
     maxMessageSize = bytes;
-    if (enableTls) {
-        serverSecure->config.max_message_size = maxMessageSize;
-    } else {
-        server->config.max_message_size = maxMessageSize;
-    }
+    server->config.max_message_size = maxMessageSize;
 }
 
 void wss::ChatMessageServer::setEnabledMessageDeliveryStatus(bool enabled) {

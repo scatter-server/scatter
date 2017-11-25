@@ -214,10 +214,14 @@ class ChatMessageServer : public virtual StandaloneService {
     const unsigned char RSV_OPCODE_TEXT = 129;
     const unsigned char RSV_OPCODE_BINARY = 130;
  public:
-    ChatMessageServer(const std::string &host, unsigned short port, const std::string &regexPath);
+    #ifdef USE_SECURE_SERVER
     ChatMessageServer(
         const std::string &crtPath, const std::string &keyPath,
         const std::string &host, unsigned short port, const std::string &regexPath);
+    #else
+    ChatMessageServer(const std::string &host, unsigned short port, const std::string &regexPath);
+    #endif
+
     ~ChatMessageServer();
 
     void joinThreads() override;
@@ -225,15 +229,14 @@ class ChatMessageServer : public virtual StandaloneService {
     void runService() override;
     void stopService() override;
 
-    void setThreadPoolSize(std::size_t size);
-    void setMessageSizeLimit(size_t bytes);
-    void setEnabledMessageDeliveryStatus(bool enabled);
-
     void send(
         const MessagePayload &payload,
         std::function<void(wss::MessagePayload &&payload)> &&successPayload = [](wss::MessagePayload &&) { }
     );
 
+    void setThreadPoolSize(std::size_t size);
+    void setMessageSizeLimit(size_t bytes);
+    void setEnabledMessageDeliveryStatus(bool enabled);
     void addMessageListener(std::function<void(wss::MessagePayload &&)> callback);
     void addStopListener(std::function<void()> callback);
 
@@ -263,7 +266,7 @@ class ChatMessageServer : public virtual StandaloneService {
 
  private:
     // secure
-    bool enableTls;
+    const bool useSSL;
     std::string crtPath;
     std::string keyPath;
 
@@ -275,24 +278,16 @@ class ChatMessageServer : public virtual StandaloneService {
     std::vector<std::function<void(wss::MessagePayload &&)>> messageListeners;
     std::vector<std::function<void()>> stopListeners;
 
-    // mutex
     std::mutex frameBufferMutex;
     std::recursive_mutex connectionMutex;
     std::mutex undeliveredMutex;
 
-    // server
-    // гавно какое-то, но блин,
-    // либо делать 2 разные сборки с SSL и без
-    // либо переделывать класс полностью на шаблонные специализации
-    // либо еще куча вариантов
-    // @TODO в общем
-    std::unique_ptr<WsServer> server;
-    std::unique_ptr<WssServer> serverSecure;
-    WsServer::Endpoint *endpoint;
-    WssServer::Endpoint *endpointSecure;
     std::unique_ptr<std::thread> workerThread;
 
-    // data
+    WsServer::Endpoint *endpoint;
+    std::unique_ptr<WsServer> server;
+
+
     std::unordered_map<UserId, std::shared_ptr<std::stringstream>> frameBuffer;
     std::unordered_map<UserId, ConnectionInfo> connectionMap;
     std::unordered_map<UserId, std::queue<wss::MessagePayload>> undeliveredMessagesMap;

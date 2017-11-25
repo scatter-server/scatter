@@ -8,6 +8,12 @@ set(CMAKE_CXX_COMPILER_FLAGS "-Werror -Wfatal-error -pedantic -Wall -Wextra -Wsi
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_ROOT_MODULE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
+option(USE_SSL "Certifacates required" OFF)
+
+if (USE_SSL)
+	add_definitions(-DUSE_SECURE_SERVER=1)
+endif ()
+
 if (MSVC)
 	add_compile_options(/W1)
 endif ()

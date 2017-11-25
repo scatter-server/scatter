@@ -13,15 +13,23 @@
 #include <thread>
 #include <string>
 #include "json.hpp"
-#include "server_ws.hpp"
+
+#ifdef USE_SECURE_SERVER
 #include "server_wss.hpp"
+#else
+#include "server_ws.hpp"
+#endif
 
 namespace wss {
 
 typedef unsigned long UserId;
 
+#ifdef USE_SECURE_SERVER
+using WsServer = SimpleWeb::SocketServer<SimpleWeb::WSS>;
+#else
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
-using WssServer = SimpleWeb::SocketServer<SimpleWeb::WSS>;
+#endif
+
 using WsMessageStream = WsServer::SendStream;
 using WsConnectionPtr = std::shared_ptr<WsServer::Connection>;
 using WsMessagePtr = std::shared_ptr<WsServer::Message>;

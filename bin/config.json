@@ -5,9 +5,8 @@
     "port": 8080,
     "workers": 16,
     "secure": {
-      "enabled": false,
       "crtPath": "../certs/debug.crt",
-      "keyPath": "../cert/debug.key"
+      "keyPath": "../certs/pdebug.key"
     },
     "tmpDir": "/tmp",
     "idleTimeoutSeconds": 600

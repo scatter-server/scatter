@@ -70,8 +70,8 @@ wss::ServerStarter::ServerStarter(int argc, char **argv) : args() {
         enableRestApi = config["restApi"].value("enabled", false);
     }
 
-    // getting is enabled wss protocol
-    if (hasKey(serverConfig, "secure") && serverConfig["secure"].value("enabled", false)) {
+    #ifdef USE_SECURE_SERVER
+    if (hasKey(serverConfig, "secure")) {
         const std::string crtPath = serverConfig["secure"].at("crtPath");
         const std::string keyPath = serverConfig["secure"].at("crtPath");
         if (crtPath.empty() || keyPath.empty()) {
@@ -99,10 +99,11 @@ wss::ServerStarter::ServerStarter(int argc, char **argv) : args() {
             (std::uint16_t) port,
             "^" + endpoint + "?$"
         );
-    } else {
-        // creating ws service
-        webSocket = std::make_shared<wss::ChatMessageServer>(address, (std::uint16_t) port, "^" + endpoint + "?$");
     }
+    #else
+    // creating ws service
+    webSocket = std::make_shared<wss::ChatMessageServer>(address, (std::uint16_t) port, "^" + endpoint + "?$");
+    #endif
 
 
 
