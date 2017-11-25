@@ -40,7 +40,7 @@ MessagePayload::MessagePayload(UserId from, UserId to, const std::string &messag
     type(TYPE_TEXT) {
     addRecipient(to);
 }
-MessagePayload::MessagePayload(UserId from, const std::vector<UserId> &to, const std::string &message) :
+wss::MessagePayload::MessagePayload(UserId from, const std::vector<UserId> &to, const std::string &message) :
     sender(from),
     recipients(to),
     text(message),
@@ -62,12 +62,12 @@ wss::MessagePayload::MessagePayload(const std::string &json) noexcept {
     }
 }
 
-wss::MessagePayload::MessagePayload(const nlohmann::json &obj) noexcept {
+wss::MessagePayload::MessagePayload(const wss::json &obj) noexcept {
     fromJson(obj);
     validate();
 }
 
-void MessagePayload::validate() {
+void wss::MessagePayload::validate() {
     if (recipients.empty()) {
         valid = false;
         errorCause = "Recipients can't be empty";
@@ -96,53 +96,53 @@ const std::string wss::MessagePayload::getText() const {
 bool wss::MessagePayload::isMyMessage(UserId id) const {
     return getSender() == id;
 }
-bool MessagePayload::isValid() const {
+bool wss::MessagePayload::isValid() const {
     return valid && !recipients.empty();
 }
-bool MessagePayload::isSingleRecipient() const {
+bool wss::MessagePayload::isSingleRecipient() const {
     return recipients.size() == 1;
 }
-bool MessagePayload::isBinary() const {
+bool wss::MessagePayload::isBinary() const {
     return typeIs(TYPE_B64_IMAGE);
 }
-bool MessagePayload::isSentStatus() const {
+bool wss::MessagePayload::isSentStatus() const {
     return typeIs(TYPE_NOTIFICATION_RECEIVED);
 }
-bool MessagePayload::typeIs(const char *t) const {
+bool wss::MessagePayload::typeIs(const char *t) const {
     const char *lc = type.c_str();
     return strcmp(lc, t) == 0;
 }
-const std::string MessagePayload::getError() const {
+const std::string wss::MessagePayload::getError() const {
     return errorCause;
 }
 
-MessagePayload &MessagePayload::setRecipient(UserId id) {
+wss::MessagePayload &MessagePayload::setRecipient(UserId id) {
     recipients.clear();
     recipients.push_back(id);
     return *this;
 }
-MessagePayload &MessagePayload::setRecipients(const std::vector<UserId> &recipients) {
+wss::MessagePayload &MessagePayload::setRecipients(const std::vector<UserId> &recipients) {
     this->recipients = recipients;
     return *this;
 }
-MessagePayload &MessagePayload::setRecipients(std::vector<UserId> &&recipients) {
+wss::MessagePayload &MessagePayload::setRecipients(std::vector<UserId> &&recipients) {
     this->recipients = std::move(recipients);
     return *this;
 }
 
-void MessagePayload::handleJsonException(const std::exception &e, const std::string &data) {
+void wss::MessagePayload::handleJsonException(const std::exception &e, const std::string &data) {
     valid = false;
     std::stringstream ss;
     ss << "Can't deserialize json: " << e.what();
     errorCause = ss.str();
     L_WARN("MessagePayload", ss.str().c_str())
 }
-MessagePayload &MessagePayload::addRecipient(UserId to) {
+wss::MessagePayload &MessagePayload::addRecipient(UserId to) {
     recipients.push_back(to);
     return *this;
 }
 
-void wss::to_json(json &j, const MessagePayload &in) {
+void wss::to_json(wss::json &j, const wss::MessagePayload &in) {
     j = json {
         {"type",       in.type},
         {"text",       in.text},
@@ -151,7 +151,7 @@ void wss::to_json(json &j, const MessagePayload &in) {
         {"data",       in.data}
     };
 }
-void wss::from_json(const json &j, MessagePayload &in) {
+void wss::from_json(const wss::json &j, wss::MessagePayload &in) {
     in.type = j.value("type", std::string(TYPE_TEXT));
 
     if (strcmp(in.type.c_str(), TYPE_TEXT) == 0) {
@@ -166,7 +166,7 @@ void wss::from_json(const json &j, MessagePayload &in) {
     in.data = j.value("data", json());
 }
 
-MessagePayload MessagePayload::createSendStatus(UserId to) {
+wss::MessagePayload MessagePayload::createSendStatus(UserId to) {
     MessagePayload payload;
     payload.sender = 0;
     payload.addRecipient(to);
@@ -174,7 +174,7 @@ MessagePayload MessagePayload::createSendStatus(UserId to) {
 
     return payload;
 }
-MessagePayload MessagePayload::createSendStatus(const MessagePayload &payload) {
+wss::MessagePayload MessagePayload::createSendStatus(const MessagePayload &payload) {
     return createSendStatus(payload.getSender());
 }
 

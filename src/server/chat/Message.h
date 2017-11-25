@@ -38,8 +38,8 @@ class MessagePayload {
     void validate();
     void handleJsonException(const std::exception &e, const std::string &data);
 
-    friend void to_json(json &j, const MessagePayload &in);
-    friend void from_json(const json &j, MessagePayload &in);
+    friend void to_json(wss::json &j, const wss::MessagePayload &in);
+    friend void from_json(const wss::json &j, wss::MessagePayload &in);
  public:
     static MessagePayload createSendStatus(UserId to);
     static MessagePayload createSendStatus(const MessagePayload &payload);
