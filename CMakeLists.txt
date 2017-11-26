@@ -3,10 +3,14 @@ project(wsserver)
 
 
 # Configuration
+set(CXX_FLAGS "-Wall -Wno-unused-parameter")
+
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_COMPILER_FLAGS "-Werror -Wfatal-error -pedantic -Wall -Wextra -Wsign-conversion -g -rdynamic")
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_ROOT_MODULE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -Werror -Wextra -pedantic -O0")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS} -O2")
 
 option(USE_SSL "Certifacates required" OFF)
 
@@ -46,7 +50,6 @@ set(SERVER_SRC
     src/server/helpers/helpers.cpp
     src/server/web/HttpClient.cpp
     src/server/web/HttpClient.h
-    src/server/web/QueryBuilder.hpp
     src/server/event/EventNotifier.h
     src/server/event/PostbackTarget.cpp
     src/server/event/PostbackTarget.h
@@ -73,8 +76,7 @@ if ($ENV{USER} STREQUAL "root")
 	message(STATUS "INSTALL: available")
 	install(
 		TARGETS ${PROJECT_NAME}
-		RUNTIME DESTINATION sbin
-		CONFIGURATIONS Release
+		RUNTIME DESTINATION /usr/sbin
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE #0755
 		GROUP_READ GROUP_EXECUTE
 		WORLD_READ WORLD_EXECUTE

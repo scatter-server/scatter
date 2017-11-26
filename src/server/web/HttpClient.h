@@ -13,8 +13,9 @@
 #include <iostream>
 #include <istream>
 #include <ostream>
-#include "QueryBuilder.hpp"
 #include <boost/algorithm/string/trim.hpp>
+#include <toolboxpp.h>
+#include <curl/curl.h>
 #include "../defs.h"
 
 namespace wss {
@@ -38,18 +39,18 @@ class Request {
 
  public:
     Request() :
-        url(), method(GET), body() { }
+        url(),
+        body(),
+        method(GET) { }
     explicit Request(const std::string &url) :
         url(url),
-        method(GET),
-        body() {
-    }
+        body(),
+        method(GET) { }
 
     explicit Request(std::string &&url) :
         url(std::move(url)),
-        method(GET),
-        body() {
-    }
+        body(),
+        method(GET) { }
 
     Request &setUrl(const std::string &url) {
         this->url = url;
@@ -203,11 +204,10 @@ struct Response {
       }
 
       std::vector<std::string> groups = toolboxpp::strings::split(data, '&');
-      typedef std::vector<std::string>::iterator iter_t;
 
       KeyValueVector kvData;
       for (auto &&s: groups) {
-          kvData.push_back(toolboxpp::strings::splitPair(std::move(s), "="));
+          kvData.push_back(toolboxpp::strings::splitPair(s, "="));
       }
 
       return kvData;
@@ -258,7 +258,7 @@ class HttpClient {
 
     Response execute(Request &request) {
         CURL *curl;
-        CURLcode res;
+        CURLcode res = CURLE_OK;
 
         curl = curl_easy_init();
         Response resp;

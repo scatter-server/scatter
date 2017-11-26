@@ -13,12 +13,14 @@ After=network-online.target remote-fs.target nss-lookup.target
 Wants=network-online.target
 
 [Service]
-Type=forking
+Type=simple
 PIDFile=/run/wsserver.pid
 ExecStartPre=/usr/sbin/wsserver --config /etc/wsserver/config.json --test=1
 ExecStart=/usr/sbin/wsserver --config /etc/wsserver/config.json
 ExecReload=/bin/kill -s HUP $MAINPID
 ExecStop=/bin/kill -s TERM $MAINPID
+TimeoutStartSec="5sec"
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target

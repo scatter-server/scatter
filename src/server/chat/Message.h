@@ -61,7 +61,7 @@ class MessagePayload {
      *
      * @return Sender ID
      */
-    const UserId getSender() const;
+    UserId getSender() const;
     /**
      * Recipients ids
      * @see Dogsy::UserId
@@ -135,6 +135,6 @@ class MessagePayload {
 void to_json(wss::json &j, const wss::MessagePayload &in);
 void from_json(const wss::json &j, wss::MessagePayload &in);
 
-};
+}
 
 #endif //WSSERVER_MESSAGE_HPP

@@ -13,8 +13,9 @@ static wss::ServerStarter *self; // for signal instance
 wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
     args.add<std::string>("config", 'C', "Config file path /path/to/config.json", true);
     args.add<bool>("test", 'T', "Test config", false, false);
-    args.add<std::string>("log-level", 'L', "Log level: debug,warning,info,error,critical", false, "debug");
+    args.add<unsigned short>("verbosity", 'v', "Log level: 0 (error,critical), 1(0 + info), 2(all)", false, 2);
 
+    //@TODO boost::program_options
     if (!args.parse(argc, reinterpret_cast<const char *const *>(argv))) {
         std::cerr << args.error_full();
         std::cout << args.usage();
@@ -22,7 +23,7 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
         return;
     }
 
-    toolboxpp::Logger::get().setLevel(args.get<std::string>("log-level"));
+    toolboxpp::Logger::get().setVerbosity(args.get<unsigned short>("verbosity"));
 
     args.parse_check(argc, const_cast<char **>(argv));
     const std::string configPath = args.get<std::string>("config");

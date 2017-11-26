@@ -9,14 +9,13 @@
 #include "EventNotifier.h"
 
 wss::event::EventNotifier::EventNotifier(std::shared_ptr<wss::ChatMessageServer> ws) :
+    running(true),
     ws(ws),
     maxRetries(3),
     intervalSeconds(10),
     ioService(),
     threadGroup(),
-    work(ioService),
-    running(true) {
-}
+    work(ioService) { }
 
 wss::event::EventNotifier::~EventNotifier() {
     running = false;
@@ -153,7 +152,6 @@ void wss::event::EventNotifier::handleMessageQueue() {
             // iterate all targets
             for (auto &sq: sendQueue) {
                 for (auto &status: sendQueue[sq.first]) {
-                    const long diff = abs(std::time(nullptr) - status.sendTime);
                     if (ready(status)) {
                         tmp[sq.first].push_back(status);
                     }

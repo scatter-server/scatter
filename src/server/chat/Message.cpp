@@ -23,7 +23,6 @@ const char *wss::TYPE_NOTIFICATION_RECEIVED = "notification_received";
 wss::MessagePayload::MessagePayload(UserId from, UserId to, std::string &&message) :
     sender(from),
     text(std::move(message)),
-    valid(true),
     type(TYPE_TEXT) {
     addRecipient(to);
 }
@@ -77,7 +76,7 @@ void wss::MessagePayload::validate() {
 void wss::MessagePayload::fromJson(const json &obj) {
     from_json(obj, *this);
 }
-const UserId wss::MessagePayload::getSender() const {
+UserId wss::MessagePayload::getSender() const {
     return sender;
 }
 const std::vector<UserId> wss::MessagePayload::getRecipients() const {
@@ -130,7 +129,7 @@ wss::MessagePayload &MessagePayload::setRecipients(std::vector<UserId> &&recipie
     return *this;
 }
 
-void wss::MessagePayload::handleJsonException(const std::exception &e, const std::string &data) {
+void wss::MessagePayload::handleJsonException(const std::exception &e, const std::string &) {
     valid = false;
     std::stringstream ss;
     ss << "Can't deserialize json: " << e.what();

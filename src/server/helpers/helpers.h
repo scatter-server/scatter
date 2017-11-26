@@ -34,7 +34,7 @@ using hires_clock = std::chrono::high_resolution_clock;
 /**
  * ISO 8601 date format without time zone at the end
  */
-static const char *DATE_TIME_ISO_8601 = "%Y-%m-%d %H:%M:%S";
+static const char DATE_TIME_ISO_8601[] = "%Y-%m-%d %H:%M:%S";
 
 pt::ptime parseDate(const std::string &t, const char *format);
 /**
@@ -75,7 +75,7 @@ std::string humanReadableBytes(unsigned long bytes, bool si = true);
  */
 const std::string generateRandomStringCRC32(unsigned short length);
 
-};
-};
+}
+}
 
 #endif //WSSERVER_DATEHELPER_HPP

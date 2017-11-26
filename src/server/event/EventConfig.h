@@ -37,7 +37,7 @@ class WebAuth {
         return "noauth";
     }
 
-    virtual void performAuth(wss::web::Request &request) {
+    virtual void performAuth(wss::web::Request &) {
         //do nothing
     };
 };

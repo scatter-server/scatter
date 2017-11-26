@@ -67,6 +67,6 @@ class QueueThreadSafe {
     }
 };
 
-};
+}
 
 #endif //WSSERVER_BLOCKINGQUEUE_H

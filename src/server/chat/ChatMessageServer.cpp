@@ -338,8 +338,7 @@ int wss::ChatMessageServer::redeliverMessagesTo(UserId id) {
     return cnt;
 }
 
-void wss::ChatMessageServer::send(const wss::MessagePayload &payload,
-                                  std::function<void(wss::MessagePayload &&payload)> &&sentPayload) {
+void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
     // обертка над std::istream, потэтому работает так же
     auto sendStream = std::make_shared<WsMessageStream>();
     std::string pl = payload.toJson();

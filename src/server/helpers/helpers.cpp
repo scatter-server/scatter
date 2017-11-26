@@ -40,7 +40,7 @@ std::string wss::helpers::getNowISODateTime() {
 
 std::string wss::helpers::humanReadableBytes(unsigned long bytes, bool si) {
     using namespace toolboxpp::strings;
-    int unit = si ? 1000 : 1024;
+    unsigned int unit = si ? 1000 : 1024;
     if (bytes < unit) return std::to_string(bytes) + " B";
     auto exp = (std::size_t) (log(bytes) / log(unit));
 

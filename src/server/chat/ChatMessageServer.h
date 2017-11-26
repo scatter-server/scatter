@@ -59,19 +59,19 @@ struct Statistics {
 
   Statistics(UserId id) :
       id(id),
-      bytesTransferred(0),
+      lastConnectionTime(time(nullptr)),
       connectedTimes(0),
+      bytesTransferred(0),
       sentMessages(0),
-      receivedMessages(0),
-      lastConnectionTime(time(nullptr)) { }
+      receivedMessages(0) { }
 
   Statistics() :
       id(0),
-      bytesTransferred(0),
+      lastConnectionTime(time(nullptr)),
       connectedTimes(0),
+      bytesTransferred(0),
       sentMessages(0),
-      receivedMessages(0),
-      lastConnectionTime(time(nullptr)) { }
+      receivedMessages(0) { }
 
   Statistics &setId(UserId _id) {
       id = _id;
@@ -229,10 +229,7 @@ class ChatMessageServer : public virtual StandaloneService {
     void runService() override;
     void stopService() override;
 
-    void send(
-        const MessagePayload &payload,
-        std::function<void(wss::MessagePayload &&payload)> &&successPayload = [](wss::MessagePayload &&) { }
-    );
+    void send(const MessagePayload &payload);
 
     void setThreadPoolSize(std::size_t size);
     void setMessageSizeLimit(size_t bytes);
@@ -263,7 +260,6 @@ class ChatMessageServer : public virtual StandaloneService {
 
     std::unique_ptr<wss::Statistics> &getStat(UserId id);
 
-
  private:
     // secure
     const bool useSSL;
@@ -286,7 +282,6 @@ class ChatMessageServer : public virtual StandaloneService {
 
     WsServer::Endpoint *endpoint;
     std::unique_ptr<WsServer> server;
-
 
     std::unordered_map<UserId, std::shared_ptr<std::stringstream>> frameBuffer;
     std::unordered_map<UserId, ConnectionInfo> connectionMap;
