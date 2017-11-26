@@ -9,8 +9,8 @@
 ### END INIT INFO
 
 NAME=wsserver
-SCRIPT="/usr/sbin/wsserver"
-RUNAS=wsserver
+SCRIPT="/usr/sbin/wsserver --config /etc/wsserver/config.json"
+RUNAS=$(whoami)
 
 PIDFILE=/var/run/$NAME.pid
 LOGFILE=/var/log/$NAME.log

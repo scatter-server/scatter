@@ -69,13 +69,11 @@ linkdeps(${PROJECT_NAME})
 
 add_subdirectory(src/benchmark)
 
-
 if ($ENV{USER} STREQUAL "root")
 	message(STATUS "INSTALL: available")
 	install(
 		TARGETS ${PROJECT_NAME}
-		RUNTIME
-		DESTINATION /usr/sbin
+		RUNTIME DESTINATION sbin
 		CONFIGURATIONS Release
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE #0755
 		GROUP_READ GROUP_EXECUTE
@@ -114,7 +112,7 @@ if ($ENV{USER} STREQUAL "root")
 
 	elseif (IS_DEBIAN)
 		install(
-			bin/deb/wsserver DESTINATION /etc/init.d
+			FILES ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/wsserver DESTINATION /etc/init.d
 			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE #0755
 			GROUP_READ GROUP_EXECUTE
 			WORLD_READ WORLD_EXECUTE
@@ -127,8 +125,7 @@ else ()
 	To enable install command,
 	please run script as root user,
 	because binaries and configs must be installed in system dirs.
-	If you not trust me,
-	than you can just take built binaries and put wherever you want,
+	If you not trust me, than you can just take built binaries and put wherever you want,
 	just don't forget about config.json file.
 	")
 endif ()
