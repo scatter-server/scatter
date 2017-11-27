@@ -35,17 +35,21 @@
  
 
 ## Requirements
-* CMake 3.0+
 * GCC/CLang: -stdlib=c++14
-* Boost (system thread coroutine context random, GCC < 4.9 - regex)
-* Boost.Asio
+* CMake
+* Boost 1.54.0+ (recommended 1.60+)
+	* Boost (system thread coroutine context random, GCC < 4.9 - regex)
+	* Boost 1.63 requires CMake 3.7 or newer
+	* Boost 1.64 requires CMake 3.8 or newer
+	* Boost 1.65 and 1.65.1 require CMake 3.9.3 or newer
+	* Boost.Asio
 * OpenSSL
 * ToolBox++ (https://github.com/edwardstock/toolboxpp) 
  
  
 ## Cloning (with submodules)
 ```bash
-git clone --recursive=100 git@github.com/edwardstock/wsserver.git
+git clone --recursive git@github.com/edwardstock/wsserver.git
 ```
  
 ## Build
