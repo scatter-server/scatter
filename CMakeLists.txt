@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 project(wsserver)
 
 
-# Configuration
+### Configuration
 set(CXX_FLAGS "-Wall -Wno-unused-parameter")
 
 set(CMAKE_CXX_STANDARD 14)
@@ -14,6 +14,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS} -O2")
 
 option(USE_SSL "Certifacates required" OFF)
 
+
+add_definitions(-DWS_BIN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/bin")
+
 if (USE_SSL)
 	add_definitions(-DUSE_SECURE_SERVER=1)
 endif ()
@@ -21,6 +24,37 @@ endif ()
 if (MSVC)
 	add_compile_options(/W1)
 endif ()
+
+
+### Dependencies
+
+# Threads
+find_package(Threads REQUIRED)
+
+# Boost
+set(Boost_DEBUG OFF)
+set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_MULTITHREADED ON)
+find_package(Boost 1.54.0 COMPONENTS system thread coroutine context random REQUIRED)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
+	find_package(Boost 1.54.0 COMPONENTS regex REQUIRED)
+endif ()
+
+# OpenSSL (libssl)
+if (APPLE)
+	set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
+endif ()
+find_package(OpenSSL REQUIRED)
+
+# ToolBox++
+find_library(TOOLBOXPP_LIBRARIES NAMES toolboxpp)
+if (TOOLBOXPP_LIBRARIES-NOTFOUND)
+	message(CRITICAL "ToolBox++ not found")
+endif ()
+
+# cURL
+find_package(CURL REQUIRED)
+
 
 include(cmakes/sources_sets.cmake)
 include(cmakes/dependencies.cmake)
@@ -31,9 +65,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/http)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/ini-parser/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/args)
 
-add_definitions(-DWS_BIN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/bin")
-
-# Sources
+### Sources
 set(SERVER_SRC
     src/server/main.cpp
     src/server/chat/ChatMessageServer.h
@@ -131,6 +163,3 @@ else ()
 	just don't forget about config.json file.
 	")
 endif ()
-
-
-
