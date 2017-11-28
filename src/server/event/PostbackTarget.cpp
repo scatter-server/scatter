@@ -67,6 +67,8 @@ wss::event::PostbackTarget::PostbackTarget(const nlohmann::json &config) :
         } else {
             setAuth(WebAuth());
         }
+
+        client.setConnectionTimeout(config.value("connectionTimeoutSeconds", 10L));
     } catch (const std::exception &e) {
         setErrorMessage("Invalid postback target configuration. " + std::string(e.what()));
     }

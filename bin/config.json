@@ -37,6 +37,7 @@
       {
         "type": "postback",
         "url": "http://api.dev.mdsclub.ru/v1/chat/send",
+        "connectionTimeoutSeconds": 10,
         "auth": {
           "type": "header",
           "name": "X-Api-Token",

@@ -232,6 +232,7 @@ struct Response {
 class HttpClient {
  private:
     bool verbose = false;
+    long connectionTimeout = 10L;
 
     static size_t handleResponseData(void *buffer, size_t size, size_t nitems, void *userData) {
         ((Response *) userData)->data.append((char *) buffer, size * nitems);
@@ -283,7 +284,7 @@ class HttpClient {
                 curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request.getBodyC());
             }
 
-            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+            curl_easy_setopt(curl, CURLOPT_TIMEOUT, connectionTimeout);
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &HttpClient::handleResponseData);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &resp);
             curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, &HttpClient::handleResponseHeaders);
@@ -344,6 +345,10 @@ class HttpClient {
         }
 
         return resp;
+    }
+
+    void setConnectionTimeout(long timeoutSeconds) {
+        connectionTimeout = timeoutSeconds;
     }
 };
 
