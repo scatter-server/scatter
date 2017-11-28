@@ -10,12 +10,16 @@
 #include <type_traits>
 
 bool wss::event::PostbackTarget::send(const wss::MessagePayload &payload, std::string &error) {
-    request.setBody(payload.toJson())
+    const std::string out = payload.toJson();
+    if (out.length() < 1000) {
+        L_DEBUG_F("Event-Send", "Request body: %s", out.c_str());
+    }
+    request.setBody(out)
            .setMethod(wss::web::Request::POST)
            .setHeader({"Content-Length", std::to_string(request.getBody().length())})
            .setHeader({"Content-Type", "application/json"});
 
-    auth->performAuth(request);;
+    auth->performAuth(request);
     wss::web::Response response = getClient().execute(request);
     bool success = response.isSuccess();
     std::stringstream ss;

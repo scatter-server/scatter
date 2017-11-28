@@ -176,6 +176,7 @@ void wss::ChatMessageServer::onMessageSent(wss::MessagePayload &&payload, std::s
 
 void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
     QueryParams params;
+
     bool parsed = parseRawQuery("?" + connection->query_string, params);
     if (!parsed) {
         L_WARN_F("OnConnected", "Invalid request: %s", connection->query_string.c_str());
@@ -201,13 +202,23 @@ void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
     if (hasConnectionFor(id)) {
         //@TODO take multiple connections for 1 identifier
         connection->send_close(STATUS_ALREADY_CONNECTED, "Can't connect twice.");
+        L_DEBUG_F("OnConnected",
+                  "Kicked-off new connection (%s:%d) from user %lu, cause user doesn't disconnected previous connection",
+                  connection->remote_endpoint_address().c_str(),
+                  connection->remote_endpoint_port(),
+                  id);
         return;
     }
 
     setConnectionFor(id, connection);
     getStat(id)->addConnection();
 
-    L_DEBUG_F("OnConnected", "User %lu connected on thread %lu", id, getThreadName());
+    L_DEBUG_F("OnConnected", "User %lu connected (%s:%d) on thread %lu",
+              id,
+              connection->remote_endpoint_address().c_str(),
+              connection->remote_endpoint_port(),
+              getThreadName()
+    );
 
     redeliverMessagesTo(id);
 }

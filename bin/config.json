@@ -2,8 +2,8 @@
   "server": {
     "endpoint": "/chat",
     "address": "*",
-    "port": 8080,
-    "workers": 16,
+    "port": 8085,
+    "workers": 8,
     "secure": {
       "crtPath": "../certs/debug.crt",
       "keyPath": "../certs/pdebug.key"
