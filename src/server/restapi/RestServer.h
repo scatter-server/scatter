@@ -20,6 +20,7 @@
 #include "../defs.h"
 #include "../chat/ChatMessageServer.h"
 #include "../StandaloneService.h"
+#include "../base/Auth.h"
 
 #define ACTION_DEFINE(name) void name(HttpResponse response, HttpRequest request)
 #define ACTION_BIND(cName, mName) std::bind(&cName::mName, this, std::placeholders::_1, std::placeholders::_2)
@@ -41,6 +42,7 @@ class RestServer : public virtual StandaloneService {
     void runService() override;
     void stopService() override;
 
+    void setAuth(const nlohmann::json &config);
     void setAddress(const std::string &address);
     void setAddress(std::string &&host);
     void setPort(uint16_t portNumber);
@@ -56,6 +58,8 @@ class RestServer : public virtual StandaloneService {
  protected:
     virtual void createEndpoints();
 
+    std::unique_ptr<wss::WebAuth> &getAuth();
+
     void setResponseStatus(HttpResponse &response, HttpStatus status, std::size_t contentLength = 0u);
     void setContent(HttpResponse &response,
                     const std::string &content,
@@ -66,6 +70,7 @@ class RestServer : public virtual StandaloneService {
                     std::string &&contentType = "text/html");
     std::string buildResponse(const std::vector<std::pair<std::string, std::string>> &parts);
  private:
+    std::unique_ptr<WebAuth> auth;
     HttpServer server;
     std::unique_ptr<std::thread> workerThread;
 

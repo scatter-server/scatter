@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_ROOT_MODULE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -Werror -Wextra -pedantic -O0")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -Werror -Wextra -pedantic -Wno-unused-parameter -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS} -O2")
 
 option(USE_SSL "Certifacates required" OFF)
@@ -85,13 +85,15 @@ set(SERVER_SRC
     src/server/event/EventNotifier.h
     src/server/event/PostbackTarget.cpp
     src/server/event/PostbackTarget.h
-    src/server/event/EventConfig.h
+    src/server/event/EventTarget.hpp
     src/server/helpers/base64.cpp
     src/server/helpers/base64.h
     src/server/StandaloneService.h
     src/server/event/EventNotifier.cpp
     src/server/ServerStarter.cpp
-    src/server/ServerStarter.h)
+    src/server/ServerStarter.h
+    src/server/Settings.hpp
+    src/server/base/Auth.h src/server/base/Auth.cpp)
 
 add_executable(${PROJECT_NAME}
                ${SERVER_SRC}

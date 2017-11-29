@@ -11,9 +11,10 @@
 
 #include <string>
 #include "json.hpp"
-#include "EventConfig.h"
+#include "EventTarget.hpp"
 #include "../web/HttpClient.h"
 #include "../chat/ChatMessageServer.h"
+#include "../base/Auth.h"
 
 namespace wss {
 namespace event {
@@ -26,11 +27,11 @@ class PostbackTarget : public Target {
 
  protected:
     wss::web::HttpClient &getClient();
-    std::unique_ptr<WebAuth> &getAuth();
+    std::unique_ptr<wss::WebAuth> &getAuth();
 
  private:
     wss::web::Request request;
-    std::unique_ptr<WebAuth> auth;
+    std::unique_ptr<wss::WebAuth> auth;
     wss::web::HttpClient client;
     std::string url;
     template<class T>

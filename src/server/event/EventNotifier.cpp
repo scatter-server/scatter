@@ -10,6 +10,7 @@
 
 wss::event::EventNotifier::EventNotifier(std::shared_ptr<wss::ChatMessageServer> ws) :
     running(true),
+    sendStrategy(ONLINE_ONLY),
     ws(ws),
     maxRetries(3),
     intervalSeconds(10),
@@ -60,6 +61,23 @@ void wss::event::EventNotifier::addTarget(std::shared_ptr<wss::event::Target> &&
     }
     targets.insert({target->getType(), std::move(target)});
 }
+
+void wss::event::EventNotifier::setSendStrategy(const std::string &strategy) {
+    using toolboxpp::strings::equalsIgnoreCase;
+
+    if (equalsIgnoreCase(strategy, "always")) {
+        sendStrategy = ALWAYS;
+    } else if (equalsIgnoreCase(strategy, "onlineOnly")) {
+        sendStrategy = ONLINE_ONLY;
+    } else {
+        throw std::runtime_error(std::string("Unsupported send strategy: " + strategy));
+    }
+}
+
+void wss::event::EventNotifier::setSendStrategy(wss::event::EventNotifier::SendStrategy strategy) {
+    sendStrategy = strategy;
+}
+
 void wss::event::EventNotifier::subscribe() {
     for (int i = 0; i < 4; i++) {
         threadGroup.create_thread(
@@ -67,7 +85,7 @@ void wss::event::EventNotifier::subscribe() {
         );
     }
 
-    ws->addMessageListener(std::bind(&EventNotifier::onMessage, this, std::placeholders::_1));
+    ws->addMessageListener(std::bind(&EventNotifier::onMessage, this, std::placeholders::_1, std::placeholders::_2));
     ws->addStopListener(std::bind(&EventNotifier::onStop, this));
     ioService.post(boost::bind(&EventNotifier::handleMessageQueue, this));
 }
@@ -182,7 +200,11 @@ void wss::event::EventNotifier::addMessage(wss::MessagePayload payload) {
     }
     L_DEBUG("Event-Enqueue", "Adding message to send queue");
 }
-void wss::event::EventNotifier::onMessage(wss::MessagePayload &&payload) {
-    ioService.post(boost::bind(&EventNotifier::addMessage, this, payload));
+
+void wss::event::EventNotifier::onMessage(wss::MessagePayload &&payload, bool hasSent) {
+    if (sendStrategy == ALWAYS || hasSent) {
+        ioService.post(boost::bind(&EventNotifier::addMessage, this, payload));
+    }
+
 }
 

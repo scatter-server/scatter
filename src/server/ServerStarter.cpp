@@ -13,7 +13,7 @@ static wss::ServerStarter *self; // for signal instance
 wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
     args.add<std::string>("config", 'C', "Config file path /path/to/config.json", true);
     args.add<bool>("test", 'T', "Test config", false, false);
-    args.add<unsigned short>("verbosity", 'v', "Log level: 0 (error,critical), 1(0 + info), 2(all)", false, 2);
+    args.add<uint16_t>("verbosity", 'v', "Log level: 0 (error,critical), 1(0 + info), 2(all)", false, 2);
 
     //@TODO boost::program_options
     if (!args.parse(argc, reinterpret_cast<const char *const *>(argv))) {
@@ -23,7 +23,7 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
         return;
     }
 
-    toolboxpp::Logger::get().setVerbosity(args.get<unsigned short>("verbosity"));
+    toolboxpp::Logger::get().setVerbosity(args.get<uint16_t>("verbosity"));
 
     args.parse_check(argc, const_cast<char **>(argv));
     const std::string configPath = args.get<std::string>("config");
@@ -37,47 +37,15 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
         return;
     }
 
-    json config;
+    nlohmann::json config;
     configFileStream >> config;
-
-    // Check server config
-    if (config.find("server") == config.end()) {
-        cerr << "server config required" << endl;
-        valid = false;
-        return;
-    }
-
-    json serverConfig = config["server"];
-    // check server config is an object
-    if (!serverConfig.is_object()) {
-        cerr << "server config must be an object" << endl;
-        valid = false;
-        return;
-    }
-
-    // getting ws server port
-    int port = serverConfig.value("port", 9091);
-    if (port < 1 || port > 65535) {
-        cerr << "Invalid server.port range: must be from 1 to 65535" << endl;
-        valid = false;
-        return;
-    }
-
-    // getting ws server ip
-    std::string address = serverConfig.value("address", "*");
-    // websocket endpoint path
-    std::string endpoint = serverConfig.value("endpoint", "/chat/");
-
-    // check for enabled rest api server
-    bool enableRestApi = false;
-    if (hasKey(config, "restApi")) {
-        enableRestApi = config["restApi"].value("enabled", false);
-    }
+    wss::Settings &settings = wss::Settings::get();
+    settings = config;
 
     #ifdef USE_SECURE_SERVER
-    if (hasKey(serverConfig, "secure")) {
-        const std::string crtPath = serverConfig["secure"].at("crtPath");
-        const std::string keyPath = serverConfig["secure"].at("crtPath");
+    if (settings.server.secure.enabled) {
+        const std::string crtPath = settings.server.secure.crtPath;
+        const std::string keyPath = settings.server.secure.keyPath;
         if (crtPath.empty() || keyPath.empty()) {
             cerr << "Certificate and private key paths can'be empty";
             valid = false;
@@ -96,28 +64,32 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
             return;
         }
 
+        std::stringstream endpointStream;
+        endpointStream << "^" << settings.server.endpoint << "?$";
+        const std::string res = endpointStream.str();
+
         webSocket = std::make_shared<wss::ChatMessageServer>(
-            serverConfig["secure"].at("crtPath"),
-            serverConfig["secure"].at("keyPath"),
-            address,
-            (std::uint16_t) port,
-            "^" + endpoint + "?$"
+            crtPath,
+            keyPath,
+            settings.server.address,
+            settings.server.port,
+            res
         );
     }
     #else
     // creating ws service
     std::stringstream endpointStream;
-    endpointStream << "^" << endpoint << "?$";
+    endpointStream << "^" << settings.server.endpoint << "?$";
     const std::string res = endpointStream.str();
-    webSocket = std::make_shared<wss::ChatMessageServer>(address, (std::uint16_t) port, res);
+    webSocket = std::make_shared<wss::ChatMessageServer>(settings.server.address, settings.server.port, res);
     #endif
 
 
 
     // configuring ws service
-    configureServer(config);
+    configureServer(settings);
     // configuring ws service chat
-    configureChat(config);
+    configureChat(settings);
 
     // creating event notifier service
     eventNotifier = std::make_shared<wss::event::EventNotifier>(webSocket);
@@ -128,22 +100,22 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
     runService(webSocket);
 
     // configuring event notifier
-    if (hasKey(config, "event") && config["event"].value("enabled", false)) {
-        bool validConfig = configureEventNotifier(config);
-        if (!validConfig) {
-            valid = false;
-            return;
-        }
 
+    bool validConfig = configureEventNotifier(settings);
+    if (!validConfig) {
+        valid = false;
+        return;
+    } else {
         // adding commands to run event notifier and to join it threads
         runService(eventNotifier);
     }
 
     // configuring rest api service
-    if (enableRestApi) {
-        const json restConfig = config["restApi"];
-        restServer->setAddress(restConfig.value("address", "*"));
-        restServer->setPort(restConfig.value("port", (uint16_t) 8081));
+    if (settings.restApi.enabled) {
+        restServer->setAddress(settings.restApi.address);
+        restServer->setPort(settings.restApi.port);
+        restServer->setAuth(settings.restApi.auth.data);
+
 
         runService(restServer);
     }
@@ -186,88 +158,67 @@ void wss::ServerStarter::signalHandler(int signum) {
 bool wss::ServerStarter::hasKey(nlohmann::json &obj, const std::string &key) {
     return obj.find(key) != obj.end();
 }
-void wss::ServerStarter::configureChat(nlohmann::json &config) {
+void wss::ServerStarter::configureChat(wss::Settings &settings) {
+    using toolboxpp::strings::matchRegexp;
 
-    if (!hasKey(config, "chat")) {
+    std::string messageMaxSize = settings.chat.message.maxSize;
+
+    std::smatch res = matchRegexp(R"(^(\d+)(M|K)$)", messageMaxSize);
+    if (res.size() != 3) {
+        cerr
+            << "Invalid message.maxSize value format. Must be: 10M or 1000K which means 10 megabytes or 1000 kilobytes"
+            << endl;
         return;
     }
 
-    json chatConfig = config["chat"];
-
-    std::string messageMaxSize = "10M";
-    if (hasKey(chatConfig, "message")) {
-        messageMaxSize = chatConfig["message"].value("maxSize", "10M");
-
-        std::smatch res = toolboxpp::strings::matchRegexp(R"(^(\d+)(M|K)$)", messageMaxSize);
-        if (res.size() != 3) {
-            cerr
-                << "Invalid message.maxSize value format. Must be: 10M or 1000K which means 10 megabytes or 1000 kilobytes"
-                << endl;
-            return;
-        }
-
-        unsigned long sz;
-        try {
-            sz = std::stoul(res[1]);
-        } catch (const std::exception &e) {
-            cerr << "Invalid value message.maxSize. " << e.what() << endl;
-            return;
-        }
-
-        std::size_t maxBytes = 0;
-
-        if (res[2] == "M") {
-            // megabytes
-            maxBytes = sz * 1024 * 1024;
-        } else {
-            // kilobytes
-            maxBytes = sz * 1024;
-        }
-        webSocket->setMessageSizeLimit(maxBytes);
-        webSocket->setEnabledMessageDeliveryStatus(chatConfig["message"].value("enableDeliveryStatus", false));
+    unsigned long sz;
+    try {
+        sz = std::stoul(res[1]);
+    } catch (const std::exception &e) {
+        cerr << "Invalid value message.maxSize. " << e.what() << endl;
+        return;
     }
+
+    std::size_t maxBytes = 0;
+
+    if (res[2] == "M") {
+        // megabytes
+        maxBytes = sz * 1024 * 1024;
+    } else {
+        // kilobytes
+        maxBytes = sz * 1024;
+    }
+    webSocket->setMessageSizeLimit(maxBytes);
+    webSocket->setEnabledMessageDeliveryStatus(settings.chat.message.enableDeliveryStatus);
 }
-void wss::ServerStarter::configureServer(nlohmann::json &config) {
-    if (!hasKey(config, "server")) {
-        return;
-    }
-
-    json serverConfig = config["server"];
+void wss::ServerStarter::configureServer(wss::Settings &settings) {
 
     // setting num of workers (threads in thread pool)
-    webSocket->setThreadPoolSize(static_cast<size_t>(
-                                     serverConfig.value("workers", std::thread::hardware_concurrency())
-                                 ));
+    webSocket->setThreadPoolSize(settings.server.workers);
 }
-bool wss::ServerStarter::configureEventNotifier(nlohmann::json &config) {
-    if (!hasKey(config, "event")) {
+bool wss::ServerStarter::configureEventNotifier(wss::Settings &settings) {
+    if (!settings.event.enabled) {
         return true;
     }
 
     using namespace wss::event;
 
-    json eventConfig = config["event"];
-    const bool enabledEvent = eventConfig.value("enabled", false);
-    if (!enabledEvent) {
-        return true;
-    }
-
-    if (!hasKey(eventConfig, "targets")) {
+    if (settings.event.targets.is_null()) {
         cerr << "If event marked as enabled, you must set at least one target" << endl;
         return false;
     }
 
-    json targets = eventConfig["targets"];
-    if (!targets.is_array()) {
+    if (!settings.event.targets.is_array()) {
         cerr << "event.targets must be an array of objects" << endl;
         return false;
     }
 
-    eventNotifier->setMaxTries(eventConfig.value("retryCount", 3));
-    eventNotifier->setRetryIntervalSeconds(eventConfig.value("retryIntervalSeconds", 10));
+    eventNotifier->setMaxTries(settings.event.retryCount);
+    eventNotifier->setRetryIntervalSeconds(settings.event.retryIntervalSeconds);
+    eventNotifier->setSendStrategy(settings.event.sendStrategy);
 
     int i = 0;
-    for (auto &target: targets) {
+    for (auto &target: settings.event.targets) {
         if (!hasKey(target, "type")) {
             cerr << "event.targets[" << i << "].type - required" << endl;
             return false;

@@ -24,6 +24,7 @@
 #include "restapi/ChatRestServer.h"
 #include "chat/ChatMessageServer.h"
 #include "StandaloneService.h"
+#include "Settings.hpp"
 
 namespace wss {
 
@@ -66,9 +67,9 @@ class ServerStarter {
 
     bool hasKey(nlohmann::json &obj, const std::string &key);
 
-    void configureChat(nlohmann::json &config);
-    void configureServer(nlohmann::json &config);
-    bool configureEventNotifier(nlohmann::json &config);
+    void configureChat(wss::Settings &settings);
+    void configureServer(wss::Settings &settings);
+    bool configureEventNotifier(wss::Settings &settings);
 };
 
 }

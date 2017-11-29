@@ -13,6 +13,7 @@
 #include <memory>
 #include "../defs.h"
 #include "RestServer.h"
+#include "../base/Auth.h"
 #include "json.hpp"
 
 namespace wss {

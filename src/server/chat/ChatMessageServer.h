@@ -25,14 +25,12 @@
 #include <functional>
 #include <toolboxpp.h>
 #include <boost/thread.hpp>
-#include <future>
 #include "server_ws.hpp"
 #include "json.hpp"
 #include "Message.h"
 #include "../defs.h"
 #include "../StandaloneService.h"
 #include "../threadsafe.hpp"
-#include "../helpers/helpers.h"
 
 namespace wss {
 
@@ -52,26 +50,35 @@ struct ConnectionNotFound : std::exception {
 struct Statistics {
   std::atomic<UserId> id;
   std::atomic<time_t> lastConnectionTime;
+  std::atomic<time_t> lastDisconnectionTime;
   std::atomic_size_t connectedTimes;
+  std::atomic_size_t disconnectedTimes;
   std::atomic_size_t bytesTransferred;
   std::atomic_size_t sentMessages;
   std::atomic_size_t receivedMessages;
+  std::atomic<time_t> lastMessageTime;
 
   Statistics(UserId id) :
       id(id),
       lastConnectionTime(time(nullptr)),
+      lastDisconnectionTime(0),
       connectedTimes(0),
+      disconnectedTimes(0),
       bytesTransferred(0),
       sentMessages(0),
-      receivedMessages(0) { }
+      receivedMessages(0),
+      lastMessageTime(0) { }
 
   Statistics() :
       id(0),
       lastConnectionTime(time(nullptr)),
+      lastDisconnectionTime(0),
       connectedTimes(0),
+      disconnectedTimes(0),
       bytesTransferred(0),
       sentMessages(0),
-      receivedMessages(0) { }
+      receivedMessages(0),
+      lastMessageTime(0) { }
 
   Statistics &setId(UserId _id) {
       id = _id;
@@ -84,12 +91,19 @@ struct Statistics {
       return *this;
   }
 
+  Statistics &addDisconnection() {
+      lastDisconnectionTime = time(nullptr);
+      disconnectedTimes++;
+      return *this;
+  }
+
   Statistics &addBytesTransferred(std::size_t bytes) {
       bytesTransferred += bytes;
       return *this;
   }
   Statistics &addSentMessages(std::size_t sent) {
       sentMessages += sent;
+      lastMessageTime = time(nullptr);
       return *this;
   }
   Statistics &addSendMessage() {
@@ -109,8 +123,35 @@ struct Statistics {
       return connectedTimes;
   }
 
-  time_t getSessionTime() const {
+  std::size_t getDisconnectedTimes() {
+      return disconnectedTimes;
+  }
+
+  time_t getOnlineTime() const {
+      if (!isOnline()) {
+          return 0;
+      }
       return time(nullptr) - lastConnectionTime;
+  }
+
+  time_t getOfflineTime() const {
+      if (isOnline()) {
+          return 0;
+      }
+
+      return time(nullptr) - lastDisconnectionTime;
+  }
+
+  time_t getLastMessageSecondsAgo() const {
+      if (!isOnline() || lastMessageTime) {
+          return 0;
+      }
+
+      return time(nullptr) - lastMessageTime;
+  }
+
+  bool isOnline() const {
+      return connectedTimes > disconnectedTimes;
   }
 
   time_t getConnectionTime() const {
@@ -192,6 +233,7 @@ class ChatMessageServer : public virtual StandaloneService {
     const int STATUS_INVALID_QUERY_PARAMS = 4000;
     const int STATUS_INVALID_MESSAGE_PAYLOAD = 4001;
     const int STATUS_ALREADY_CONNECTED = 4002;
+    const int STATUS_INACTIVE_CONNECTION = 4010;
 
     /**
      *  0000 0000 (0)   - продолжение фрагмента (FIN bit clear=0x0, rsv_opcode=0x1: fin & rsv_opcode == 0x0)
@@ -213,6 +255,10 @@ class ChatMessageServer : public virtual StandaloneService {
     const unsigned char RSV_OPCODE_PONG = 10;
     const unsigned char RSV_OPCODE_TEXT = 129;
     const unsigned char RSV_OPCODE_BINARY = 130;
+
+    typedef std::function<void(wss::MessagePayload &&, bool hasSent)> OnMessageSentListener;
+    typedef std::function<void()> OnServerStopListener;
+
  public:
     #ifdef USE_SECURE_SERVER
     ChatMessageServer(
@@ -234,14 +280,14 @@ class ChatMessageServer : public virtual StandaloneService {
     void setThreadPoolSize(std::size_t size);
     void setMessageSizeLimit(size_t bytes);
     void setEnabledMessageDeliveryStatus(bool enabled);
-    void addMessageListener(std::function<void(wss::MessagePayload &&)> callback);
-    void addStopListener(std::function<void()> callback);
+    void addMessageListener(wss::ChatMessageServer::OnMessageSentListener callback);
+    void addStopListener(wss::ChatMessageServer::OnServerStopListener callback);
 
-    const std::unordered_map<UserId, std::unique_ptr<Statistics>> &getStats();
+    const UserMap<std::unique_ptr<Statistics>> &getStats();
 
  protected:
     void onMessage(ConnectionInfo &connection, WsMessagePtr payload);
-    void onMessageSent(wss::MessagePayload &&payload, std::size_t bytesTransferred);
+    void onMessageSent(wss::MessagePayload &&payload, std::size_t bytesTransferred, bool hasSent);
     void onConnected(WsConnectionPtr connection);
     void onDisconnected(WsConnectionPtr connection, int status, const std::string &reason);
 
@@ -271,22 +317,24 @@ class ChatMessageServer : public virtual StandaloneService {
     bool enableMessageDeliveryStatus = false;
 
     // events
-    std::vector<std::function<void(wss::MessagePayload &&)>> messageListeners;
-    std::vector<std::function<void()>> stopListeners;
+    std::vector<wss::ChatMessageServer::OnMessageSentListener> messageListeners;
+    std::vector<OnServerStopListener> stopListeners;
 
     std::mutex frameBufferMutex;
     std::recursive_mutex connectionMutex;
     std::mutex undeliveredMutex;
 
+    //@TODO boost thread
     std::unique_ptr<std::thread> workerThread;
+    std::unique_ptr<boost::thread> watchdogThread;
 
     WsServer::Endpoint *endpoint;
     std::unique_ptr<WsServer> server;
 
-    std::unordered_map<UserId, std::shared_ptr<std::stringstream>> frameBuffer;
-    std::unordered_map<UserId, ConnectionInfo> connectionMap;
-    std::unordered_map<UserId, std::queue<wss::MessagePayload>> undeliveredMessagesMap;
-    std::unordered_map<UserId, std::unique_ptr<Statistics>> statistics;
+    UserMap<std::shared_ptr<std::stringstream>> frameBuffer;
+    UserMap<ConnectionInfo> connectionMap;
+    UserMap<std::queue<wss::MessagePayload>> undeliveredMessagesMap;
+    UserMap<std::unique_ptr<Statistics>> statistics;
 
     // @TODO вынести все на сторону сервера и убрать отсюда
     bool hasFrameBuffer(UserId id);

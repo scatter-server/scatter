@@ -7,6 +7,8 @@
  */
 
 #include "ChatMessageServer.h"
+#include "../helpers/helpers.h"
+#include "../Settings.hpp"
 
 #ifdef USE_SECURE_SERVER
 wss::ChatMessageServer::ChatMessageServer(
@@ -46,7 +48,7 @@ wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned shor
     maxMessageSize(10 * 1024 * 1024) {
     server = std::make_unique<WsServer>();
     server->config.port = port;
-    server->config.thread_pool_size = 10;
+    server->config.thread_pool_size = std::thread::hardware_concurrency();
     server->config.max_message_size = maxMessageSize;
 
     if (host.length() > 1) {
@@ -77,13 +79,20 @@ void wss::ChatMessageServer::setThreadPoolSize(std::size_t size) {
     server->config.thread_pool_size = size;
 }
 void wss::ChatMessageServer::joinThreads() {
-    if (workerThread != nullptr) {
+    if (workerThread && workerThread->joinable()) {
         workerThread->join();
+    }
+
+    if (watchdogThread && watchdogThread->joinable()) {
+        watchdogThread->join();
     }
 }
 void wss::ChatMessageServer::detachThreads() {
-    if (workerThread != nullptr) {
+    if (workerThread) {
         workerThread->detach();
+    }
+    if (watchdogThread) {
+        watchdogThread->detach();
     }
 }
 void wss::ChatMessageServer::runService() {
@@ -96,9 +105,34 @@ void wss::ChatMessageServer::runService() {
     workerThread = std::make_unique<std::thread>([this] {
       this->server->start();
     });
+
+    if (wss::Settings::get().server.watchdog.enabled) {
+        const long lifetime = wss::Settings::get().server.watchdog.connectionLifetimeSeconds;
+        L_INFO_F("Watchdog", "Started with interval in 1 minute and lifetime=%lu", lifetime);
+        watchdogThread = std::make_unique<boost::thread>([this, lifetime] {
+          try {
+              while (true) {
+                  boost::this_thread::sleep_for(boost::chrono::minutes(1));
+                  L_DEBUG("Watchdog", "Checking for inactive connections");
+                  for (auto &t: connectionMap) {
+                      const auto &ref = getStat(t.first);
+                      if (ref->isOnline() && ref->getLastMessageSecondsAgo() >= lifetime) {
+                          t.second->send_close(STATUS_INACTIVE_CONNECTION,
+                                               "Inactive more than " + std::to_string(lifetime) + " seconds");
+                      }
+                  }
+              }
+          } catch (const boost::thread_interrupted &) {
+              L_INFO("Watchdog", "Stopping...");
+          }
+        });
+    }
 }
 void wss::ChatMessageServer::stopService() {
     this->server->stop();
+    if (watchdogThread) {
+        watchdogThread->interrupt();
+    }
 }
 
 void wss::ChatMessageServer::onMessage(ConnectionInfo &connection, WsMessagePtr message) {
@@ -153,25 +187,28 @@ void wss::ChatMessageServer::onMessage(ConnectionInfo &connection, WsMessagePtr 
     send(payload);
 }
 
-void wss::ChatMessageServer::onMessageSent(wss::MessagePayload &&payload, std::size_t bytesTransferred) {
-    if (!payload.isSentStatus()) {
+void wss::ChatMessageServer::onMessageSent(wss::MessagePayload &&payload, std::size_t bytesTransferred, bool hasSent) {
+    if (payload.isSentStatus()) return;
 
-        getStat(payload.getSender())
-            ->addSendMessage()
-            .addBytesTransferred(bytesTransferred);
-        for (auto &i: payload.getRecipients()) {
+    getStat(payload.getSender())
+        ->addSendMessage()
+        .addBytesTransferred(bytesTransferred);
+
+    for (auto &i: payload.getRecipients()) {
+        if (hasSent) {
             getStat(i)->addReceivedMessage().addBytesTransferred(bytesTransferred);
         }
-
-        if (enableMessageDeliveryStatus) {
-            wss::MessagePayload status = MessagePayload::createSendStatus(payload);
-            send(status);
-        }
-
-        for (auto &listener: messageListeners) {
-            listener(std::move(payload));
-        }
     }
+
+    if (enableMessageDeliveryStatus && hasSent) {
+        wss::MessagePayload status = MessagePayload::createSendStatus(payload);
+        send(status);
+    }
+
+    for (auto &listener: messageListeners) {
+        listener(std::move(payload), hasSent);
+    }
+
 }
 
 void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
@@ -200,14 +237,19 @@ void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
     }
 
     if (hasConnectionFor(id)) {
-        //@TODO take multiple connections for 1 identifier
-        connection->send_close(STATUS_ALREADY_CONNECTED, "Can't connect twice.");
-        L_DEBUG_F("OnConnected",
-                  "Kicked-off new connection (%s:%d) from user %lu, cause user doesn't disconnected previous connection",
-                  connection->remote_endpoint_address().c_str(),
-                  connection->remote_endpoint_port(),
-                  id);
-        return;
+        if (wss::Settings::get().server.allowOverrideConnection) {
+            getConnectionFor(id)->send_close(STATUS_GOING_AWAY);
+            removeConnectionFor(id);
+        } else {
+            //@TODO take multiple connections for 1 identifier
+            connection->send_close(STATUS_ALREADY_CONNECTED, "Can't connect twice.");
+            L_DEBUG_F("OnConnected",
+                      "Kicked-off new connection (%s:%d) from user %lu, cause user doesn't disconnected previous connection",
+                      connection->remote_endpoint_address().c_str(),
+                      connection->remote_endpoint_port(),
+                      id);
+            return;
+        }
     }
 
     setConnectionFor(id, connection);
@@ -227,6 +269,7 @@ void wss::ChatMessageServer::onDisconnected(WsConnectionPtr connection, int stat
         return;
     }
 
+    getStat(connection->getId())->addDisconnection();
     removeConnectionFor(connection->getId());
     L_DEBUG_F("OnDisconnected", "User %lu has disconnected by reason: %s[%d]",
               connection->getId(),
@@ -332,6 +375,10 @@ void wss::ChatMessageServer::enqueueUndeliveredMessage(const wss::MessagePayload
     }
 }
 int wss::ChatMessageServer::redeliverMessagesTo(UserId id) {
+    if (not wss::Settings::get().chat.enableUndeliveredQueue) {
+        return 0;
+    }
+
     if (!hasUndeliveredMessages(id)) {
         return 0;
     }
@@ -358,6 +405,10 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
 
     const auto &handleUndeliverable = [this, payload](UserId uid) {
+      if (!wss::Settings::get().chat.enableUndeliveredQueue) {
+          L_DEBUG_F("Send message", "User %lu is unavailable. Skipping message.", uid);
+          return;
+      }
       MessagePayload inaccessibleUserPayload = payload;
       inaccessibleUserPayload.setRecipient(uid);
       // так как месага не дошла только кому-то конкретному, то ему и перешлем заново
@@ -369,6 +420,9 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
     for (UserId uid: payload.getRecipients()) {
         if (!hasConnectionFor(uid)) {
             handleUndeliverable(uid);
+            MessagePayload sent = payload;
+            sent.setRecipient(uid);
+            onMessageSent(std::move(sent), plSize, false);
             continue;
         }
 
@@ -388,7 +442,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
                          } else {
                              MessagePayload sent = payload;
                              sent.setRecipient(uid);
-                             onMessageSent(std::move(sent), plSize);
+                             onMessageSent(std::move(sent), plSize, true);
                          }
                        }, fin_rcv_opcode);
         } catch (const ConnectionNotFound &e) {
@@ -447,10 +501,10 @@ void wss::ChatMessageServer::setEnabledMessageDeliveryStatus(bool enabled) {
     enableMessageDeliveryStatus = enabled;
 }
 
-void wss::ChatMessageServer::addMessageListener(std::function<void(wss::MessagePayload &&)> callback) {
+void wss::ChatMessageServer::addMessageListener(wss::ChatMessageServer::OnMessageSentListener callback) {
     messageListeners.push_back(callback);
 }
-void wss::ChatMessageServer::addStopListener(std::function<void()> callback) {
+void wss::ChatMessageServer::addStopListener(wss::ChatMessageServer::OnServerStopListener callback) {
     stopListeners.push_back(callback);
 }
 std::unique_ptr<wss::Statistics> &wss::ChatMessageServer::getStat(wss::UserId id) {
@@ -461,7 +515,7 @@ std::unique_ptr<wss::Statistics> &wss::ChatMessageServer::getStat(wss::UserId id
     return statistics[id];
 }
 
-const std::unordered_map<wss::UserId, std::unique_ptr<wss::Statistics>> &wss::ChatMessageServer::getStats() {
+const wss::UserMap<std::unique_ptr<wss::Statistics>> &wss::ChatMessageServer::getStats() {
     return statistics;
 }
 

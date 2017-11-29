@@ -4,25 +4,29 @@
     "address": "*",
     "port": 8085,
     "workers": 8,
+    "tmpDir": "/tmp",
+    "allowOverrideConnection": true,
     "secure": {
       "crtPath": "../certs/debug.crt",
       "keyPath": "../certs/pdebug.key"
     },
-    "tmpDir": "/tmp",
-    "idleTimeoutSeconds": 600
+    "watchdog": {
+      "enabled": true,
+      "connectionLifetimeSeconds": 600
+    }
   },
   "restApi": {
     "enabled": true,
     "address": "*",
-    "port": 8082,
+    "port": 8092,
     "auth": {
-      "basic": {
-        "user": "chat_user",
-        "password": "chat_password"
-      }
+      "type": "basic",
+      "user": "chat_user",
+      "password": "chat_password"
     }
   },
   "chat": {
+    "enableUndeliveredQueue": false,
     "message": {
       "maxSize": "10M",
       "enableDeliveryStatus": false
@@ -31,6 +35,7 @@
   "event": {
     "enabled": true,
     "enableRetry": true,
+    "sendStrategy": "always",
     "retryIntervalSeconds": 10,
     "retryCount": 3,
     "targets": [

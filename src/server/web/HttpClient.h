@@ -183,6 +183,44 @@ struct Response {
   KeyValueVector headers;
   std::string _headersBuffer;
 
+  bool hasHeader(const std::string &name) {
+      using toolboxpp::strings::equalsIgnoreCase;
+      for (auto &h: headers) {
+          if (equalsIgnoreCase(h.first, name)) {
+              return true;
+          }
+      }
+
+      return false;
+  }
+
+  std::pair<std::string, std::string> getHeaderPair(const std::string &headerName) {
+      using toolboxpp::strings::equalsIgnoreCase;
+      for (auto &h: headers) {
+          if (equalsIgnoreCase(h.first, headerName)) {
+              return {h.first, h.second};
+          }
+      }
+
+      return {};
+  }
+
+  std::string getHeader(const std::string &headerName) {
+      using toolboxpp::strings::equalsIgnoreCase;
+      for (auto &h: headers) {
+          if (equalsIgnoreCase(h.first, headerName)) {
+              return h.first;
+          }
+      }
+
+      return std::string();
+  }
+
+  bool compareHeaderValue(const std::string &headerName, const std::string &comparable) {
+      if (!hasHeader(headerName)) return false;
+      return getHeader(headerName).compare(comparable) == 0;
+  }
+
   nlohmann::json parseJson() {
       if (data.empty()) {
           return nlohmann::json();

@@ -163,7 +163,7 @@ void connect(int sen, int rec) {
     L_DEBUG_F("Client", "[%d] Connecting...", sen);
 
     WsClient client(std::string("localhost:8080/chat?id=") + std::to_string(sen));
-    client.on_message = [sen](WsConnectionPtr connection, std::shared_ptr<WsClient::Message> message) {
+    client.on_message = [sen](WsConnectionPtr, std::shared_ptr<WsClient::Message> message) {
       auto message_str = message->string();
 
       L_DEBUG_F("Client", "[%d] Message received: %s", sen, message_str.c_str());

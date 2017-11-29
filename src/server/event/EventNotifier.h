@@ -22,7 +22,7 @@
 #include <cmath>
 #include <boost/asio/io_service.hpp>
 #include "../chat/ChatMessageServer.h"
-#include "EventConfig.h"
+#include "EventTarget.hpp"
 #include "PostbackTarget.h"
 #include "../StandaloneService.h"
 
@@ -33,25 +33,42 @@ using toolboxpp::Logger;
 
 class EventNotifier : public virtual wss::StandaloneService {
  private:
+    /// \brief Notifier send strategy.
+    enum SendStrategy {
+      ALWAYS, /*!< Send when: user online, offline, enqueued to undelivered queue, etc */
+      ONLINE_ONLY /*! Send when: user online, will send after user come to online if previously was offline */
+
+    };
+
+    /// \brief Creates event target instance from global server config file.
+    /// \param json Part of config.
+    /// \return shared pointer of target
     std::shared_ptr<Target> createTargetByConfig(const nlohmann::json &json);
     void onStop();
 
-    /**
-     * Locks overview:
-     * onMessage -> addMessage uniqueLock[sendQueue[w]]
-     * dequeueMessages -> uniqueLock[sendQueue[rw]]
-     */
     void subscribe();
 
  public:
+    /// \brief Constructs event notifier with shared_ptr of main chat server.
+    /// \param ws
     explicit EventNotifier(std::shared_ptr<wss::ChatMessageServer> ws);
     ~EventNotifier();
 
+    /// \brief Set retry interval seconds.
+    /// \param seconds seconds between retries sending event
     void setRetryIntervalSeconds(int seconds);
+
+    /// \brief Set maximum retries to send event
+    /// \param tries Tries number
     void setMaxTries(int tries);
+
+    /// \brief Adds event target
+    /// \param targetConfig
     void addTarget(const nlohmann::json &targetConfig);
     void addTarget(const std::shared_ptr<Target> &target);
     void addTarget(std::shared_ptr<Target> &&target);
+    void setSendStrategy(const std::string &strategy);
+    void setSendStrategy(SendStrategy strategy);
 
     void joinThreads() override;
     void detachThreads() override;
@@ -82,6 +99,7 @@ class EventNotifier : public virtual wss::StandaloneService {
     };
 
     std::atomic_bool running;
+    SendStrategy sendStrategy;
 
     std::shared_ptr<wss::ChatMessageServer> ws;
     int maxRetries;
@@ -104,8 +122,9 @@ class EventNotifier : public virtual wss::StandaloneService {
      * Calling on event
      * Send post to io_service with payload
      * @param payload
+     * @param hasSent is recipient online
      */
-    void onMessage(wss::MessagePayload &&payload);
+    void onMessage(wss::MessagePayload &&payload, bool hasSent);
     /**
      * Calling after event in separate thread (io_service.post)
      * Adds message to send queue

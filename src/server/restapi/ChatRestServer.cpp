@@ -36,9 +36,13 @@ void wss::ChatRestServer::actionStats(wss::HttpResponse response, wss::HttpReque
     for (auto &idStat: chatMessageServer->getStats()) {
         json statItem;
         statItem["id"] = idStat.first;
+        statItem["isOnline"] = idStat.second->isOnline();
         statItem["lastConnection"] = idStat.second->getConnectionTime();
         statItem["connectedTimes"] = idStat.second->getConnectedTimes();
-        statItem["lastSessionTime"] = idStat.second->getSessionTime();
+        statItem["disconnectedTimes"] = idStat.second->getDisconnectedTimes();
+        statItem["lastMessageSecondsAgo"] = idStat.second->getLastMessageSecondsAgo();
+        statItem["timeOnline"] = idStat.second->getOnlineTime();
+        statItem["timeOffline"] = idStat.second->getOfflineTime();
         statItem["sentMessages"] = idStat.second->getSentMessages();
         statItem["receivedMessages"] = idStat.second->getReceivedMessages();
         statItem["bytesTransferred"] = idStat.second->getBytesTransferred();

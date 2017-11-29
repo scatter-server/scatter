@@ -35,6 +35,10 @@ using WsConnectionPtr = std::shared_ptr<WsServer::Connection>;
 using WsMessagePtr = std::shared_ptr<WsServer::Message>;
 using json = nlohmann::json;
 
+
+template<typename T>
+using UserMap = std::unordered_map<UserId, T>;
+
 }
 
 #endif //WSSERVER_TYPES_H

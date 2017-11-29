@@ -101,6 +101,14 @@ void wss::RestServer::stopService() {
     cleanupEndpoints();
 }
 
+void wss::RestServer::setAuth(const nlohmann::json &config) {
+    auth = wss::auth::createFromConfig(config);
+}
+
+std::unique_ptr<wss::WebAuth> &wss::RestServer::getAuth() {
+    return auth;
+}
+
 
 
 

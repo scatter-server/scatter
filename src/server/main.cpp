@@ -2,11 +2,11 @@
 #include <unordered_map>
 #include <regex>
 #include "chat/ChatMessageServer.h"
-#include "cmdline.hpp"
 #include "restapi/ChatRestServer.h"
 #include "event/EventNotifier.h"
 #include "ServerStarter.h"
 
+#include "Settings.hpp"
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -16,7 +16,7 @@ using json = nlohmann::json;
 
 int main(int argc, char **argv) {
 
-    const char **args = const_cast<const char **>(argv);
+    const auto **args = const_cast<const char **>(argv);
     wss::ServerStarter server(argc, args);
 
     if (!server.isValid()) {
