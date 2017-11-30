@@ -31,8 +31,8 @@ const int RUN_TIMES = 5;
 const int CONCURRENCY = 50;
 const int MESSAGES = 100;
 const boost::int_least64_t SLEEP_MS = 150;
-std::string endpoint = "localhost:8085";
-//std::string endpoint = "188.120.232.25:8085";
+//std::string endpoint = "localhost:8085";
+std::string endpoint = "188.120.232.25:8085";
 
 std::unordered_map<int, WsConnectionPtr> conns(CONCURRENCY);
 

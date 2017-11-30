@@ -34,6 +34,7 @@ struct Server {
     long connectionLifetimeSeconds = 600;
   };
 
+  Secure secure = Secure();
   std::string endpoint = "/chat";
   std::string address = "*";
   uint16_t port = 8085;
@@ -82,6 +83,12 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
     setConfig(in.server.endpoint, server, "endpoint");
     setConfig(in.server.port, server, "port");
     setConfig(in.server.allowOverrideConnection, server, "allowOverrideConnection");
+
+    if (server.find("secure") != server.end() && server["secure"].value("enabled", false)) {
+        in.server.secure.enabled = true;
+        setConfig(in.server.secure.crtPath, server["secure"], "crtPath");
+        setConfig(in.server.secure.keyPath, server["secure"], "keyPath");
+    }
 
     uint32_t nativeThreadsMax = std::thread::hardware_concurrency() == 0 ? 2 : std::thread::hardware_concurrency();
     setConfigDef(in.server.workers, server, "workers", nativeThreadsMax);

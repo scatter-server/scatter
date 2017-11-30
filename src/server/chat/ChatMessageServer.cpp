@@ -18,11 +18,11 @@ wss::ChatMessageServer::ChatMessageServer(
     crtPath(),
     keyPath(),
     maxMessageSize(10 * 1024 * 1024),
-    connections(std::make_unique<wss::ConnectionStorage>())
+    connectionStorage(std::make_unique<wss::ConnectionStorage>())
 {
     server = std::make_unique<WsServer>(crtPath, keyPath);
     server->config.port = port;
-    server->config.thread_pool_size = 10;
+    server->config.thread_pool_size = std::thread::hardware_concurrency();
     server->config.max_message_size = maxMessageSize;
 
     if (host.length() > 1) {
@@ -31,7 +31,7 @@ wss::ChatMessageServer::ChatMessageServer(
 
     endpoint = &server->endpoint[regexPath];
     endpoint->on_message = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
-      onMessage(findOrCreateConnection(connectionPtr), messagePtr);
+      onMessage(connectionPtr, messagePtr);
     };
 
     endpoint->on_open = std::bind(&wss::ChatMessageServer::onConnected, this, std::placeholders::_1);

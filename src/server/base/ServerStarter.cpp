@@ -100,14 +100,15 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
     runService(webSocket);
 
     // configuring event notifier
-
-    bool validConfig = configureEventNotifier(settings);
-    if (!validConfig) {
-        valid = false;
-        return;
-    } else {
-        // adding commands to run event notifier and to join it threads
-        runService(eventNotifier);
+    if (settings.event.enabled) {
+        bool validConfig = configureEventNotifier(settings);
+        if (!validConfig) {
+            valid = false;
+            return;
+        } else {
+            // adding commands to run event notifier and to join it threads
+            runService(eventNotifier);
+        }
     }
 
     // configuring rest api service
