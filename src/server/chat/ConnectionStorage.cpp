@@ -45,7 +45,7 @@ void wss::ConnectionStorage::remove(wss::UserId id) {
 void wss::ConnectionStorage::remove(wss::WsConnectionPtr &connection) {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     const UserId id = connection->getId();
-    std::vector<WsConnectionPtr> &connections = idMap[connection->getId()];
+    std::vector<wss::WsConnectionPtr> &connections = idMap[connection->getId()];
 
     for (auto it = connections.begin(); it != connections.end();) {
         if ((*it)->getUniqueId() == connection->getUniqueId()) {
@@ -63,11 +63,10 @@ std::vector<wss::WsConnectionPtr> &wss::ConnectionStorage::get(wss::UserId id) {
     }
     return idMap[id];
 }
-const wss::UserMap<std::__1::vector<std::__1::shared_ptr<SimpleWeb::SocketServerBase<boost::asio::basic_stream_socket<
-    boost::asio::ip::tcp>>::Connection>>> &wss::ConnectionStorage::get() {
+const wss::UserMap<std::vector<wss::WsConnectionPtr>> &wss::ConnectionStorage::get() {
     return idMap;
 }
-void wss::ConnectionStorage::handle(wss::UserId id, std::function<void(WsConnectionPtr &)> &&handler) {
+void wss::ConnectionStorage::handle(wss::UserId id, std::function<void(wss::WsConnectionPtr &)> &&handler) {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     for (auto &conn: get(id)) {
         handler(conn);
