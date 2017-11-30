@@ -29,8 +29,10 @@
 #include "json.hpp"
 #include "Message.h"
 #include "../defs.h"
-#include "../StandaloneService.h"
-#include "../threadsafe.hpp"
+#include "../base/StandaloneService.h"
+#include "../helpers/threadsafe.hpp"
+#include "ConnectionStorage.h"
+#include "Statistics.h"
 
 namespace wss {
 
@@ -42,175 +44,6 @@ using MessageQueue = std::queue<MessagePayload>;
 
 namespace cal = boost::gregorian;
 namespace pt = boost::posix_time;
-
-struct ConnectionNotFound : std::exception {
-  const char *what() const throw() override;
-};
-
-struct Statistics {
-  std::atomic<UserId> id;
-  std::atomic<time_t> lastConnectionTime;
-  std::atomic<time_t> lastDisconnectionTime;
-  std::atomic_size_t connectedTimes;
-  std::atomic_size_t disconnectedTimes;
-  std::atomic_size_t bytesTransferred;
-  std::atomic_size_t sentMessages;
-  std::atomic_size_t receivedMessages;
-  std::atomic<time_t> lastMessageTime;
-
-  Statistics(UserId id) :
-      id(id),
-      lastConnectionTime(time(nullptr)),
-      lastDisconnectionTime(0),
-      connectedTimes(0),
-      disconnectedTimes(0),
-      bytesTransferred(0),
-      sentMessages(0),
-      receivedMessages(0),
-      lastMessageTime(0) { }
-
-  Statistics() :
-      id(0),
-      lastConnectionTime(time(nullptr)),
-      lastDisconnectionTime(0),
-      connectedTimes(0),
-      disconnectedTimes(0),
-      bytesTransferred(0),
-      sentMessages(0),
-      receivedMessages(0),
-      lastMessageTime(0) { }
-
-  Statistics &setId(UserId _id) {
-      id = _id;
-      return *this;
-  }
-
-  Statistics &addConnection() {
-      lastConnectionTime = time(nullptr);
-      connectedTimes++;
-      return *this;
-  }
-
-  Statistics &addDisconnection() {
-      lastDisconnectionTime = time(nullptr);
-      disconnectedTimes++;
-      return *this;
-  }
-
-  Statistics &addBytesTransferred(std::size_t bytes) {
-      bytesTransferred += bytes;
-      return *this;
-  }
-  Statistics &addSentMessages(std::size_t sent) {
-      sentMessages += sent;
-      lastMessageTime = time(nullptr);
-      return *this;
-  }
-  Statistics &addSendMessage() {
-      return addSentMessages(1);
-  }
-
-  Statistics &addReceivedMessages(std::size_t received) {
-      receivedMessages += received;
-      return *this;
-  }
-
-  Statistics &addReceivedMessage() {
-      return addReceivedMessages(1);
-  }
-
-  std::size_t getConnectedTimes() {
-      return connectedTimes;
-  }
-
-  std::size_t getDisconnectedTimes() {
-      return disconnectedTimes;
-  }
-
-  time_t getOnlineTime() const {
-      if (!isOnline()) {
-          return 0;
-      }
-      return time(nullptr) - lastConnectionTime;
-  }
-
-  time_t getOfflineTime() const {
-      if (isOnline()) {
-          return 0;
-      }
-
-      return time(nullptr) - lastDisconnectionTime;
-  }
-
-  time_t getLastMessageSecondsAgo() const {
-      if (!isOnline() || lastMessageTime) {
-          return 0;
-      }
-
-      return time(nullptr) - lastMessageTime;
-  }
-
-  bool isOnline() const {
-      return connectedTimes > disconnectedTimes;
-  }
-
-  time_t getConnectionTime() const {
-      return lastConnectionTime;
-  }
-
-  std::size_t getBytesTransferred() const {
-      return bytesTransferred;
-  }
-  std::size_t getSentMessages() const {
-      return sentMessages;
-  }
-  std::size_t getReceivedMessages() const {
-      return receivedMessages;
-  }
-
-};
-
-class ConnectionInfo {
- private:
-    WsConnectionPtr connection;
-
- public:
-    ConnectionInfo() = default;
-    ConnectionInfo(const ConnectionInfo &other) = delete;
-    ConnectionInfo(ConnectionInfo &&other) = delete;
-    ConnectionInfo &operator=(ConnectionInfo &&other) = delete;
-    ConnectionInfo &operator=(const ConnectionInfo &other) = delete;
-
-    explicit ConnectionInfo(const WsConnectionPtr &rawConnection) :
-        connection(rawConnection) {
-    }
-
-    void setConnection(const WsConnectionPtr &c) {
-        if (!connection) {
-            connection = c;
-        }
-    }
-
-    WsServer::Connection *get() const {
-        return connection.get();
-    }
-
-    WsServer::Connection *operator->() const noexcept {
-        return connection.operator->();
-    }
-
-    bool operator==(const ConnectionInfo &another) {
-        return another.connection->getId() == connection->getId();
-    }
-
-    operator bool() const noexcept {
-        if (!connection) {
-            return false;
-        }
-
-        return true;
-    }
-};
 
 class ChatMessageServer : public virtual StandaloneService {
  public:
@@ -283,19 +116,13 @@ class ChatMessageServer : public virtual StandaloneService {
     void addMessageListener(wss::ChatMessageServer::OnMessageSentListener callback);
     void addStopListener(wss::ChatMessageServer::OnServerStopListener callback);
 
-    const UserMap<std::unique_ptr<Statistics>> &getStats();
+    const UserMap<std::unique_ptr<wss::Statistics>> &getStats();
 
  protected:
-    void onMessage(ConnectionInfo &connection, WsMessagePtr payload);
+    void onMessage(WsConnectionPtr &connection, WsMessagePtr payload);
     void onMessageSent(wss::MessagePayload &&payload, std::size_t bytesTransferred, bool hasSent);
     void onConnected(WsConnectionPtr connection);
     void onDisconnected(WsConnectionPtr connection, int status, const std::string &reason);
-
-    inline ConnectionInfo &findOrCreateConnection(WsConnectionPtr connection);
-    inline bool hasConnectionFor(UserId id);
-    inline void setConnectionFor(UserId id, const WsConnectionPtr &connection);
-    inline void removeConnectionFor(UserId id);
-    inline ConnectionInfo &getConnectionFor(UserId id);
 
     inline bool hasUndeliveredMessages(UserId id);
     MessageQueue &getUndeliveredMessages(UserId id);
@@ -324,15 +151,14 @@ class ChatMessageServer : public virtual StandaloneService {
     std::recursive_mutex connectionMutex;
     std::mutex undeliveredMutex;
 
-    //@TODO boost thread
-    std::unique_ptr<std::thread> workerThread;
+    std::unique_ptr<boost::thread> workerThread;
     std::unique_ptr<boost::thread> watchdogThread;
 
     WsServer::Endpoint *endpoint;
     std::unique_ptr<WsServer> server;
 
+    std::unique_ptr<wss::ConnectionStorage> connectionStorage;
     UserMap<std::shared_ptr<std::stringstream>> frameBuffer;
-    UserMap<ConnectionInfo> connectionMap;
     UserMap<std::queue<wss::MessagePayload>> undeliveredMessagesMap;
     UserMap<std::unique_ptr<Statistics>> statistics;
 

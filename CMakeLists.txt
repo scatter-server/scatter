@@ -73,7 +73,7 @@ set(SERVER_SRC
     src/server/defs.h
     src/server/chat/Message.h
     src/server/chat/Message.cpp
-    src/server/threadsafe.hpp
+    src/server/helpers/threadsafe.hpp
     src/server/restapi/RestServer.cpp
     src/server/restapi/RestServer.h
     src/server/restapi/ChatRestServer.cpp
@@ -88,12 +88,18 @@ set(SERVER_SRC
     src/server/event/EventTarget.hpp
     src/server/helpers/base64.cpp
     src/server/helpers/base64.h
-    src/server/StandaloneService.h
+    src/server/base/StandaloneService.h
     src/server/event/EventNotifier.cpp
-    src/server/ServerStarter.cpp
-    src/server/ServerStarter.h
-    src/server/Settings.hpp
-    src/server/base/Auth.h src/server/base/Auth.cpp)
+    src/server/base/ServerStarter.cpp
+    src/server/base/ServerStarter.h
+    src/server/base/Settings.hpp
+    src/server/base/Auth.h
+    src/server/base/Auth.cpp
+    src/server/chat/ConnectionStorage.cpp
+    src/server/chat/ConnectionStorage.h
+    src/server/chat/Statistics.cpp
+    src/server/chat/Statistics.h
+    )
 
 add_executable(${PROJECT_NAME}
                ${SERVER_SRC}
@@ -121,7 +127,6 @@ if ($ENV{USER} STREQUAL "root")
 		PERMISSIONS OWNER_READ OWNER_WRITE #0644
 		GROUP_READ
 		WORLD_READ
-
 	)
 
 	include(cmakes/FindLinuxPlatform.cmake)
@@ -133,17 +138,11 @@ if ($ENV{USER} STREQUAL "root")
 			WORLD_READ
 		)
 
-		execute_process(
-			COMMAND /usr/bin/systemctl daemon-reload
-			COMMAND /usr/bin/systemctl enable wsserver.service
-			OUTPUT_VARIABLE RHEL_ENABLE_SERVICE_OUTPUT
-		)
-		message(STATUS ${RHEL_ENABLE_SERVICE_OUTPUT})
-		message(STATUS "Now you just can start service by calling: systemctl start wsserver.service")
+		install(CODE "execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/bin/rhel/install.sh)")
 
 		add_custom_target(
 			uninstall
-			COMMAND /bin/bash ${CMAKE_CURRENT_SOURCE_DIR}/bin/scripts/rhel_uninstall.sh
+			COMMAND /bin/bash ${CMAKE_CURRENT_SOURCE_DIR}/bin/rhel/uninstall.sh
 		)
 
 	elseif (IS_DEBIAN)
@@ -152,6 +151,11 @@ if ($ENV{USER} STREQUAL "root")
 			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE #0755
 			GROUP_READ GROUP_EXECUTE
 			WORLD_READ WORLD_EXECUTE
+		)
+
+		add_custom_target(
+			uninstall
+			COMMAND /bin/bash ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/uninstall.sh
 		)
 	else ()
 		message(STATUS "Install target on this system is not supported")

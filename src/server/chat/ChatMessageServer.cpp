@@ -8,7 +8,7 @@
 
 #include "ChatMessageServer.h"
 #include "../helpers/helpers.h"
-#include "../Settings.hpp"
+#include "../base/Settings.hpp"
 
 #ifdef USE_SECURE_SERVER
 wss::ChatMessageServer::ChatMessageServer(
@@ -17,7 +17,9 @@ wss::ChatMessageServer::ChatMessageServer(
     useSSL(true),
     crtPath(),
     keyPath(),
-    maxMessageSize(10 * 1024 * 1024) {
+    maxMessageSize(10 * 1024 * 1024),
+    connections(std::make_unique<wss::ConnectionStorage>())
+{
     server = std::make_unique<WsServer>(crtPath, keyPath);
     server->config.port = port;
     server->config.thread_pool_size = 10;
@@ -45,7 +47,8 @@ wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned shor
     useSSL(false),
     crtPath(),
     keyPath(),
-    maxMessageSize(10 * 1024 * 1024) {
+    maxMessageSize(10 * 1024 * 1024),
+    connectionStorage(std::make_unique<wss::ConnectionStorage>()) {
     server = std::make_unique<WsServer>();
     server->config.port = port;
     server->config.thread_pool_size = std::thread::hardware_concurrency();
@@ -57,7 +60,7 @@ wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned shor
 
     endpoint = &server->endpoint[regexPath];
     endpoint->on_message = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
-      onMessage(findOrCreateConnection(connectionPtr), messagePtr);
+      onMessage(connectionPtr, messagePtr);
     };
 
     endpoint->on_open = std::bind(&wss::ChatMessageServer::onConnected, this, std::placeholders::_1);
@@ -102,7 +105,7 @@ void wss::ChatMessageServer::runService() {
     }
     const char *proto = useSSL ? "wss" : "ws";
     L_INFO_F("WebSocket Server", "Started at %s://%s:%d", proto, hostname.c_str(), server->config.port);
-    workerThread = std::make_unique<std::thread>([this] {
+    workerThread = std::make_unique<boost::thread>([this] {
       this->server->start();
     });
 
@@ -114,11 +117,14 @@ void wss::ChatMessageServer::runService() {
               while (true) {
                   boost::this_thread::sleep_for(boost::chrono::minutes(1));
                   L_DEBUG("Watchdog", "Checking for inactive connections");
-                  for (auto &t: connectionMap) {
+                  for (auto &t: connectionStorage->get()) {
                       const auto &ref = getStat(t.first);
                       if (ref->isOnline() && ref->getLastMessageSecondsAgo() >= lifetime) {
-                          t.second->send_close(STATUS_INACTIVE_CONNECTION,
+                          for (const auto &conn: t.second) {
+                              conn->send_close(STATUS_INACTIVE_CONNECTION,
                                                "Inactive more than " + std::to_string(lifetime) + " seconds");
+                          }
+
                       }
                   }
               }
@@ -135,9 +141,10 @@ void wss::ChatMessageServer::stopService() {
     }
 }
 
-void wss::ChatMessageServer::onMessage(ConnectionInfo &connection, WsMessagePtr message) {
+void wss::ChatMessageServer::onMessage(WsConnectionPtr &connection, WsMessagePtr message) {
     MessagePayload payload;
     const short opcode = message->fin_rsv_opcode;
+
     if (message->fin_rsv_opcode < RSV_OPCODE_TEXT) {
         // fragmented frame message
         UserId id = connection->getId();
@@ -176,6 +183,7 @@ void wss::ChatMessageServer::onMessage(ConnectionInfo &connection, WsMessagePtr 
         }
     } else {
         // one frame message
+        L_DEBUG("OnMessage", "Reading message from stream...");
         payload = MessagePayload(message->string());
     }
 
@@ -183,6 +191,7 @@ void wss::ChatMessageServer::onMessage(ConnectionInfo &connection, WsMessagePtr 
         connection->send_close(STATUS_INVALID_MESSAGE_PAYLOAD, "Invalid payload. " + payload.getError());
         return;
     }
+
 
     send(payload);
 }
@@ -208,7 +217,6 @@ void wss::ChatMessageServer::onMessageSent(wss::MessagePayload &&payload, std::s
     for (auto &listener: messageListeners) {
         listener(std::move(payload), hasSent);
     }
-
 }
 
 void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
@@ -236,23 +244,7 @@ void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
         return;
     }
 
-    if (hasConnectionFor(id)) {
-        if (wss::Settings::get().server.allowOverrideConnection) {
-            getConnectionFor(id)->send_close(STATUS_GOING_AWAY);
-            removeConnectionFor(id);
-        } else {
-            //@TODO take multiple connections for 1 identifier
-            connection->send_close(STATUS_ALREADY_CONNECTED, "Can't connect twice.");
-            L_DEBUG_F("OnConnected",
-                      "Kicked-off new connection (%s:%d) from user %lu, cause user doesn't disconnected previous connection",
-                      connection->remote_endpoint_address().c_str(),
-                      connection->remote_endpoint_port(),
-                      id);
-            return;
-        }
-    }
-
-    setConnectionFor(id, connection);
+    connectionStorage->add(id, connection);
     getStat(id)->addConnection();
 
     L_DEBUG_F("OnConnected", "User %lu connected (%s:%d) on thread %lu",
@@ -265,12 +257,12 @@ void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
     redeliverMessagesTo(id);
 }
 void wss::ChatMessageServer::onDisconnected(WsConnectionPtr connection, int status, const std::string &reason) {
-    if (!hasConnectionFor(connection->getId())) {
+    if (!connectionStorage->exists(connection->getId())) {
         return;
     }
 
     getStat(connection->getId())->addDisconnection();
-    removeConnectionFor(connection->getId());
+    connectionStorage->remove(connection);
     L_DEBUG_F("OnDisconnected", "User %lu has disconnected by reason: %s[%d]",
               connection->getId(),
               reason.c_str(),
@@ -305,36 +297,6 @@ const std::string wss::ChatMessageServer::readFrameBuffer(wss::UserId id, bool c
         frameBuffer.erase(id);
     }
     return out;
-}
-
-bool wss::ChatMessageServer::hasConnectionFor(UserId id) {
-    return connectionMap.find(id) != connectionMap.end();
-}
-void wss::ChatMessageServer::setConnectionFor(UserId id, const WsConnectionPtr &connection) {
-    std::lock_guard<std::recursive_mutex> locker(connectionMutex);
-    connection->setId(id);
-    connectionMap[id].setConnection(connection);
-}
-void wss::ChatMessageServer::removeConnectionFor(UserId id) {
-    std::lock_guard<std::recursive_mutex> locker(connectionMutex);
-    connectionMap.erase(id);
-}
-wss::ConnectionInfo &wss::ChatMessageServer::getConnectionFor(UserId id) {
-    std::lock_guard<std::recursive_mutex> locker(connectionMutex);
-    if (!hasConnectionFor(id)) {
-        throw ConnectionNotFound();
-    }
-    return connectionMap[id];
-}
-
-wss::ConnectionInfo &wss::ChatMessageServer::findOrCreateConnection(wss::WsConnectionPtr connection) {
-    std::lock_guard<std::recursive_mutex> locker(connectionMutex);
-    ConnectionInfo &conn = connectionMap[connection->getId()];
-    if (!conn) {
-        conn.setConnection(connection);
-    }
-
-    return conn;
 }
 
 int wss::ChatMessageServer::redeliverMessagesTo(const wss::MessagePayload &payload) {
@@ -398,10 +360,8 @@ int wss::ChatMessageServer::redeliverMessagesTo(UserId id) {
 
 void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
     // обертка над std::istream, потэтому работает так же
-    auto sendStream = std::make_shared<WsMessageStream>();
     std::string pl = payload.toJson();
     std::size_t plSize = pl.length();
-    *sendStream << pl;
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
 
     const auto &handleUndeliverable = [this, payload](UserId uid) {
@@ -418,7 +378,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
 
     unsigned char fin_rcv_opcode = 129;//static_cast<unsigned char>(payload.isBinary() ? 130 : 129);
     for (UserId uid: payload.getRecipients()) {
-        if (!hasConnectionFor(uid)) {
+        if (!connectionStorage->exists(uid)) {
             handleUndeliverable(uid);
             MessagePayload sent = payload;
             sent.setRecipient(uid);
@@ -427,24 +387,39 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
         }
 
         try {
-            const ConnectionInfo &connection = getConnectionFor(uid);
+            const std::vector<WsConnectionPtr> &connections = connectionStorage->get(uid);
             // connection->send is an asynchronous function
-            connection
-                ->send(sendStream,
-                       [this, uid, payload, handleUndeliverable, plSize](const SimpleWeb::error_code &errorCode) {
-                         if (errorCode) {
-                             // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
-                             L_ERR_F("Send message", "Server: Error sending message: %s, error message: %s",
-                                     errorCode.category().name(),
-                                     errorCode.message().c_str()
-                             );
-                             handleUndeliverable(uid);
-                         } else {
-                             MessagePayload sent = payload;
-                             sent.setRecipient(uid);
-                             onMessageSent(std::move(sent), plSize, true);
-                         }
-                       }, fin_rcv_opcode);
+            int i = 0;
+            for (auto &connection: connections) {
+
+                // DO NOT reuse stream, it will die after first sending (hell's architecture, why shared if it weak_ptr?!!! )
+                auto sendStream = std::make_shared<WsMessageStream>();
+                *sendStream << pl;
+
+                L_DEBUG_F("OnSend",
+                          "Sending message to recipient %lu, connection[%d]=%lu",
+                          uid,
+                          i,
+                          connection->getUniqueId());
+                connection
+                    ->send(sendStream,
+                           [this, uid, payload, handleUndeliverable, plSize](const SimpleWeb::error_code &errorCode) {
+                             if (errorCode) {
+                                 // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
+                                 L_ERR_F("Send message", "Server: Error sending message: %s, error message: %s",
+                                         errorCode.category().name(),
+                                         errorCode.message().c_str()
+                                 );
+                                 handleUndeliverable(uid);
+                             } else {
+                                 MessagePayload sent = payload;
+                                 sent.setRecipient(uid);
+                                 onMessageSent(std::move(sent), plSize, true);
+                             }
+                           }, fin_rcv_opcode);
+
+                i++;
+            }
         } catch (const ConnectionNotFound &e) {
             cout << "Connection not found exception. Adding payload to undelivered" << endl;
             handleUndeliverable(uid);
@@ -517,8 +492,4 @@ std::unique_ptr<wss::Statistics> &wss::ChatMessageServer::getStat(wss::UserId id
 
 const wss::UserMap<std::unique_ptr<wss::Statistics>> &wss::ChatMessageServer::getStats() {
     return statistics;
-}
-
-const char *wss::ConnectionNotFound::what() const throw() {
-    return "Connection not found or already disconnected";
 }

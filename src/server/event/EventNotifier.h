@@ -22,9 +22,9 @@
 #include <cmath>
 #include <boost/asio/io_service.hpp>
 #include "../chat/ChatMessageServer.h"
+#include "../base/StandaloneService.h"
 #include "EventTarget.hpp"
 #include "PostbackTarget.h"
-#include "../StandaloneService.h"
 
 namespace wss {
 namespace event {

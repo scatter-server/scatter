@@ -23,15 +23,27 @@ using std::endl;
 int lastSender;
 int lastRecipient;
 std::atomic_int connected;
+std::recursive_mutex lock;
+
 
 // CONFIG
 const int RUN_TIMES = 5;
-const int CONCURRENCY = 100;
+const int CONCURRENCY = 50;
 const int MESSAGES = 100;
-const boost::int_least64_t SLEEP_MS = 100;
+const boost::int_least64_t SLEEP_MS = 150;
 
-std::recursive_mutex lock;
-std::unordered_map<int, bool> conns;
+std::unordered_map<int, WsConnectionPtr> conns(CONCURRENCY);
+
+const static std::string DUMMY_TEXT =
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus egestas, dui euismod aliquet ultrices, magna ex tincidunt ante, non tincidunt enim quam at ipsum. Etiam vel ligula pulvinar, pharetra magna at, finibus eros. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Nullam nibh nibh, tincidunt sit amet posuere eget, lobortis eu quam. Sed tincidunt, nulla ac fringilla cursus, velit nibh condimentum nisl, eget suscipit orci ex at nibh. Nam malesuada, purus nec cursus feugiat, elit erat porta quam, in maximus dui nisi ut tortor. Duis felis magna, maximus quis tristique ac, pellentesque at elit. Pellentesque augue felis, vehicula ut egestas luctus, aliquet ut justo. Quisque iaculis ligula sit amet sollicitudin facilisis. Vivamus congue suscipit metus, vitae eleifend neque ornare nec. Nulla facilisi. Phasellus augue leo, laoreet non dapibus malesuada, auctor et purus. Etiam tempor tempus sagittis. Duis porta iaculis velit quis pretium. Donec at arcu luctus, vulputate magna id, tincidunt arcu.\n"
+        "\n"
+        "Integer fermentum vulputate lorem, eget aliquam lectus interdum at. In lobortis, lectus id pellentesque porttitor, magna nunc vestibulum urna, eu auctor nisl eros eget nibh. Fusce augue diam, tempus nec nisi ac, pharetra tempor erat. Aliquam ullamcorper urna vitae elit sagittis ornare. Quisque aliquam diam lorem, eget suscipit tellus venenatis ultrices. Proin at elit quis lectus accumsan mattis. Ut vel commodo justo. Vivamus gravida euismod lacus eu mattis. Duis vitae porttitor ligula, non pellentesque turpis. Donec sollicitudin lectus a sem egestas, eget lacinia libero blandit. Ut consequat nisl felis, id sodales tortor ultrices sed.\n"
+        "\n"
+        "Donec dictum gravida est. In hac habitasse platea dictumst. Sed in tristique est, in volutpat odio. Sed finibus felis mi, eget scelerisque orci interdum et. Proin ac orci non libero facilisis fringilla. Duis eget eleifend elit. Praesent consequat diam elit, lobortis porta tellus blandit at. Proin a felis nisl. Cras fermentum sollicitudin urna, non blandit erat scelerisque quis. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.\n"
+        "\n"
+        "Maecenas elementum placerat pulvinar. Praesent porttitor maximus lorem, quis convallis magna laoreet maximus. Proin iaculis dapibus bibendum. Pellentesque ac velit feugiat, varius nulla nec, lobortis nibh. Nunc condimentum nisi ac malesuada tempor. Nunc et magna sed lectus viverra mollis id nec orci. Nunc aliquam euismod dui, eu scelerisque purus ornare quis. Suspendisse magna ipsum, porttitor ornare risus ac, aliquam lacinia quam. Donec venenatis faucibus consectetur. Integer ultrices, libero et imperdiet ullamcorper, magna elit laoreet velit, a auctor sem justo eu massa. Morbi ornare accumsan orci, a blandit massa vestibulum vitae. Vestibulum tortor velit, convallis eu tortor et, maximus rhoncus urna. Suspendisse vitae pulvinar sapien.\n"
+        "\n"
+        "Duis condimentum justo vitae malesuada laoreet. Pellentesque vitae lorem risus. Fusce at nulla vitae ex vestibulum viverra id ac risus. Ut non leo lectus. Phasellus venenatis erat non odio maximus sagittis. Duis id laoreet nulla. Cras lacinia eros sit amet sodales rhoncus. Fusce convallis convallis facilisis. Phasellus cursus tincidunt libero, sed placerat quam tempus quis. Nullam pellentesque, quam ut auctor tristique, diam justo tristique felis, a bibendum urna ipsum eget odio. Etiam congue euismod convallis.";
 
 struct stats_t {
   std::vector<double> sendTimes;
@@ -43,8 +55,8 @@ struct stats_t {
 
   std::vector<int> calcTime(long ms) {
       int seconds = (int) (ms / 1000) % 60;
-      int minutes = (int) ((ms / (1000 * 60)) % 60);
-      int hours = (int) ((ms / (1000 * 60 * 60)) % 24);
+      auto minutes = (int) ((ms / (1000 * 60)) % 60);
+      auto hours = (int) ((ms / (1000 * 60 * 60)) % 24);
 
       return {
           hours, minutes, seconds
@@ -114,84 +126,86 @@ void handleOne(int sen, int rec, WsConnectionPtr &conn) {
     obj["sender"] = sen;
     obj["recipients"] = recps;
     obj["type"] = "text";
-    obj["text"] = "Hello dummy benchmarking";
+    obj["text"] = DUMMY_TEXT;
     msg = obj.dump();
-
-    auto send_stream = std::make_shared<WsClient::SendStream>();
-    *send_stream << msg;
 
     for (int i = 0; i < MESSAGES; i++) {
         std::stringstream ss;
         ss << "client_" << sen << "_" << i;
-        std::string tag = ss.str();
+        const std::string tag = ss.str();
+
+        // DO NOT reuse stream, it will die after first sending
+        const std::shared_ptr<WsClient::SendStream> send_stream = std::make_shared<WsClient::SendStream>();
+        *send_stream << msg;
 
         toolboxpp::Profiler::get().begin(tag);
-        conn->send(send_stream, [tag](const SimpleWeb::error_code &errorCode) {
-          if (errorCode) {
-              // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
-              L_ERR_F("Send message", "Server: Error sending message. %s, error message: %s",
-                      errorCode.category().name(),
-                      errorCode.message().c_str()
-              );
-              _statistics.errorMessages++;
-              toolboxpp::Profiler::get().end(tag);
-              return;
-          }
-          double sendTime;
-          toolboxpp::Profiler::get().end(tag, &sendTime);
-          statLock.lock();
-          _statistics.sendTimes.push_back(sendTime);
-          statLock.unlock();
-          _statistics.sentMessages++;
-        });
+        sendLock.lock();
+        try {
+            // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
+            conn->send(send_stream, [tag](const SimpleWeb::error_code &errorCode) {
+              if (errorCode) {
+                  std::stringstream ss;
+                  ss << "Server: Error sending message. " << errorCode.category().name()
+                     << " error message: " << errorCode.message() << endl;
+
+                  toolboxpp::Logger::get().debug("Send Message", ss.str());
+
+                  _statistics.errorMessages++;
+                  toolboxpp::Profiler::get().end(tag);
+                  return;
+              }
+              double sendTime;
+              toolboxpp::Profiler::get().end(tag, &sendTime);
+              statLock.lock();
+              _statistics.sendTimes.push_back(sendTime);
+              statLock.unlock();
+              _statistics.sentMessages++;
+              sendLock.unlock();
+            });
+        } catch (const std::exception &e) {
+            cerr << e.what() << endl;
+            sendLock.unlock();
+        }
 
         _statistics.payloadTransferredBytes += msg.length();
         boost::this_thread::sleep_for(boost::chrono::milliseconds(SLEEP_MS));
     }
 
-    L_DEBUG_F("Client", "[%d] sent message to client [%d]: %s", sen, rec, msg.c_str());
+    L_DEBUG_F("Client", "[%d] sent message to client [%d]", sen, rec);
     conn->send_close(1000, "OK");
 }
 
+boost::thread_group ct;
+
 void connect(int sen, int rec) {
-    lock.lock();
     if (conns.count(sen)) {
-        lock.unlock();
         return;
     }
-    lock.unlock();
+
     L_DEBUG_F("Client", "[%d] Connecting...", sen);
 
-    WsClient client(std::string("localhost:8080/chat?id=") + std::to_string(sen));
-    client.on_message = [sen](WsConnectionPtr, std::shared_ptr<WsClient::Message> message) {
-      auto message_str = message->string();
-
-      L_DEBUG_F("Client", "[%d] Message received: %s", sen, message_str.c_str());
+    WsClient client(std::string("localhost:8085/chat?id=") + std::to_string(sen));
+    client.on_message = [sen](WsConnectionPtr, std::shared_ptr<WsClient::Message> msg) {
+//        cout << "Client: [" << sen << "] Message received: "<< endl;
     };
 
     client.on_open = [sen, rec](WsConnectionPtr connection) {
       L_DEBUG_F("Client", "[%d] Connected!", sen);
+      conns[sen] = connection;
       connected++;
-      lock.lock();
-      conns[sen] = true;
-      lock.unlock();
-      handleOne(sen, rec, connection);
     };
 
-    client.on_close = [sen](WsConnectionPtr /*connection*/, int status, const std::string & /*reason*/) {
-      L_DEBUG_F("Client", "[%d] Disconnected with status code %d", sen, status);
-      lock.lock();
+    client.on_close = [sen](WsConnectionPtr /*connection*/, int status, const std::string &reason) {
+      const char *s = reason.c_str();
+      L_DEBUG_F("Client", "[%d] Disconnected with status code %d: %s", sen, status, s);
       conns.erase(sen);
-      lock.unlock();
       connected--;
     };
 
     // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
     client.on_error = [sen](WsConnectionPtr /*connection*/, const SimpleWeb::error_code &ec) {
       L_ERR_F("Client", "[%d] Error: %s, error message: %s", sen, ec.category().name(), ec.message().c_str());
-      lock.lock();
       conns.erase(sen);
-      lock.unlock();
       connected--;
     };
 
@@ -199,12 +213,10 @@ void connect(int sen, int rec) {
 }
 
 void connectAll(asio::io_service *service) {
-    for (int i = 2; i < CONCURRENCY + 2; i++) {
-        _statistics.totalConnections++;
-        service->post(boost::bind(connect, i, i));
-
-        lastSender++;
-        lastRecipient++;
+    for (int i = 1; i < CONCURRENCY + 1; i += 2) {
+        service->post(boost::bind(&connect, i, i + 1));
+        service->post(boost::bind(&connect, i + 1, i));
+        _statistics.totalConnections += 2;
     }
 }
 
@@ -219,27 +231,48 @@ void watchdog(asio::io_service &service) {
 }
 
 void run() {
-    lastSender = 2;
-    lastRecipient = 1;
-
     asio::io_service ioService;
     boost::thread_group threadGroup;
     asio::io_service::work work(ioService);
 
-    for (int i = 0; i < CONCURRENCY; i++) {
+    // run threads
+    for (int i = 0; i < CONCURRENCY * 2; i++) {
         threadGroup.create_thread(
             boost::bind(&asio::io_service::run, &ioService)
         );
     }
 
+    // connect
     connectAll(&ioService);
 
+
+    // wait for all connected
+    while (connected < CONCURRENCY) {
+        cout << "Waiting for connecting all connections..." << endl;
+        boost::this_thread::sleep_for(boost::chrono::seconds(1));
+    }
+
+    // run message exchanges
+    for (int i = 1; i < CONCURRENCY + 1; i += 2) {
+        ioService.post(boost::bind(&handleOne, i, i + 1, conns[i]));
+        ioService.post(boost::bind(&handleOne, i + 1, i, conns[i + 1]));
+    }
+
     ioService.post(boost::bind(watchdog, boost::ref(ioService)));
+
+    ct.join_all();
     threadGroup.join_all();
+
+    conns.clear();
 }
 
 int main() {
     L_LEVEL(logger::LEVEL_INFO | logger::LEVEL_ERROR | logger::LEVEL_WARNING);
+
+    if (CONCURRENCY % 2 != 0) {
+        cerr << "Concurrent connections number must be even" << endl;
+        return 1;
+    }
 
     for (int i = 0; i < RUN_TIMES; i++) {
         L_INFO_F("main", "Run benchmark %d time", i + 1);

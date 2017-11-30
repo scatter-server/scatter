@@ -20,9 +20,9 @@
 #include "json.hpp"
 
 #include "cmdline.hpp"
-#include "event/EventNotifier.h"
-#include "restapi/ChatRestServer.h"
-#include "chat/ChatMessageServer.h"
+#include "../event/EventNotifier.h"
+#include "../restapi/ChatRestServer.h"
+#include "../chat/ChatMessageServer.h"
 #include "StandaloneService.h"
 #include "Settings.hpp"
 
@@ -47,15 +47,22 @@ class ServerStarter {
     ServerStarter(int argc, const char **argv);
     ~ServerStarter();
 
+    /// \brief Stop all services
     void stop();
+    /// \brief Start all services
     void run();
+    /// \brief valid state
+    /// \return false if not configured
     bool isValid();
 
  private:
+    /// \brief POSIX singal handler
+    /// \param signum
     static void signalHandler(int signum);
 
-    // running commands, as we have a multiple service with one interface that can control
-    // services thread, we will store using this function - commands, see below
+    /// \brief running commands, as we have a multiple service with one interface that can control services thread, we will store using this function - commands, see below
+    /// \tparam T StandaloneService interface implementer
+    /// \param s StandaloneService shared instance
     template<class T>
     void runService(std::shared_ptr<T> &s) {
         static_assert(std::is_base_of<wss::StandaloneService, T>::value,
@@ -65,10 +72,20 @@ class ServerStarter {
         services.push_back(s);
     }
 
+    /// \brief Check json object contains entire key
+    /// \param obj json
+    /// \param key string
+    /// \return bool
     bool hasKey(nlohmann::json &obj, const std::string &key);
-
+    /// \brief Setup chat settings
+    /// \param settings
     void configureChat(wss::Settings &settings);
+    /// \brief Setup common server settings
+    /// \param settings
     void configureServer(wss::Settings &settings);
+    /// \brief Setup event notifier settings
+    /// \param settings
+    /// \return false if not valid config
     bool configureEventNotifier(wss::Settings &settings);
 };
 

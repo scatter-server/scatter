@@ -11,7 +11,6 @@
 
 #include <queue>
 #include <mutex>
-#include "chat/Message.h"
 
 namespace wss {
 

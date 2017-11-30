@@ -11,7 +11,7 @@
       "keyPath": "../certs/pdebug.key"
     },
     "watchdog": {
-      "enabled": true,
+      "enabled": false,
       "connectionLifetimeSeconds": 600
     }
   },
@@ -33,7 +33,7 @@
     }
   },
   "event": {
-    "enabled": true,
+    "enabled": false,
     "enableRetry": true,
     "sendStrategy": "always",
     "retryIntervalSeconds": 10,

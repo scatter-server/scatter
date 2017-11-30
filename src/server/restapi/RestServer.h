@@ -19,7 +19,7 @@
 #include "client_http.hpp"
 #include "../defs.h"
 #include "../chat/ChatMessageServer.h"
-#include "../StandaloneService.h"
+#include "../base/StandaloneService.h"
 #include "../base/Auth.h"
 
 #define ACTION_DEFINE(name) void name(HttpResponse response, HttpRequest request)
