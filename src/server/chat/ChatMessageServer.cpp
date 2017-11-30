@@ -183,7 +183,6 @@ void wss::ChatMessageServer::onMessage(WsConnectionPtr &connection, WsMessagePtr
         }
     } else {
         // one frame message
-        L_DEBUG("OnMessage", "Reading message from stream...");
         payload = MessagePayload(message->string());
     }
 
