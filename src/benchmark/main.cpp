@@ -31,6 +31,8 @@ const int RUN_TIMES = 5;
 const int CONCURRENCY = 50;
 const int MESSAGES = 100;
 const boost::int_least64_t SLEEP_MS = 150;
+std::string endpoint = "localhost:8085";
+//std::string endpoint = "188.120.232.25:8085";
 
 std::unordered_map<int, WsConnectionPtr> conns(CONCURRENCY);
 
@@ -139,7 +141,6 @@ void handleOne(int sen, int rec, WsConnectionPtr &conn) {
         *send_stream << msg;
 
         toolboxpp::Profiler::get().begin(tag);
-        sendLock.lock();
         try {
             // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
             conn->send(send_stream, [tag](const SimpleWeb::error_code &errorCode) {
@@ -160,11 +161,9 @@ void handleOne(int sen, int rec, WsConnectionPtr &conn) {
               _statistics.sendTimes.push_back(sendTime);
               statLock.unlock();
               _statistics.sentMessages++;
-              sendLock.unlock();
             });
         } catch (const std::exception &e) {
             cerr << e.what() << endl;
-            sendLock.unlock();
         }
 
         _statistics.payloadTransferredBytes += msg.length();
@@ -175,8 +174,6 @@ void handleOne(int sen, int rec, WsConnectionPtr &conn) {
     conn->send_close(1000, "OK");
 }
 
-boost::thread_group ct;
-
 void connect(int sen, int rec) {
     if (conns.count(sen)) {
         return;
@@ -184,7 +181,7 @@ void connect(int sen, int rec) {
 
     L_DEBUG_F("Client", "[%d] Connecting...", sen);
 
-    WsClient client(std::string("localhost:8085/chat?id=") + std::to_string(sen));
+    WsClient client(std::string(endpoint + "/chat?id=") + std::to_string(sen));
     client.on_message = [sen](WsConnectionPtr, std::shared_ptr<WsClient::Message> msg) {
 //        cout << "Client: [" << sen << "] Message received: "<< endl;
     };
@@ -260,7 +257,6 @@ void run() {
 
     ioService.post(boost::bind(watchdog, boost::ref(ioService)));
 
-    ct.join_all();
     threadGroup.join_all();
 
     conns.clear();
