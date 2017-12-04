@@ -65,7 +65,6 @@ class ChatMessageServer : public virtual StandaloneService {
 
     const int STATUS_INVALID_QUERY_PARAMS = 4000;
     const int STATUS_INVALID_MESSAGE_PAYLOAD = 4001;
-    const int STATUS_ALREADY_CONNECTED = 4002;
     const int STATUS_INACTIVE_CONNECTION = 4010;
 
     /**

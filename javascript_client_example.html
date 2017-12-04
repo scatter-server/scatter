@@ -52,9 +52,12 @@
                 } else if (result.type === "notification_received") {
                     writeNotifier();
                 } else if (result.type === "b64image") {
-                    // var buffer = atob(result.data.blob);
                     var img = $("#image-rcvd");
                     img.attr("src", result.data.blob);
+                    img.css("display", 'block');
+                } else if (result.type == "imageUrl") {
+                    var img = $("#image-rcvd");
+                    img.attr("src", result.data.url);
                     img.css("display", 'block');
                 }
             };
@@ -127,6 +130,13 @@
                 text: messageText,
                 type: 'text'
             };
+
+            if (messageText.match(/(\.[png|jpg|gif])/)) {
+                payload.type = "imageUrl";
+                payload.data = {
+                    "url": messageText
+                };
+            }
 
             if (recipient !== null) {
                 payload.recipients[0] = parseInt(recipient);

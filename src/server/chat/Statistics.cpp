@@ -73,6 +73,15 @@ time_t wss::Statistics::getOnlineTime() const {
     }
     return time(nullptr) - lastConnectionTime;
 }
+
+time_t wss::Statistics::getInactiveTime() const {
+    if (getLastMessageTime() == 0) {
+        return std::time(nullptr) - getConnectionTime();
+    }
+
+    return std::time(nullptr) - getLastMessageTime();
+
+}
 time_t wss::Statistics::getOfflineTime() const {
     if (isOnline()) {
         return 0;
@@ -80,8 +89,8 @@ time_t wss::Statistics::getOfflineTime() const {
 
     return time(nullptr) - lastDisconnectionTime;
 }
-time_t wss::Statistics::getLastMessageSecondsAgo() const {
-    return time(nullptr) - lastMessageTime;
+time_t wss::Statistics::getLastMessageTime() const {
+    return lastMessageTime;
 }
 bool wss::Statistics::isOnline() const {
     return connectedTimes > disconnectedTimes;

@@ -40,9 +40,10 @@ void wss::ChatRestServer::actionStats(wss::HttpResponse response, wss::HttpReque
         statItem["lastConnection"] = idStat.second->getConnectionTime();
         statItem["connectedTimes"] = idStat.second->getConnectedTimes();
         statItem["disconnectedTimes"] = idStat.second->getDisconnectedTimes();
-        statItem["lastMessageSecondsAgo"] = idStat.second->getLastMessageSecondsAgo();
+        statItem["lastMessageTime"] = idStat.second->getLastMessageTime();
         statItem["timeOnline"] = idStat.second->getOnlineTime();
         statItem["timeOffline"] = idStat.second->getOfflineTime();
+        statItem["timeInactivity"] = idStat.second->getInactiveTime();
         statItem["sentMessages"] = idStat.second->getSentMessages();
         statItem["receivedMessages"] = idStat.second->getReceivedMessages();
         statItem["bytesTransferred"] = idStat.second->getBytesTransferred();

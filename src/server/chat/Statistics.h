@@ -15,6 +15,7 @@
 
 namespace wss {
 
+/// \brief User statistics storage
 class Statistics {
  private:
     std::atomic<UserId> id;
@@ -79,13 +80,17 @@ class Statistics {
     /// \return seconds ago
     time_t getOnlineTime() const;
 
+    /// \brief Time of inactivity. Calculated from last message time if it was, or from last connection time
+    /// \return Seconds ago
+    time_t getInactiveTime() const;
+
     /// \brief Statistics of last offline time. Counts from the last disconnection.
     /// \return seconds ago
     time_t getOfflineTime() const;
 
     /// \brief Statistics of last message time.
     /// \return Seconds between now and last message
-    time_t getLastMessageSecondsAgo() const;
+    time_t getLastMessageTime() const;
 
     /// \brief Check user is online
     /// \return true if connections > disconnections

@@ -119,10 +119,12 @@ void wss::ChatMessageServer::runService() {
                   L_DEBUG("Watchdog", "Checking for inactive connections");
                   for (auto &t: connectionStorage->get()) {
                       const auto &ref = getStat(t.first);
-                      if (ref->isOnline() && ref->getLastMessageSecondsAgo() >= lifetime) {
+
+                      if (ref->getInactiveTime() >= lifetime) {
                           for (const auto &conn: t.second) {
                               conn->send_close(STATUS_INACTIVE_CONNECTION,
-                                               "Inactive more than " + std::to_string(lifetime) + " seconds");
+                                               "Inactive more than " + std::to_string(ref->getInactiveTime()) + " (of "
+                                                   + std::to_string(lifetime) + ") seconds");
                           }
 
                       }
@@ -391,7 +393,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
             int i = 0;
             for (auto &connection: connections) {
 
-                // DO NOT reuse stream, it will die after first sending (hell's architecture, why shared if it weak_ptr?!!! )
+                // DO NOT reuse stream, it will die after first sending
                 auto sendStream = std::make_shared<WsMessageStream>();
                 *sendStream << pl;
 
@@ -400,6 +402,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
                           uid,
                           i,
                           connection->getUniqueId());
+
                 connection
                     ->send(sendStream,
                            [this, uid, payload, handleUndeliverable, plSize](const SimpleWeb::error_code &errorCode) {
