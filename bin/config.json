@@ -25,9 +25,9 @@
     "address": "*",
     "port": 8092,
     "auth": {
-      "type": "basic",
-      "user": "user",
-      "password": "password"
+      "type": "noauth",
+      "name": "X-Ws-Token",
+      "value": "password"
     }
   },
   "chat": {
