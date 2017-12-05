@@ -35,6 +35,7 @@ wss::Statistics &wss::Statistics::setId(wss::UserId _id) {
 wss::Statistics &wss::Statistics::addConnection() {
     lastConnectionTime = time(nullptr);
     connectedTimes++;
+    lastMessageTime = 0;
     return *this;
 }
 wss::Statistics &wss::Statistics::addDisconnection() {
