@@ -88,17 +88,17 @@ void wss::BearerAuth::performAuth(wss::web::Request &request) const {
     HeaderAuth::performAuth(request);
 }
 std::unique_ptr<wss::WebAuth> wss::auth::createFromConfig(const nlohmann::json &config) {
+    std::unique_ptr<WebAuth> out;
+
+    if (config.is_null()) {
+        out = std::make_unique<wss::WebAuth>();
+        return out;
+    }
+
     using namespace toolboxpp::strings;
     const auto &eq = equalsIgnoreCase;
 
     nlohmann::json data;
-
-    std::unique_ptr<WebAuth> out;
-
-    if (data.is_null()) {
-        out = std::make_unique<wss::WebAuth>();
-        return out;
-    }
 
     if (config.find("auth") != config.end()) {
         data = config["auth"];

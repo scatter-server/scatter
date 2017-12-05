@@ -176,7 +176,29 @@ class Request : public IOContainer {
             addHeader(h.first, h.second);
         }
 
-        std::string query = sRequest->query_string;
+        parseParamsString(sRequest->query_string);
+    }
+
+    void setHeaders(const std::unordered_map<std::string, std::string> &map) {
+        for (auto &h: map) {
+            addHeader(h.first, h.second);
+        }
+    }
+
+    void setHeaders(SimpleWeb::CaseInsensitiveMultimap &mmp) {
+        for (auto &h: mmp) {
+            addHeader(h.first, h.second);
+        }
+    }
+
+    void setHeaders(const std::unordered_multimap<std::string, std::string> &mmp) {
+        for (auto &h: mmp) {
+            addHeader(h.first, h.second);
+        }
+    }
+
+    void parseParamsString(const std::string &queryString) {
+        std::string query = queryString;
         if (query[0] == '?') {
             query = query.substr(1, query.length());
         }
@@ -246,6 +268,43 @@ class Request : public IOContainer {
 
     bool hasParams() const {
         return !params.empty();
+    }
+
+    bool hasParam(const std::string &key, bool icase = true) const {
+        using toolboxpp::strings::equalsIgnoreCase;
+        const auto &cmp = [icase](const std::string &lhs, const std::string &rhs) {
+          if (icase) {
+              return equalsIgnoreCase(lhs, rhs);
+          } else {
+              return lhs == rhs;
+          }
+        };
+
+        for (const auto &param: params) {
+            if (cmp(param.first, key)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    std::string getParam(const std::string &key, bool icase = true) const {
+        using toolboxpp::strings::equalsIgnoreCase;
+        const auto &cmp = [icase](const std::string &lhs, const std::string &rhs) {
+          if (icase) {
+              return equalsIgnoreCase(lhs, rhs);
+          } else {
+              return lhs == rhs;
+          }
+        };
+        for (const auto &param: params) {
+            if (cmp(param.first, key)) {
+                return param.second;
+            }
+        }
+
+        return std::string();
     }
 
     std::string getUrlWithParams() const {

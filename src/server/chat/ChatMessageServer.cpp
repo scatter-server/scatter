@@ -54,7 +54,7 @@ wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned shor
     server->config.thread_pool_size = std::thread::hardware_concurrency();
     server->config.max_message_size = maxMessageSize;
 
-    if (host.length() > 1) {
+    if (host.length() == 15) {
         server->config.address = host;
     };
 
@@ -221,14 +221,20 @@ void wss::ChatMessageServer::onMessageSent(wss::MessagePayload &&payload, std::s
 }
 
 void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
-    QueryParams params;
+    wss::web::Request request;
+    request.parseParamsString(connection->query_string);
+    request.setHeaders(connection->header);
 
-    bool parsed = parseRawQuery("?" + connection->query_string, params);
-    if (!parsed) {
+    if (!auth->validateAuth(request)) {
+        connection->send_close(STATUS_UNAUTHORIZED, "Unauthorized");
+        return;
+    }
+
+    if (request.getParams().empty()) {
         L_WARN_F("OnConnected", "Invalid request: %s", connection->query_string.c_str());
         connection->send_close(STATUS_INVALID_QUERY_PARAMS, "Invalid request");
         return;
-    } else if (!params.count("id") || params["id"].empty()) {
+    } else if (!request.hasParam("id") || request.getParam("id").empty()) {
         L_WARN("OnConnected", "Id required in query parameter: ?id={id}");
 
         connection->send_close(STATUS_INVALID_QUERY_PARAMS, "Id required in query parameter: ?id={id}");
@@ -237,9 +243,9 @@ void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
 
     UserId id;
     try {
-        id = std::stoul(params["id"]);
+        id = std::stoul(request.getParam("id"));
     } catch (const std::invalid_argument &e) {
-        const std::string errReason = "Passed invalid id: id=" + params["id"] + ". " + e.what();
+        const std::string errReason = "Passed invalid id: id=" + request.getParam("id") + ". " + e.what();
         L_WARN("OnConnected", errReason);
         connection->send_close(STATUS_INVALID_QUERY_PARAMS, errReason);
         return;
@@ -427,36 +433,6 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
             handleUndeliverable(uid);
         }
     }
-}
-
-bool wss::ChatMessageServer::parseRawQuery(const std::string &query, wss::QueryParams &out) {
-    // reset the std::istringstream with the query string
-    std::istringstream iss(query);
-
-    iss.clear();
-    iss.str(query);
-
-    std::string url;
-
-    // remove the URL part
-    if (!std::getline(iss, url, '?')) {
-        L_ERR("Parse query", "Error parsing request host: host does not have any GET parameters");
-        return false;
-    }
-
-    std::string keyVal, key, val;
-
-    // split each term
-    while (std::getline(iss, keyVal, '&')) {
-        std::istringstream iss(keyVal);
-
-        // split key/value pairs
-        if (std::getline(std::getline(iss, key, '='), val)) {
-            out[key] = val;
-        }
-    }
-
-    return true;
 }
 std::size_t wss::ChatMessageServer::getThreadName() {
     const std::thread::id id = std::this_thread::get_id();

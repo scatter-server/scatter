@@ -67,6 +67,7 @@ class ChatMessageServer : public virtual StandaloneService {
     const int STATUS_INVALID_QUERY_PARAMS = 4000;
     const int STATUS_INVALID_MESSAGE_PAYLOAD = 4001;
     const int STATUS_INACTIVE_CONNECTION = 4010;
+    const int STATUS_UNAUTHORIZED = 4050;
 
     /**
      *  0000 0000 (0)   - продолжение фрагмента (FIN bit clear=0x0, rsv_opcode=0x1: fin & rsv_opcode == 0x0)
@@ -170,7 +171,6 @@ class ChatMessageServer : public virtual StandaloneService {
     bool writeFrameBuffer(UserId id, const std::string &input, bool clear = false);
     const std::string readFrameBuffer(UserId id, bool clear = true);
 
-    bool parseRawQuery(const std::string &query, QueryParams &params);
     std::size_t getThreadName();
 };
 

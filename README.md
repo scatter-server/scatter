@@ -1,4 +1,4 @@
-# WsServer - WebSocket message server
+# WsServer - WebSocket message server (Development stage - unstable)
 
 ## Features
 * Multi-threaded (boost thread pool)
