@@ -233,16 +233,17 @@ class Response : public IOContainer {
 
     /// \brief Return map of POST body form-url-encoded data
     /// \return
-    KeyValueVector parseFormUrlEncode() const;;
+    KeyValueVector parseFormUrlEncode() const;
 
     /// \brief Print response data to std::cout
     void dump() const;
 
-    /// \brief Check response status code > 0 < 400
+    /// \brief Check response status  200 <= code < 400
     /// \return
     bool isSuccess() const;
 };
 
+/// \brief Simple Http Client based on libcurl
 class HttpClient {
  private:
     bool verbose = false;

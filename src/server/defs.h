@@ -22,7 +22,7 @@
 
 namespace wss {
 
-typedef unsigned long UserId;
+using UserId = unsigned long;
 
 #ifdef USE_SECURE_SERVER
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WSS>;

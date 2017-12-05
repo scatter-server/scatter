@@ -9,4 +9,5 @@ cmake-build-*/
 *.cpp.o
 .mainframer
 remote-build.sh
-
+docs/html
+docs/latex
