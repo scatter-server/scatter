@@ -33,8 +33,6 @@ class ChatRestServer : public RestServer {
     void createEndpoints() override;
 
  private:
-    void setError(HttpResponse &response, HttpStatus status, int code, const std::string &message);
-    void setError(HttpResponse &response, HttpStatus status, int code, std::string &&message);
     std::shared_ptr<ChatMessageServer> chatMessageServer;
 };
 }

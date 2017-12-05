@@ -84,8 +84,6 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
     webSocket = std::make_shared<wss::ChatMessageServer>(settings.server.address, settings.server.port, res);
     #endif
 
-
-
     // configuring ws service
     configureServer(settings);
     // configuring ws service chat
@@ -196,6 +194,7 @@ void wss::ServerStarter::configureServer(wss::Settings &settings) {
 
     // setting num of workers (threads in thread pool)
     webSocket->setThreadPoolSize(settings.server.workers);
+    webSocket->setAuth(settings.server.auth.data);
 }
 bool wss::ServerStarter::configureEventNotifier(wss::Settings &settings) {
     if (!settings.event.enabled) {

@@ -36,11 +36,11 @@ class WebAuth {
     virtual std::string getType();
 
     /// \brief Set required auth data to request
-    virtual void performAuth(wss::web::Request &);
+    virtual void performAuth(wss::web::Request &) const;
 
     /// \brief Validate responsed auth data
     /// \return true if validated
-    virtual bool validateAuth(wss::web::Response &);
+    virtual bool validateAuth(const wss::web::Request &) const;
 
  protected:
     /// \brief Prepare value for send/validate
@@ -64,8 +64,8 @@ class BasicAuth : public WebAuth {
     /// \brief Auth type
     /// \return string: basic
     std::string getType() override;
-    void performAuth(wss::web::Request &request) override;
-    bool validateAuth(wss::web::Response &response) override;
+    void performAuth(wss::web::Request &) const override;
+    bool validateAuth(const wss::web::Request &) const override;
  protected:
     std::string getValue() const override;
  private:
@@ -88,8 +88,8 @@ class HeaderAuth : public WebAuth {
     /// \brief Auth type
     /// \return string: header
     std::string getType() override;
-    void performAuth(wss::web::Request &request) override;
-    bool validateAuth(wss::web::Response &response) override;
+    void performAuth(wss::web::Request &) const override;
+    bool validateAuth(const wss::web::Request &) const override;
  protected:
     std::string getValue() const override;
  private:
@@ -106,8 +106,8 @@ class BearerAuth : public HeaderAuth {
     /// \brief Auth type
     /// \return string: bearer
     std::string getType() override;
-    void performAuth(wss::web::Request &request) override;
-    bool validateAuth(wss::web::Response &response) override;
+    void performAuth(wss::web::Request &) const override;
+    bool validateAuth(const wss::web::Request &) const override;
  protected:
     std::string getValue() const override;
 };

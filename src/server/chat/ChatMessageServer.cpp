@@ -473,6 +473,9 @@ void wss::ChatMessageServer::setMessageSizeLimit(size_t bytes) {
     maxMessageSize = bytes;
     server->config.max_message_size = maxMessageSize;
 }
+void wss::ChatMessageServer::setAuth(const nlohmann::json &config) {
+    auth = wss::auth::createFromConfig(config);
+}
 
 void wss::ChatMessageServer::setEnabledMessageDeliveryStatus(bool enabled) {
     enableMessageDeliveryStatus = enabled;

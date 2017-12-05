@@ -13,6 +13,11 @@
     "watchdog": {
       "enabled": false,
       "connectionLifetimeSeconds": 600
+    },
+    "auth": {
+      "type": "noauth",
+      "user": "user",
+      "password": "password"
     }
   },
   "restApi": {
@@ -21,8 +26,8 @@
     "port": 8092,
     "auth": {
       "type": "basic",
-      "user": "chat_user",
-      "password": "chat_password"
+      "user": "user",
+      "password": "password"
     }
   },
   "chat": {

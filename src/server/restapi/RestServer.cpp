@@ -51,27 +51,57 @@ void wss::RestServer::setResponseStatus(wss::HttpResponse &response,
 
     *response << buildResponse(
         {
-            {"HTTP/1.1 ", sCode},
-            {"Content-Length:", ss.str()}
+            {"HTTP/1.1",       sCode},
+            {"Server",         "WS Rest Server"},
+            {"Content-Length", ss.str()}
         });
 }
 
 void wss::RestServer::setContent(wss::HttpResponse &response,
                                  const std::string &content,
                                  const std::string &contentType) {
-    *response << buildResponse({{"Content-Type:", contentType}});
+    *response << buildResponse({{"Content-Type", contentType}});
     *response << "\r\n" << content;
 }
 
 void wss::RestServer::setContent(wss::HttpResponse &response, std::string &&content, std::string &&contentType) {
-    *response << buildResponse({{"Content-Type:", std::move(contentType)}});
-    *response << "\r\n" << std::move(content);
+    *response << buildResponse({{"Content-Type", std::move(contentType)}});
+    *response << "\r\n" << content;
+}
+
+void wss::RestServer::setError(wss::HttpResponse &response,
+                               wss::HttpStatus status,
+                               int code,
+                               const std::string &message) {
+    json errorOut;
+    errorOut["success"] = false;
+    errorOut["status"] = code;
+    errorOut["message"] = message;
+    const std::string out = errorOut.dump();
+    setResponseStatus(response, status, out.length());
+    setContent(response, out, "application/json");
+}
+void wss::RestServer::setError(wss::HttpResponse &response,
+                               wss::HttpStatus status,
+                               int code,
+                               std::string &&message) {
+    json errorOut;
+    errorOut["success"] = false;
+    errorOut["status"] = code;
+    errorOut["message"] = message;
+    const std::string out = errorOut.dump();
+    setResponseStatus(response, status, out.length());
+    setContent(response, out, "application/json");
 }
 
 std::string wss::RestServer::buildResponse(const std::vector<std::pair<std::string, std::string>> &parts) {
     std::stringstream ss;
     for (const auto &part: parts) {
-        ss << part.first << " " << part.second << "\r\n";
+        if (part.first.substr(0, 4) == "HTTP") {
+            ss << part.first << " " << part.second << "\r\n";
+            continue;
+        }
+        ss << part.first << ": " << part.second << "\r\n";
     }
 
     return ss.str();

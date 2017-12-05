@@ -51,7 +51,38 @@ class RestServer : public virtual StandaloneService {
     RestServer &addEndpoint(const std::string &path, const std::string &methodName, ResponseCallback &&callback) {
         const std::string endpoint = "^/" + path + "$";
         L_INFO_F("Http Server", "Endpoint: %s /%s", methodName.c_str(), path.c_str());
-        server.resource[endpoint][toolboxpp::strings::toUpper(methodName)] = std::forward<ResponseCallback>(callback);
+        server.resource[endpoint][toolboxpp::strings::toUpper(methodName)] =
+            [this, callback](wss::HttpResponse response, wss::HttpRequest request) {
+              const wss::web::Request verifyRequest(request);
+              response->close_connection_after_response = true;
+              if (!auth->validateAuth(verifyRequest)) {
+
+                  if (auth->getType() == "basic") {
+
+                      json errorOut;
+                      errorOut["success"] = false;
+                      errorOut["status"] = 401;
+                      errorOut["message"] = "Unauthorized";
+                      const std::string out = errorOut.dump();
+
+                      *response << buildResponse({
+                                                     {"HTTP/1.1",         "401 Unauthorized"},
+                                                     {"Server",           "WS Rest Server"},
+                                                     {"Connection",       "keep-alive"},
+                                                     {"Content-Length",   std::to_string(out.length())},
+                                                     {"WWW-Authenticate", "Basic realm=\"Come to the dark side, we have cookies!\""},
+                                                 });
+
+                      *response << "\r\n";
+                      *response << out;
+                  } else {
+                      setError(response, HttpStatus::client_error_unauthorized, 401, "Unauthorized");
+                  }
+
+                  return;
+              }
+              callback(response, request);
+            };
         return *this;
     }
 
@@ -68,6 +99,9 @@ class RestServer : public virtual StandaloneService {
     void setContent(HttpResponse &response,
                     std::string &&content,
                     std::string &&contentType = "text/html");
+
+    void setError(HttpResponse &response, HttpStatus status, int code, const std::string &message);
+    void setError(HttpResponse &response, HttpStatus status, int code, std::string &&message);
     std::string buildResponse(const std::vector<std::pair<std::string, std::string>> &parts);
  private:
     std::unique_ptr<WebAuth> auth;

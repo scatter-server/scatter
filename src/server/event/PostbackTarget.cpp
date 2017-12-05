@@ -14,10 +14,10 @@ bool wss::event::PostbackTarget::send(const wss::MessagePayload &payload, std::s
     if (out.length() < 1000) {
         L_DEBUG_F("Event-Send", "Request body: %s", out.c_str());
     }
-    request.setBody(out)
-           .setMethod(wss::web::Request::POST)
-           .setHeader({"Content-Length", std::to_string(request.getBody().length())})
-           .setHeader({"Content-Type", "application/json"});
+    request.setBody(out);
+    request.setMethod(wss::web::Request::POST);
+    request.setHeader({"Content-Length", std::to_string(request.getBody().length())});
+    request.setHeader({"Content-Type", "application/json"});
 
     auth->performAuth(request);
     wss::web::Response response = getClient().execute(request);

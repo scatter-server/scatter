@@ -16,6 +16,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <toolboxpp.h>
 #include <curl/curl.h>
+#include <server_http.hpp>
 #include "../defs.h"
 
 namespace wss {
@@ -24,62 +25,32 @@ namespace web {
 typedef std::pair<std::string, std::string> KeyValue;
 typedef std::vector<KeyValue> KeyValueVector;
 
-class Request {
- public:
-    enum Method {
-      GET, POST, PUT, DELETE
-    };
+// avoiding cross-references
+using WebHttpStatus = SimpleWeb::StatusCode;
+using WebHttpServer = SimpleWeb::Server<SimpleWeb::HTTP>;
+using WebHttpResponse = std::shared_ptr<WebHttpServer::Response>;
+using WebHttpRequest = std::shared_ptr<WebHttpServer::Request>;
 
- private:
-    std::string url;
-    std::string body;
-    Method method;
+class IOContainer {
+ protected:
     KeyValueVector headers;
-    KeyValueVector params;
+    std::string body;
 
  public:
-    Request() :
-        url(),
-        body(),
-        method(GET) { }
-    explicit Request(const std::string &url) :
-        url(url),
-        body(),
-        method(GET) { }
+    IOContainer() :
+        body() { }
 
-    explicit Request(std::string &&url) :
-        url(std::move(url)),
-        body(),
-        method(GET) { }
-
-    Request &setUrl(const std::string &url) {
-        this->url = url;
-        return *this;
-    }
-
-    Request &setUrl(std::string &&url) {
-        this->url = std::move(url);
-        return *this;
-    }
-
-    Request &setBody(const std::string &body) {
+    void setBody(const std::string &body) {
         this->body = body;
         setHeader({"Content-Length", std::to_string(this->body.length())});
-        return *this;
     }
 
-    Request &setBody(std::string &&body) {
+    void setBody(std::string &&body) {
         this->body = std::move(body);
         setHeader({"Content-Length", std::to_string(this->body.length())});
-        return *this;
     }
 
-    Request &setMethod(Method method) {
-        this->method = method;
-        return *this;
-    }
-
-    Request &setHeader(KeyValue &&keyValue) {
+    void setHeader(KeyValue &&keyValue) {
         using toolboxpp::strings::equalsIgnoreCase;
         bool found = false;
         for (auto &kv: headers) {
@@ -92,26 +63,65 @@ class Request {
         if (!found) {
             return addHeader(std::move(keyValue));
         }
-
-        return *this;
     }
 
-    Request &addHeader(KeyValue &&keyValue) {
+    bool hasHeader(const std::string &name) const {
+        using toolboxpp::strings::equalsIgnoreCase;
+        for (auto &h: headers) {
+            if (equalsIgnoreCase(h.first, name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    std::pair<std::string, std::string> getHeaderPair(const std::string &headerName) const {
+        using toolboxpp::strings::equalsIgnoreCase;
+        for (auto &h: headers) {
+            if (equalsIgnoreCase(h.first, headerName)) {
+                return {h.first, h.second};
+            }
+        }
+
+        return {};
+    }
+
+    std::string getHeader(const std::string &headerName) const {
+        using toolboxpp::strings::equalsIgnoreCase;
+        for (auto &h: headers) {
+            if (equalsIgnoreCase(h.first, headerName)) {
+                return h.second;
+            }
+        }
+
+        return std::string();
+    }
+
+    bool compareHeaderValue(const std::string &headerName, const std::string &comparable) const {
+        if (!hasHeader(headerName)) return false;
+        return getHeader(headerName) == comparable;
+    }
+
+    void addHeader(const std::string &key, const std::string &value) {
+        headers.emplace_back(key, value);
+    }
+
+    void addHeader(const KeyValue &keyValue) {
         headers.push_back(std::move(keyValue));
-        return *this;
     }
 
-    Request &addParam(KeyValue &&keyValue) {
-        params.push_back(std::move(keyValue));
-        return *this;
+    void addHeader(KeyValue &&keyValue) {
+        headers.push_back(std::move(keyValue));
     }
 
-    std::string getUrl() const {
-        return url;
+    std::string getBody() const {
+        return body;
     }
 
-    Method getMethod() const {
-        return method;
+    const char *getBodyC() const {
+        const char *out = body.c_str();
+        return out;
     }
 
     bool hasBody() const {
@@ -122,17 +132,120 @@ class Request {
         return !headers.empty();
     }
 
+    KeyValueVector getHeaders() const {
+        return headers;
+    }
+
+    std::vector<std::string> getHeadersGlued() const {
+        std::vector<std::string> out;
+        for (auto &h: headers) {
+            out.emplace_back(h.first + ": " + h.second);
+        }
+
+        return out;
+    }
+
+};
+
+class Request : public IOContainer {
+ public:
+    enum Method {
+      GET, POST, PUT, DELETE
+    };
+ private:
+    KeyValueVector params;
+    std::string url;
+    Method method;
+
+ public:
+    Request() : IOContainer(),
+                url(),
+                method(GET) { }
+    explicit Request(const std::string &url) : IOContainer(),
+                                               url(url),
+                                               method(GET) { }
+
+    explicit Request(std::string &&url) : IOContainer(),
+                                          url(std::move(url)),
+                                          method(GET) { }
+
+    explicit Request(const WebHttpRequest &sRequest) : IOContainer(),
+                                                       url(sRequest->path),
+                                                       method(methodFromString(sRequest->method)) {
+        for (auto &h: sRequest->header) {
+            addHeader(h.first, h.second);
+        }
+
+        std::string query = sRequest->query_string;
+        if (query[0] == '?') {
+            query = query.substr(1, query.length());
+        }
+
+        std::vector<std::string> pairs = toolboxpp::strings::split(query, "&");
+
+        for (const auto &param: pairs) {
+            addParam(toolboxpp::strings::splitPair(param, "="));
+        }
+    }
+
+    Method methodFromString(const std::string &methodName) const {
+        using toolboxpp::strings::equalsIgnoreCase;
+
+        if (equalsIgnoreCase(methodName, "POST")) {
+            return Method::POST;
+        } else if (equalsIgnoreCase(methodName, "PUT")) {
+            return Method::PUT;
+        } else if (equalsIgnoreCase(methodName, "DELETE")) {
+            return Method::DELETE;
+        }
+
+        return Method::GET;
+    }
+
+    std::string methodToString(Method methodName) const {
+        std::string out;
+
+        switch (methodName) {
+            case Method::POST:out = "POST";
+                break;
+            case Method::PUT:out = "PUT";
+                break;
+            case Method::DELETE:out = "DELETE";
+                break;
+
+            default:out = "GET";
+                break;
+        }
+
+        return out;
+    }
+
+    void setUrl(const std::string &url) {
+        this->url = url;
+    }
+
+    void setUrl(std::string &&url) {
+        this->url = std::move(url);
+    }
+
+    void setMethod(Method method) {
+        this->method = method;
+    }
+
+    void addParam(KeyValue &&keyValue) {
+        params.push_back(std::move(keyValue));
+    }
+
+    std::string getUrl() const {
+        return url;
+    }
+
+    Method getMethod() const {
+        return method;
+    }
+
     bool hasParams() const {
         return !params.empty();
-    }
-
-    std::string getBody() const {
-        return body;
-    }
-
-    const char *getBodyC() const {
-        const char *out = body.c_str();
-        return out;
     }
 
     std::string getUrlWithParams() const {
@@ -158,113 +271,62 @@ class Request {
         return combined;
     }
 
-    KeyValueVector getHeaders() const {
-        return headers;
-    }
-
     KeyValueVector getParams() const {
         return params;
     }
+};
 
-    std::vector<std::string> getHeadersGlued() const {
-        std::vector<std::string> out;
-        for (auto &h: headers) {
-            out.emplace_back(h.first + ": " + h.second);
+class Response : public IOContainer {
+ public:
+    int status = 200;
+    std::string statusMessage;
+    std::string data;
+    std::string _headersBuffer;
+
+    nlohmann::json parseJson() {
+        if (data.empty()) {
+            return nlohmann::json();
+        }
+
+        nlohmann::json out;
+        try {
+            out = nlohmann::json::parse(data);
+        } catch (const std::exception &e) {
+            std::cerr << "Can't parse incoming json data: " << e.what() << std::endl;
         }
 
         return out;
     }
-};
 
-struct Response {
-  int status;
-  std::string statusMessage;
-  std::string data;
-  KeyValueVector headers;
-  std::string _headersBuffer;
+    KeyValueVector parseFormUrlEncode() const {
+        if (data.empty()) {
+            return {};
+        }
 
-  bool hasHeader(const std::string &name) {
-      using toolboxpp::strings::equalsIgnoreCase;
-      for (auto &h: headers) {
-          if (equalsIgnoreCase(h.first, name)) {
-              return true;
-          }
-      }
+        std::vector<std::string> groups = toolboxpp::strings::split(data, '&');
 
-      return false;
-  }
+        KeyValueVector kvData;
+        for (auto &&s: groups) {
+            kvData.push_back(toolboxpp::strings::splitPair(s, "="));
+        }
 
-  std::pair<std::string, std::string> getHeaderPair(const std::string &headerName) {
-      using toolboxpp::strings::equalsIgnoreCase;
-      for (auto &h: headers) {
-          if (equalsIgnoreCase(h.first, headerName)) {
-              return {h.first, h.second};
-          }
-      }
+        return kvData;
+    };
 
-      return {};
-  }
+    void dump() const {
+        std::cout << "Response: " << std::endl
+                  << "  Status: " << status << std::endl
+                  << " Message: " << statusMessage << std::endl
+                  << "    Body: " << data << std::endl
+                  << " Headers:\n";
+        for (auto h: headers) {
+            std::cout << "\t" << h.first << ": " << h.second << std::endl;
+        }
+    }
 
-  std::string getHeader(const std::string &headerName) {
-      using toolboxpp::strings::equalsIgnoreCase;
-      for (auto &h: headers) {
-          if (equalsIgnoreCase(h.first, headerName)) {
-              return h.first;
-          }
-      }
-
-      return std::string();
-  }
-
-  bool compareHeaderValue(const std::string &headerName, const std::string &comparable) {
-      if (!hasHeader(headerName)) return false;
-      return getHeader(headerName).compare(comparable) == 0;
-  }
-
-  nlohmann::json parseJson() {
-      if (data.empty()) {
-          return nlohmann::json();
-      }
-
-      nlohmann::json out;
-      try {
-          out = nlohmann::json::parse(data);
-      } catch (const std::exception &e) {
-          std::cerr << "Can't parse incoming json data: " << e.what() << std::endl;
-      }
-
-      return out;
-  }
-
-  KeyValueVector parseFormUrlEncode() {
-      if (data.empty()) {
-          return {};
-      }
-
-      std::vector<std::string> groups = toolboxpp::strings::split(data, '&');
-
-      KeyValueVector kvData;
-      for (auto &&s: groups) {
-          kvData.push_back(toolboxpp::strings::splitPair(s, "="));
-      }
-
-      return kvData;
-  };
-
-  void dump() {
-      std::cout << "Response: " << std::endl
-                << "  Status: " << status << std::endl
-                << " Message: " << statusMessage << std::endl
-                << "    Body: " << data << std::endl
-                << " Headers:\n";
-      for (auto h: headers) {
-          std::cout << "\t" << h.first << ": " << h.second << std::endl;
-      }
-  }
-
-  bool isSuccess() {
-      return status >= 200 && status < 400;
-  }
+    bool isSuccess() const {
+        return status >= 200 && status < 400;
+    }
 };
 
 class HttpClient {
@@ -370,7 +432,7 @@ class HttpClient {
                         continue;
                     }
 
-                    resp.headers.push_back(split);
+                    resp.addHeader(std::move(split));
                 }
 
                 resp._headersBuffer.clear();

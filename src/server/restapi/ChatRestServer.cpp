@@ -79,28 +79,7 @@ void wss::ChatRestServer::actionSendMessage(wss::HttpResponse response, wss::Htt
     setResponseStatus(response, HttpStatus::success_accepted, 0);
 
 }
-void wss::ChatRestServer::setError(wss::HttpResponse &response,
-                                   wss::HttpStatus status,
-                                   int code,
-                                   const std::string &message) {
-    json errorOut;
-    errorOut["status"] = code;
-    errorOut["message"] = message;
-    const std::string out = errorOut.dump();
-    setResponseStatus(response, status, out.length());
-    setContent(response, out, "application/json");
-}
-void wss::ChatRestServer::setError(wss::HttpResponse &response,
-                                   wss::HttpStatus status,
-                                   int code,
-                                   std::string &&message) {
-    json errorOut;
-    errorOut["status"] = code;
-    errorOut["message"] = message;
-    const std::string out = errorOut.dump();
-    setResponseStatus(response, status, out.length());
-    setContent(response, out, "application/json");
-}
+
 
 
 

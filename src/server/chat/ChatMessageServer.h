@@ -33,6 +33,7 @@
 #include "../helpers/threadsafe.hpp"
 #include "ConnectionStorage.h"
 #include "Statistics.h"
+#include "../base/Auth.h"
 
 namespace wss {
 
@@ -111,6 +112,7 @@ class ChatMessageServer : public virtual StandaloneService {
 
     void setThreadPoolSize(std::size_t size);
     void setMessageSizeLimit(size_t bytes);
+    void setAuth(const nlohmann::json &config);
     void setEnabledMessageDeliveryStatus(bool enabled);
     void addMessageListener(wss::ChatMessageServer::OnMessageSentListener callback);
     void addStopListener(wss::ChatMessageServer::OnServerStopListener callback);
@@ -137,6 +139,8 @@ class ChatMessageServer : public virtual StandaloneService {
     const bool useSSL;
     std::string crtPath;
     std::string keyPath;
+
+    std::unique_ptr<wss::WebAuth> auth;
 
     // chat
     std::size_t maxMessageSize; // 10 megabytes by default

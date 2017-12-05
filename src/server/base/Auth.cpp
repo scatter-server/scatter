@@ -11,10 +11,10 @@
 std::string wss::WebAuth::getType() {
     return "noauth";
 }
-void wss::WebAuth::performAuth(wss::web::Request &) {
+void wss::WebAuth::performAuth(wss::web::Request &) const {
     //do nothing
 }
-bool wss::WebAuth::validateAuth(wss::web::Response &) {
+bool wss::WebAuth::validateAuth(const wss::web::Request &) const {
     return true;
 }
 std::string wss::WebAuth::getValue() const {
@@ -33,11 +33,11 @@ wss::BasicAuth::BasicAuth(const std::string &username, const std::string &passwo
 std::string wss::BasicAuth::getType() {
     return "basic";
 }
-void wss::BasicAuth::performAuth(wss::web::Request &request) {
+void wss::BasicAuth::performAuth(wss::web::Request &request) const {
     request.setHeader({"Authorization", getValue()});
 }
-bool wss::BasicAuth::validateAuth(wss::web::Response &response) {
-    return response.compareHeaderValue("Authorization", getValue());
+bool wss::BasicAuth::validateAuth(const wss::web::Request &request) const {
+    return request.compareHeaderValue("Authorization", getValue());
 }
 std::string wss::BasicAuth::getValue() const {
     std::stringstream ss;
@@ -62,10 +62,10 @@ wss::HeaderAuth::HeaderAuth(const std::string &headerName, const std::string &va
 std::string wss::HeaderAuth::getType() {
     return "header";
 }
-void wss::HeaderAuth::performAuth(wss::web::Request &request) {
+void wss::HeaderAuth::performAuth(wss::web::Request &request) const {
     request.setHeader({name, getValue()});
 }
-bool wss::HeaderAuth::validateAuth(wss::web::Response &response) {
+bool wss::HeaderAuth::validateAuth(const wss::web::Request &response) const {
     return response.compareHeaderValue(name, getValue());
 }
 std::string wss::HeaderAuth::getValue() const {
@@ -78,13 +78,13 @@ wss::BearerAuth::BearerAuth(std::string &&value) :
 std::string wss::BearerAuth::getType() {
     return "bearer";
 }
-bool wss::BearerAuth::validateAuth(wss::web::Response &response) {
+bool wss::BearerAuth::validateAuth(const wss::web::Request &response) const {
     return HeaderAuth::validateAuth(response);
 }
 std::string wss::BearerAuth::getValue() const {
     return HeaderAuth::getValue();
 }
-void wss::BearerAuth::performAuth(wss::web::Request &request) {
+void wss::BearerAuth::performAuth(wss::web::Request &request) const {
     HeaderAuth::performAuth(request);
 }
 std::unique_ptr<wss::WebAuth> wss::auth::createFromConfig(const nlohmann::json &config) {
@@ -93,6 +93,13 @@ std::unique_ptr<wss::WebAuth> wss::auth::createFromConfig(const nlohmann::json &
 
     nlohmann::json data;
 
+    std::unique_ptr<WebAuth> out;
+
+    if (data.is_null()) {
+        out = std::make_unique<wss::WebAuth>();
+        return out;
+    }
+
     if (config.find("auth") != config.end()) {
         data = config["auth"];
     } else if (config.find("type") != config.end()) {
@@ -100,7 +107,6 @@ std::unique_ptr<wss::WebAuth> wss::auth::createFromConfig(const nlohmann::json &
     }
 
     const std::string authType = data.at("type").get<std::string>();
-    std::unique_ptr<WebAuth> out;
 
     if (eq(authType, "basic")) {
         out = std::make_unique<BasicAuth>(

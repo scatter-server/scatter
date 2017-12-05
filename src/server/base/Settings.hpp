@@ -42,6 +42,7 @@ struct Server {
   std::string tmpDir = "/tmp";
   bool allowOverrideConnection = false;
   Watchdog watchdog = Watchdog();
+  AuthSettings auth = AuthSettings();
 };
 struct RestApi {
   bool enabled = false;
@@ -90,6 +91,12 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
         setConfig(in.server.secure.keyPath, server["secure"], "keyPath");
     }
 
+    if (server.find("auth") != server.end()) {
+        in.server.auth = wss::AuthSettings();
+        setConfig(in.server.auth.type, server["auth"], "type");
+        in.server.auth.data = server.at("auth");
+    }
+
     uint32_t nativeThreadsMax = std::thread::hardware_concurrency() == 0 ? 2 : std::thread::hardware_concurrency();
     setConfigDef(in.server.workers, server, "workers", nativeThreadsMax);
     setConfig(in.server.tmpDir, server, "tmpDir");
@@ -106,7 +113,7 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
         setConfig(in.restApi.enabled, restApi, "enabled");
         setConfig(in.restApi.port, restApi, "port");
         setConfig(in.restApi.address, restApi, "address");
-        if (restApi.count("auth")) {
+        if (restApi.find("auth") != restApi.end()) {
             in.restApi.auth = wss::AuthSettings();
             setConfig(in.restApi.auth.type, restApi["auth"], "type");
             in.restApi.auth.data = restApi["auth"];
