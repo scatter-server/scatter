@@ -28,52 +28,48 @@ namespace pt = boost::posix_time;
 
 using namespace std::chrono;
 
-typedef std::chrono::high_resolution_clock::time_point hires_time_t;
+/// \brief STL chrono hi-resolution clock time point
+using hires_time_t = std::chrono::high_resolution_clock::time_point;
+
+/// \brief STL chrono hi-resolution clock
 using hires_clock = std::chrono::high_resolution_clock;
 
-/**
- * ISO 8601 date format without time zone at the end
- */
+/// \brief ISO 8601 date format without time zone at the end
 static const char DATE_TIME_ISO_8601[] = "%Y-%m-%d %H:%M:%S";
 
+/// \brief Parse string date to boost ptime
+/// \param t input string date
+/// \param format format string
+/// \link http://www.boost.org/doc/libs/1_55_0/doc/html/date_time/date_time_io.html
+/// \return Boost ptime
 pt::ptime parseDate(const std::string &t, const char *format);
-/**
- *
- * @param t string: 2017-11-15 23:59:59
- * @return boost ptime
- */
+
+/// \brief parse string date in ISO-8601 format
+/// \param t string: 2017-11-15 23:59:59
+/// \return boost ptime
 pt::ptime parseISODateTime(const std::string &t);
 
-/**
- * @param t boost::posix_time::ptime
- * @param format string format.
- * @link http://www.boost.org/doc/libs/1_55_0/doc/html/date_time/date_time_io.html
- * @return
- */
+/// \brief Format boost ptime by format string
+/// \param t boost::posix_time::ptime
+/// \param format string format.
+/// \link http://www.boost.org/doc/libs/1_55_0/doc/html/date_time/date_time_io.html
+/// \return
 std::string formatBoostPTime(const pt::ptime &t, const char *format);
 
-/**
- * Current date time
- * @return
- */
+/// \brief Returns Current date time
+/// \return string formatted in ISO-8601 format
 std::string getNowISODateTime();
 
-/**
- *
- * @param bytes
- * @param si Internationl SI standard or binary format
- * @return Human readable bytes: for example
- * 1024 will be 1kB in SI or 1KiB in binary,
- * 7077888 bytes will be 7.1MB or 6.8MiB in binary
- */
+/// \brief Format bytes to human readable string
+/// \param bytes Bytes count
+/// \param si Internationl SI standard or binary format
+/// \return Human readable bytes. Example: 1024 will be 1kB in SI or 1KiB in binary, 7077888 bytes will be 7.1MB or 6.8MiB in binary
 std::string humanReadableBytes(unsigned long bytes, bool si = true);
 
-/**
- *
- * @param length Generated length
- * @return Random alpha-num string wrapped with crc32 hash
- */
-const std::string generateRandomStringCRC32(unsigned short length);
+/// \brief Generates random crc32 string
+/// \param length Generated string length. Default = 16 chars
+/// \return Random alpha-num string wrapped with crc32 hash
+const std::string generateRandomStringCRC32(unsigned short length = 16);
 
 }
 }

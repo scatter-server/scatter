@@ -17,7 +17,14 @@
 namespace wss {
 namespace helpers {
 
+/// \brief Encode string to base 64 string
+/// \param len input string length
+/// \return encoded string
 std::string base64_encode(unsigned char const *, unsigned int len);
+
+/// \brief Decode base64 string
+/// \param s input string
+/// \return decoded string
 std::string base64_decode(std::string const &s);
 }
 }

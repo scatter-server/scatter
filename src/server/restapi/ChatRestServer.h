@@ -26,9 +26,26 @@ class ChatRestServer : public RestServer {
     ChatRestServer(std::shared_ptr<ChatMessageServer> chatMessageServer, const std::string &host, unsigned short port);
  protected:
     // actions
+    /// \brief Statistics list method: GET /stats
+    /// \param response Http response
+    /// \param request Http request
     ACTION_DEFINE(actionStats);
+
+    /// \brief Entire user statistics method: GET /stat?id={UserId}
+    /// \param response Http response
+    /// \param request Http request
     ACTION_DEFINE(actionStat);
+
+    /// \brief Entire user online checking method: GET /check-online?id={UserId}
+    /// \param response Http response
+    /// \param request Http request
     ACTION_DEFINE(actionCheckOnline);
+
+    /// \brief Send message to recipient: POST /send-message
+    /// content-type must be JSON and data must have a valid structure
+    /// \see wss::MessagePayload
+    /// \param response Http response
+    /// \param request Http request
     ACTION_DEFINE(actionSendMessage);
 
  protected:

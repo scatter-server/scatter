@@ -22,7 +22,10 @@
 namespace wss {
 namespace web {
 
+/// \brief Simple std::pair<std::string, std::string>
 typedef std::pair<std::string, std::string> KeyValue;
+
+/// \brief Simple vector of pairs wss::web::KeyValue
 typedef std::vector<KeyValue> KeyValueVector;
 
 // avoiding cross-references
@@ -37,118 +40,106 @@ class IOContainer {
     std::string body;
 
  public:
-    IOContainer() :
-        body() { }
+    IOContainer();
 
-    void setBody(const std::string &body) {
-        this->body = body;
-        setHeader({"Content-Length", std::to_string(this->body.length())});
-    }
+    /// \brief Set request body data
+    /// \param body string data for request/response
+    void setBody(const std::string &body);
 
-    void setBody(std::string &&body) {
-        this->body = std::move(body);
-        setHeader({"Content-Length", std::to_string(this->body.length())});
-    }
+    /// \brief Move request body data
+    /// \param body string data for request/response
+    void setBody(std::string &&body);
 
-    void setHeader(KeyValue &&keyValue) {
-        using toolboxpp::strings::equalsIgnoreCase;
-        bool found = false;
-        for (auto &kv: headers) {
-            if (equalsIgnoreCase(kv.first, keyValue.first)) {
-                kv.second = keyValue.second;
-                found = true;
-            }
-        }
+    /// \brief Set header. Overwrites if already contains
+    /// \param keyValue std::pair<std::string, std::string>
+    void setHeader(KeyValue &&keyValue);
 
-        if (!found) {
-            return addHeader(std::move(keyValue));
-        }
-    }
+    /// \brief Adds from map new headers values, if some key exists, value will overwrited
+    /// \see addHeader(const KeyValue&)
+    /// \param map unorderd_map
+    void setHeaders(const std::unordered_map<std::string, std::string> &map);
 
-    bool hasHeader(const std::string &name) const {
-        using toolboxpp::strings::equalsIgnoreCase;
-        for (auto &h: headers) {
-            if (equalsIgnoreCase(h.first, name)) {
-                return true;
-            }
-        }
+    /// \brief Adds from map new headers values, if some key exists, value will overwrited
+    /// \see addHeader(const KeyValue&)
+    /// \param mmp
+    void setHeaders(SimpleWeb::CaseInsensitiveMultimap &mmp);
 
-        return false;
-    }
+    /// \brief Adds from map new headers values, if some key exists, value will overwrited
+    /// \see addHeader(const KeyValue&)
+    /// \param mmp
+    void setHeaders(const std::unordered_multimap<std::string, std::string> &mmp);
 
-    std::pair<std::string, std::string> getHeaderPair(const std::string &headerName) const {
-        using toolboxpp::strings::equalsIgnoreCase;
-        for (auto &h: headers) {
-            if (equalsIgnoreCase(h.first, headerName)) {
-                return {h.first, h.second};
-            }
-        }
+    /// \brief Check for header keys exists
+    /// \param name header name. Searching is case insensitive
+    /// \return true is key exists
+    bool hasHeader(const std::string &name) const;
 
-        return {};
-    }
+    /// \brief Search for header and return row as pair: wss::web::KeyValue
+    /// \param headerName string. Searching is case insensitive
+    /// \return pair wss::web::KeyValue
+    std::pair<std::string, std::string> getHeaderPair(const std::string &headerName) const;
 
-    std::string getHeader(const std::string &headerName) const {
-        using toolboxpp::strings::equalsIgnoreCase;
-        for (auto &h: headers) {
-            if (equalsIgnoreCase(h.first, headerName)) {
-                return h.second;
-            }
-        }
+    /// \brief Search for header and return it value
+    /// \param headerName string. Searching is case insensitive
+    /// \return empty string if not found, otherwise copy of origin value
+    std::string getHeader(const std::string &headerName) const;
 
-        return std::string();
-    }
+    /// \brief Search for header and compare it value with comparable string
+    /// \param headerName string. Searching is case insensitive
+    /// \param comparable string to compare with
+    /// \return true if header found and equals to comparable, false otherwise
+    bool compareHeaderValue(const std::string &headerName, const std::string &comparable) const;
 
-    bool compareHeaderValue(const std::string &headerName, const std::string &comparable) const {
-        if (!hasHeader(headerName)) return false;
-        return getHeader(headerName) == comparable;
-    }
+    /// \brief Add header with separate key and value strings. If header exists, value will be ovewrited.
+    /// \param key string. Value will be writed in original case
+    /// \param value any string
+    void addHeader(const std::string &key, const std::string &value);
 
-    void addHeader(const std::string &key, const std::string &value) {
-        headers.emplace_back(key, value);
-    }
+    /// \brief Add header with pair of key and value. If header exists, value will be ovewrited.
+    /// \see wss::web::KeyValue
+    /// \param keyValue
+    void addHeader(const KeyValue &keyValue);
 
-    void addHeader(const KeyValue &keyValue) {
-        headers.push_back(std::move(keyValue));
-    }
+    /// \brief Move input pair wss::web::KeyValue to header map. If header exists, value will be ovewrited.
+    /// \param keyValue
+    /// \see wss::web::KeyValue
+    void addHeader(KeyValue &&keyValue);
 
-    void addHeader(KeyValue &&keyValue) {
-        headers.push_back(std::move(keyValue));
-    }
+    /// \brief Get copy of request/response body
+    /// \return Copy of body
+    std::string getBody() const;
 
-    std::string getBody() const {
-        return body;
-    }
+    /// \brief Get copy of request/response body in char*
+    /// \return Copy of body
+    const char *getBodyC() const;
 
-    const char *getBodyC() const {
-        const char *out = body.c_str();
-        return out;
-    }
+    /// \brief Check for body is not empty
+    /// \return true if !body.empty()
+    bool hasBody() const;
 
-    bool hasBody() const {
-        return !body.empty();
-    }
+    /// \brief Check for header map has at least one value
+    /// \return true if map not empty
+    bool hasHeaders() const;
 
-    bool hasHeaders() const {
-        return !headers.empty();
-    }
+    /// \brief Return copy of header map
+    /// \see wss::web::KeyValueVector
+    /// \see wss::web::keyValue
+    /// \return simple vector of pairs std::vector<KeyValue>
+    KeyValueVector getHeaders() const;
 
-    KeyValueVector getHeaders() const {
-        return headers;
-    }
-
-    std::vector<std::string> getHeadersGlued() const {
-        std::vector<std::string> out;
-        for (auto &h: headers) {
-            out.emplace_back(h.first + ": " + h.second);
-        }
-
-        return out;
-    }
-
+    /// \brief Glue headers and return list of its.
+    /// \return vector of strings:
+    /// Example:
+    /// {
+    ///     "Content-Type: application/json",
+    ///     "Connection: keep-alive"
+    /// }
+    std::vector<std::string> getHeadersGlued() const;
 };
 
 class Request : public IOContainer {
  public:
+    /// \brief Http methods
     enum Method {
       GET, POST, PUT, DELETE
     };
@@ -158,181 +149,75 @@ class Request : public IOContainer {
     Method method;
 
  public:
-    Request() : IOContainer(),
-                url(),
-                method(GET) { }
-    explicit Request(const std::string &url) : IOContainer(),
-                                               url(url),
-                                               method(GET) { }
+    Request();
+    explicit Request(const std::string &url);
+    explicit Request(std::string &&url);
+    explicit Request(const WebHttpRequest &sRequest);
 
-    explicit Request(std::string &&url) : IOContainer(),
-                                          url(std::move(url)),
-                                          method(GET) { }
+    /// \brief parse query string to vector<KeyValue>. String must not contains hostname or protocol, only query string.
+    /// Example: ?id=1&param=2&someKey=3
+    /// Warning! Keys represented as arrays, will not be recognized as arrays, they will stored as multiple values, of one keys,
+    /// and if you will try to get param only by key using getParam(const std::string&), method will return only first found value, not all.
+    /// \param queryString
+    void parseParamsString(const std::string &queryString);
 
-    explicit Request(const WebHttpRequest &sRequest) : IOContainer(),
-                                                       url(sRequest->path),
-                                                       method(methodFromString(sRequest->method)) {
-        for (auto &h: sRequest->header) {
-            addHeader(h.first, h.second);
-        }
+    /// \brief Convert string method name to wss::web::Request::Method
+    /// \param methodName case insensitive string
+    /// \return if method string will not be recognized, method will return wss::web::Request::Method::GET
+    Method methodFromString(const std::string &methodName) const;
 
-        parseParamsString(sRequest->query_string);
-    }
+    /// \brief Convert method to uppercase string
+    /// \param methodName
+    /// \return http method name
+    std::string methodToString(Method methodName) const;
 
-    void setHeaders(const std::unordered_map<std::string, std::string> &map) {
-        for (auto &h: map) {
-            addHeader(h.first, h.second);
-        }
-    }
+    /// \brief Set request url. Required to send request.
+    /// \param url Fully qualified url with host and protocol
+    void setUrl(const std::string &url);
 
-    void setHeaders(SimpleWeb::CaseInsensitiveMultimap &mmp) {
-        for (auto &h: mmp) {
-            addHeader(h.first, h.second);
-        }
-    }
+    /// \brief Move request url. Required to send request.
+    /// \param url Fully qualified url with host and protocol
+    void setUrl(std::string &&url);
 
-    void setHeaders(const std::unordered_multimap<std::string, std::string> &mmp) {
-        for (auto &h: mmp) {
-            addHeader(h.first, h.second);
-        }
-    }
+    /// \brief Set request http method
+    /// \param method
+    void setMethod(Method method);
 
-    void parseParamsString(const std::string &queryString) {
-        std::string query = queryString;
-        if (query[0] == '?') {
-            query = query.substr(1, query.length());
-        }
+    /// \brief Add query param key-value wss::web::KeyValue
+    /// \param keyValue pair of strings
+    void addParam(KeyValue &&keyValue);
 
-        std::vector<std::string> pairs = toolboxpp::strings::split(query, "&");
+    /// \brief Return existed url
+    /// \return url string or empty string if did not set
+    std::string getUrl() const;
 
-        for (const auto &param: pairs) {
-            addParam(toolboxpp::strings::splitPair(param, "="));
-        }
-    }
+    /// \brief Return Http method
+    /// \return
+    Method getMethod() const;
 
-    Method methodFromString(const std::string &methodName) const {
-        using toolboxpp::strings::equalsIgnoreCase;
+    /// \brief Check for at least one query parameter has set
+    /// \return
+    bool hasParams() const;
 
-        if (equalsIgnoreCase(methodName, "POST")) {
-            return Method::POST;
-        } else if (equalsIgnoreCase(methodName, "PUT")) {
-            return Method::PUT;
-        } else if (equalsIgnoreCase(methodName, "DELETE")) {
-            return Method::DELETE;
-        }
+    /// \brief Check for parameter exists
+    /// \param key query parameter name
+    /// \param icase search case sensititvity
+    /// \return true if parameter exists
+    bool hasParam(const std::string &key, bool icase = true) const;
 
-        return Method::GET;
-    }
+    /// \brief Return value of query parameter
+    /// \param key query parameter name
+    /// \param icase search case sensititvity
+    /// \return empty string of parameter did not set
+    std::string getParam(const std::string &key, bool icase = true) const;
 
-    std::string methodToString(Method methodName) const {
-        std::string out;
+    /// \brief Build passed url with query parameters
+    /// \return url with parameters. if url did not set, will return empty string without parameters
+    std::string getUrlWithParams() const;
 
-        switch (methodName) {
-            case Method::POST:out = "POST";
-                break;
-            case Method::PUT:out = "PUT";
-                break;
-            case Method::DELETE:out = "DELETE";
-                break;
-
-            default:out = "GET";
-                break;
-        }
-
-        return out;
-    }
-
-    void setUrl(const std::string &url) {
-        this->url = url;
-    }
-
-    void setUrl(std::string &&url) {
-        this->url = std::move(url);
-    }
-
-    void setMethod(Method method) {
-        this->method = method;
-    }
-
-    void addParam(KeyValue &&keyValue) {
-        params.push_back(std::move(keyValue));
-    }
-
-    std::string getUrl() const {
-        return url;
-    }
-
-    Method getMethod() const {
-        return method;
-    }
-
-    bool hasParams() const {
-        return !params.empty();
-    }
-
-    bool hasParam(const std::string &key, bool icase = true) const {
-        using toolboxpp::strings::equalsIgnoreCase;
-        const auto &cmp = [icase](const std::string &lhs, const std::string &rhs) {
-          if (icase) {
-              return equalsIgnoreCase(lhs, rhs);
-          } else {
-              return lhs == rhs;
-          }
-        };
-
-        for (const auto &param: params) {
-            if (cmp(param.first, key)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    std::string getParam(const std::string &key, bool icase = true) const {
-        using toolboxpp::strings::equalsIgnoreCase;
-        const auto &cmp = [icase](const std::string &lhs, const std::string &rhs) {
-          if (icase) {
-              return equalsIgnoreCase(lhs, rhs);
-          } else {
-              return lhs == rhs;
-          }
-        };
-        for (const auto &param: params) {
-            if (cmp(param.first, key)) {
-                return param.second;
-            }
-        }
-
-        return std::string();
-    }
-
-    std::string getUrlWithParams() const {
-        std::string combined = url;
-        if (!params.empty()) {
-            std::stringstream ss;
-            std::vector<std::string> enc;
-            for (auto &p: params) {
-                ss << p.first << "=" << p.second;
-                enc.push_back(ss.str());
-                ss.str("");
-                ss.clear();
-            }
-            std::string glued = toolboxpp::strings::glue("&", enc);
-
-            if (toolboxpp::strings::hasSubstring(url, "?")) {
-                combined += "&" + glued;
-            } else {
-                combined += "?" + glued;
-            }
-        }
-
-        return combined;
-    }
-
-    KeyValueVector getParams() const {
-        return params;
-    }
+    /// \brief Return copy of passed parameters
+    /// \return simple vector with pairs of strings
+    KeyValueVector getParams() const;
 };
 
 class Response : public IOContainer {
@@ -342,50 +227,20 @@ class Response : public IOContainer {
     std::string data;
     std::string _headersBuffer;
 
-    nlohmann::json parseJson() {
-        if (data.empty()) {
-            return nlohmann::json();
-        }
+    /// \brief Return json data from body, empty object if can't parse
+    /// \return
+    nlohmann::json parseJsonBody() const;
 
-        nlohmann::json out;
-        try {
-            out = nlohmann::json::parse(data);
-        } catch (const std::exception &e) {
-            std::cerr << "Can't parse incoming json data: " << e.what() << std::endl;
-        }
+    /// \brief Return map of POST body form-url-encoded data
+    /// \return
+    KeyValueVector parseFormUrlEncode() const;;
 
-        return out;
-    }
+    /// \brief Print response data to std::cout
+    void dump() const;
 
-    KeyValueVector parseFormUrlEncode() const {
-        if (data.empty()) {
-            return {};
-        }
-
-        std::vector<std::string> groups = toolboxpp::strings::split(data, '&');
-
-        KeyValueVector kvData;
-        for (auto &&s: groups) {
-            kvData.push_back(toolboxpp::strings::splitPair(s, "="));
-        }
-
-        return kvData;
-    };
-
-    void dump() const {
-        std::cout << "Response: " << std::endl
-                  << "  Status: " << status << std::endl
-                  << " Message: " << statusMessage << std::endl
-                  << "    Body: " << data << std::endl
-                  << " Headers:\n";
-        for (auto h: headers) {
-            std::cout << "\t" << h.first << ": " << h.second << std::endl;
-        }
-    }
-
-    bool isSuccess() const {
-        return status >= 200 && status < 400;
-    }
+    /// \brief Check response status code > 0 < 400
+    /// \return
+    bool isSuccess() const;
 };
 
 class HttpClient {
@@ -404,111 +259,21 @@ class HttpClient {
     }
 
  public:
-    HttpClient() {
-        curl_global_init(CURL_GLOBAL_ALL);
-    }
+    HttpClient();
+    ~HttpClient();
 
-    ~HttpClient() {
-        curl_global_cleanup();
-    }
+    /// \brief Set verbosity mode for curl
+    /// \param enable
+    void enableVerbose(bool enable);
 
-    void enableVerbose(bool enable) {
-        verbose = enable;
-    }
+    /// \brief Set curl connection timeout
+    /// \param timeoutSeconds Long seconds
+    void setConnectionTimeout(long timeoutSeconds);
 
-    Response execute(Request &request) {
-        CURL *curl;
-        CURLcode res = CURLE_OK;
-
-        curl = curl_easy_init();
-        Response resp;
-        if (curl) {
-            curl_easy_setopt(curl, CURLOPT_URL, request.getUrlWithParams().c_str());
-
-            bool isPost = false;
-            switch (request.getMethod()) {
-                case Request::Method::POST:curl_easy_setopt(curl, CURLOPT_POST, 1L);
-                    isPost = true;
-                    break;
-                case Request::Method::PUT:curl_easy_setopt(curl, CURLOPT_PUT, 1L);
-                    isPost = true;
-                    break;
-                case Request::Method::DELETE:curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-                    isPost = false;
-                    break;
-                default:break;
-            }
-
-            if (isPost && request.hasBody()) {
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request.getBodyC());
-            }
-
-            curl_easy_setopt(curl, CURLOPT_TIMEOUT, connectionTimeout);
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &HttpClient::handleResponseData);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &resp);
-            curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, &HttpClient::handleResponseHeaders);
-            curl_easy_setopt(curl, CURLOPT_HEADERDATA, &resp);
-
-            if (request.hasHeaders()) {
-                struct curl_slist *headers = nullptr;
-                for (auto &h: request.getHeadersGlued()) {
-                    L_DEBUG_F("Request", "Header -> %s", h.c_str());
-                    headers = curl_slist_append(headers, h.c_str());
-                }
-
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-            }
-
-            if (verbose) {
-                curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-            }
-
-            res = curl_easy_perform(curl);
-
-            if (res != CURLE_OK) {
-                resp.status = -1;
-                resp.statusMessage = "CURL error: " + std::string(curl_easy_strerror(res));
-            } else {
-                std::vector<std::string> headerLines = toolboxpp::strings::split(resp._headersBuffer, "\r\n");
-                for (auto &header: headerLines) {
-                    if (toolboxpp::strings::hasSubstring(header, "HTTP")) {
-                        std::smatch match = toolboxpp::strings::matchRegexp(R"(HTTP\/\d\.\d.(\d+).(.*))", header);
-                        resp.status = std::stoi(match[1]);
-                        resp.statusMessage = match[2];
-                        continue;
-                    }
-
-                    if (header.empty()) {
-                        continue;
-                    }
-                    std::pair<std::string, std::string> split = toolboxpp::strings::splitPair(header, ':');
-                    std::string leftCopy = boost::algorithm::trim_left_copy(split.first);
-                    std::string rightCopy = boost::algorithm::trim_left_copy(split.second);
-                    split.first = leftCopy;
-                    split.second = rightCopy;
-
-                    if (leftCopy.empty() || rightCopy.empty()) {
-                        continue;
-                    }
-
-                    resp.addHeader(std::move(split));
-                }
-
-                resp._headersBuffer.clear();
-            }
-
-            curl_easy_cleanup(curl);
-        } else {
-            resp.status = -1;
-            resp.statusMessage = "CURL error: " + std::string(curl_easy_strerror(res));
-        }
-
-        return resp;
-    }
-
-    void setConnectionTimeout(long timeoutSeconds) {
-        connectionTimeout = timeoutSeconds;
-    }
+    /// \brief Make request using request
+    /// \param request wss::web::Request
+    /// \return wss::web::Response
+    Response execute(Request &request);
 };
 
 }
