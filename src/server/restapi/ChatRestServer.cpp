@@ -23,7 +23,36 @@ void wss::ChatRestServer::createEndpoints() {
     RestServer::createEndpoints();
     addEndpoint("stats", "GET", ACTION_BIND(ChatRestServer, actionStats));
     addEndpoint("stat", "GET", ACTION_BIND(ChatRestServer, actionStat));
-    addEndpoint("send_message", "POST", ACTION_BIND(ChatRestServer, actionSendMessage));
+    addEndpoint("check-online", "GET", ACTION_BIND(ChatRestServer, actionCheckOnline));
+    addEndpoint("send-message", "POST", ACTION_BIND(ChatRestServer, actionSendMessage));
+}
+
+void wss::ChatRestServer::actionCheckOnline(wss::HttpResponse response, wss::HttpRequest request) {
+    json content;
+    content["success"] = true;
+
+    wss::web::Request req(request);
+    if (!req.hasParam("id")) {
+        setError(response, HttpStatus::client_error_bad_request, 400, "Id required");
+        return;
+    }
+
+    wss::UserId id;
+    try {
+        id = std::stoul(req.getParam("id"));
+    } catch (const std::invalid_argument &e) {
+        setError(response, HttpStatus::client_error_bad_request, 400, "Invalid id");
+        return;
+    }
+
+    json statItem;
+
+    const auto begin = chatMessageServer->getStats().find(id);
+    statItem["isOnline"] = begin != chatMessageServer->getStats().end() && begin->second->isOnline();
+    content["data"] = statItem;
+    const std::string out = content.dump();
+    setResponseStatus(response, HttpStatus::success_ok, out.length());
+    setContent(response, out, "application/json");
 }
 
 void wss::ChatRestServer::actionStat(wss::HttpResponse response, wss::HttpRequest request) {

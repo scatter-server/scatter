@@ -28,6 +28,7 @@ class ChatRestServer : public RestServer {
     // actions
     ACTION_DEFINE(actionStats);
     ACTION_DEFINE(actionStat);
+    ACTION_DEFINE(actionCheckOnline);
     ACTION_DEFINE(actionSendMessage);
 
  protected:
