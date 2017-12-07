@@ -23,6 +23,7 @@
 namespace wss {
 
 using UserId = unsigned long;
+using ConnectionId = unsigned long;
 
 #ifdef USE_SECURE_SERVER
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WSS>;
@@ -38,6 +39,9 @@ using json = nlohmann::json;
 
 template<typename T>
 using UserMap = std::unordered_map<UserId, T>;
+
+template<typename T>
+using ConnectionMap = std::unordered_map<ConnectionId, T>;
 
 }
 

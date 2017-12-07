@@ -18,9 +18,9 @@ wss::ChatMessageServer::ChatMessageServer(
     crtPath(),
     keyPath(),
     maxMessageSize(10 * 1024 * 1024),
+    server(std::make_unique<WsServer>(crtPath, keyPath)),
     connectionStorage(std::make_unique<wss::ConnectionStorage>())
 {
-    server = std::make_unique<WsServer>(crtPath, keyPath);
     server->config.port = port;
     server->config.thread_pool_size = std::thread::hardware_concurrency();
     server->config.max_message_size = maxMessageSize;
@@ -48,8 +48,8 @@ wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned shor
     crtPath(),
     keyPath(),
     maxMessageSize(10 * 1024 * 1024),
+    server(std::make_unique<WsServer>()),
     connectionStorage(std::make_unique<wss::ConnectionStorage>()) {
-    server = std::make_unique<WsServer>();
     server->config.port = port;
     server->config.thread_pool_size = std::thread::hardware_concurrency();
     server->config.max_message_size = maxMessageSize;
@@ -60,6 +60,10 @@ wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned shor
 
     endpoint = &server->endpoint[regexPath];
     endpoint->on_message = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
+      if (messagePtr->fin_rsv_opcode == FLAG_PONG) {
+          onPong(connectionPtr, messagePtr);
+          return;
+      }
       onMessage(connectionPtr, messagePtr);
     };
 
@@ -110,30 +114,11 @@ void wss::ChatMessageServer::runService() {
     });
 
     if (wss::Settings::get().server.watchdog.enabled) {
+
         const long lifetime = wss::Settings::get().server.watchdog.connectionLifetimeSeconds;
         L_INFO_F("Watchdog", "Started with interval in 1 minute and lifetime=%lu", lifetime);
-        watchdogThread = std::make_unique<boost::thread>([this, lifetime] {
-          try {
-              while (true) {
-                  boost::this_thread::sleep_for(boost::chrono::minutes(1));
-                  L_DEBUG("Watchdog", "Checking for inactive connections");
-                  for (auto &t: connectionStorage->get()) {
-                      const auto &ref = getStat(t.first);
-
-                      if (ref->getInactiveTime() >= lifetime) {
-                          for (const auto &conn: t.second) {
-                              conn->send_close(STATUS_INACTIVE_CONNECTION,
-                                               "Inactive more than " + std::to_string(ref->getInactiveTime()) + " (of "
-                                                   + std::to_string(lifetime) + ") seconds");
-                          }
-
-                      }
-                  }
-              }
-          } catch (const boost::thread_interrupted &) {
-              L_INFO("Watchdog", "Stopping...");
-          }
-        });
+        watchdogThread =
+            std::make_unique<boost::thread>(boost::bind(&wss::ChatMessageServer::watchdogWorker, this, lifetime));
     }
 }
 void wss::ChatMessageServer::stopService() {
@@ -143,23 +128,73 @@ void wss::ChatMessageServer::stopService() {
     }
 }
 
+void wss::ChatMessageServer::watchdogWorker(long lifetime) {
+    try {
+        while (true) {
+            boost::this_thread::sleep_for(boost::chrono::minutes(1));
+            L_DEBUG("Watchdog", "Checking for inactive connections");
+
+            for (auto &t: connectionStorage->get()) {
+                const auto &ref = getStat(t.first);
+                for (const auto &conn: t.second) {
+                    if (!conn.second) {
+                        connectionStorage->remove(t.first, conn.first);
+                        continue;
+                    }
+
+                    if (ref->getInactiveTime() >= lifetime) {
+                        conn.second->send_close(STATUS_INACTIVE_CONNECTION,
+                                                "Inactive more than "
+                                                    + std::to_string(ref->getInactiveTime())
+                                                    + " (of " + std::to_string(lifetime) + ") seconds");
+                    } else {
+                        auto pingStream = std::make_shared<WsMessageStream>();
+                        *pingStream << ".";
+                        conn.second->send(pingStream, [conn, this](const SimpleWeb::error_code &err) {
+                          if (err) {
+                              // does not matter, what happens, anyway, this mean connection is bad, broken pipe, eof or something else
+                              connectionStorage->remove(conn.second);
+                          } else {
+                              // lazy ping pong
+                              connectionStorage->markPongWait(conn.second);
+                          }
+                        }, FLAG_PING);
+                    }
+                }
+            }
+
+            boost::this_thread::sleep_for(boost::chrono::seconds(2));
+            std::size_t disconnected = connectionStorage->disconnectWithoutPong();
+            if (disconnected > 0) {
+                L_DEBUG_F("Watchdog", "Disconnected %lu dangling connections", disconnected);
+            }
+        }
+    } catch (const boost::thread_interrupted &) {
+        L_INFO("Watchdog", "Stopping...");
+    }
+}
+
+void wss::ChatMessageServer::onPong(wss::WsConnectionPtr &connection, wss::WsMessagePtr payload) {
+    connectionStorage->markPongReceived(connection);
+}
+
 void wss::ChatMessageServer::onMessage(WsConnectionPtr &connection, WsMessagePtr message) {
     MessagePayload payload;
     const short opcode = message->fin_rsv_opcode;
 
-    if (message->fin_rsv_opcode < RSV_OPCODE_TEXT) {
+    if (opcode != FLAG_FRAME_TEXT && opcode != FLAG_FRAME_BINARY) {
         // fragmented frame message
         UserId id = connection->getId();
 
-        if (opcode == RSV_OPCODE_FRAGMENT_BEGIN_TEXT || opcode == RSV_OPCODE_FRAGMENT_BEGIN_BINARY) {
-            L_DEBUG_F("OnMessage", "Fragmented frame begin (opcode: %d)", opcode);
+        if (opcode == FLAG_FRAGMENT_BEGIN_TEXT || opcode == FLAG_FRAGMENT_BEGIN_BINARY) {
+            L_DEBUG_F("OnMessage", "Fragmented frame begin (flag: 0x%08x)", opcode);
             writeFrameBuffer(id, message->string(), true);
             return;
-        } else if (opcode == RSV_OPCODE_FRAGMENT_CONTINUATION) {
+        } else if (opcode == FLAG_FRAGMENT_CONTINUE) {
             writeFrameBuffer(id, message->string(), false);
             return;
-        } else if (opcode == RSV_OPCODE_FRAGMENT_END) {
-            L_DEBUG_F("OnMessage", "Fragmented frame end (opcode: %d)", opcode);
+        } else if (opcode == FLAG_FRAGMENT_END) {
+            L_DEBUG("OnMessage", "Fragmented frame end");
             std::stringstream final;
             final << readFrameBuffer(id, true);
             final << message->string();
@@ -268,13 +303,15 @@ void wss::ChatMessageServer::onDisconnected(WsConnectionPtr connection, int stat
         return;
     }
 
-    getStat(connection->getId())->addDisconnection();
-    connectionStorage->remove(connection);
-    L_DEBUG_F("OnDisconnected", "User %lu has disconnected by reason: %s[%d]",
+    L_DEBUG_F("OnDisconnected", "User %lu (%lu) has disconnected by reason: %s[%d]",
               connection->getId(),
+              connection->getUniqueId(),
               reason.c_str(),
               status
     );
+
+    getStat(connection->getId())->addDisconnection();
+    connectionStorage->remove(connection);
 }
 
 bool wss::ChatMessageServer::hasFrameBuffer(wss::UserId id) {
@@ -383,7 +420,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
       L_DEBUG_F("Send message", "User %lu is unavailable. Adding message to queue", uid);
     };
 
-    unsigned char fin_rcv_opcode = 129;//static_cast<unsigned char>(payload.isBinary() ? 130 : 129);
+    unsigned char fin_rsv_opcode = 129;//static_cast<unsigned char>(payload.isBinary() ? 130 : 129);
     for (UserId uid: payload.getRecipients()) {
         if (!connectionStorage->exists(uid)) {
             handleUndeliverable(uid);
@@ -394,10 +431,15 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
         }
 
         try {
-            const std::vector<WsConnectionPtr> &connections = connectionStorage->get(uid);
+            const auto &connections = connectionStorage->get(uid);
             // connection->send is an asynchronous function
             int i = 0;
             for (auto &connection: connections) {
+
+                if (!connection.second) {
+                    connectionStorage->remove(uid, connection.first);
+                    continue;
+                }
 
                 // DO NOT reuse stream, it will die after first sending
                 auto sendStream = std::make_shared<WsMessageStream>();
@@ -407,9 +449,9 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
                           "Sending message to recipient %lu, connection[%d]=%lu",
                           uid,
                           i,
-                          connection->getUniqueId());
+                          connection.second->getUniqueId());
 
-                connection
+                connection.second
                     ->send(sendStream,
                            [this, uid, payload, handleUndeliverable, plSize](const SimpleWeb::error_code &errorCode) {
                              if (errorCode) {
@@ -424,7 +466,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
                                  sent.setRecipient(uid);
                                  onMessageSent(std::move(sent), plSize, true);
                              }
-                           }, fin_rcv_opcode);
+                           }, fin_rsv_opcode);
 
                 i++;
             }

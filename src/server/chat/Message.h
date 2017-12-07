@@ -24,6 +24,8 @@ extern const char *TYPE_B64_IMAGE;
 extern const char *TYPE_URL_IMAGE;
 extern const char *TYPE_NOTIFICATION_RECEIVED;
 
+/// \brief Main structured message payload
+/// \todo Protobuf support
 class MessagePayload {
  private:
     UserId sender;
@@ -41,12 +43,12 @@ class MessagePayload {
     friend void to_json(wss::json &j, const wss::MessagePayload &in);
     friend void from_json(const wss::json &j, wss::MessagePayload &in);
  public:
-    /// \brief Creates simple send-status messages, using only UserID
+    /// \brief Creates simple send-status messages, using only UserId
     /// \param to sender UserId
     /// \return valid payload object
     static MessagePayload createSendStatus(UserId to);
 
-    /// \brief Creates simple send-status messages, using other payload (extracts from it sender)
+    /// \brief Creates simple send-status messages, using other payload (extracts sender)
     /// \param payload
     /// \return
     static MessagePayload createSendStatus(const MessagePayload &payload);

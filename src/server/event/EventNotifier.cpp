@@ -8,7 +8,7 @@
 
 #include "EventNotifier.h"
 
-wss::event::EventNotifier::EventNotifier(std::shared_ptr<wss::ChatMessageServer> ws) :
+wss::event::EventNotifier::EventNotifier(std::shared_ptr<wss::ChatMessageServer> &ws) :
     running(true),
     sendStrategy(ONLINE_ONLY),
     ws(ws),

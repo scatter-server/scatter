@@ -70,25 +70,62 @@ class ChatMessageServer : public virtual StandaloneService {
     const int STATUS_UNAUTHORIZED = 4050;
 
     /**
-     *  0000 0000 (0)   - продолжение фрагмента (FIN bit clear=0x0, rsv_opcode=0x1: fin & rsv_opcode == 0x0)
-     *  0000 0001 (1)   - начало фрагментированных (текстовых) фреймов, FIN bit = 0x1
-     *  0000 0010 (2)   - начало фрагментированных (бинарных) фреймов, FIN bit  = 0x1
-     *  1000 0001 (129) - текстовые данные
-     *  1000 0010 (130) - бинарные данные
-     *  1000 0000 (128) - конец фрагментированных (текстовых?) фреймов (129 ^ 1) (FIN bit = 0x1, opcode = 0x0)
-     *  1000 0000 (128) - конец фрагментированных (бинарных?) фреймов - предположительно (130 ^ 2), нужно проверять
+     * @link https://tools.ietf.org/html/rfc6455#page-65
      *
-     *  @link https://tools.ietf.org/html/rfc6455#page-65
+     * close:
+     *  fin=1, opcode=0x08 = 0x80 | 0x08 = 136
+     * ping:
+     *  fin=1, opcode=0x09 = 0x80 | 0x09 = 137
+     * pong:
+     *  fin=1, opcode=0x0A = 0x80 | 0x0A = 138
+     *
+     * unfragmented:
+     *  text: fin=1, opcode=1 = 0x80 | 0x01 = 129
+     *  bin:  fin=1, opcode=1 = 0x80 | 0x02 = 130
+     *
+     * fragmented:
+     *  begin:
+     *  text: fin=0, opcode = 1 = 0x00 | 0x01 = 1
+     *  bin:  fin=0, opcode = 2 = 0x00 | 0x02 = 2
+     *
+     *  continuation:
+     *  text: fin=0, opcode=0 = 0x00 | 0x00 = 0
+     *  bin:  fin=0, opcode=0 = 0x00 | 0x00 = 0
+     *
+     *  end:
+     *  text: fin=1, opcode=0 = 0x80 | 0x00 = 128
+     *  bin:  fin=1, opcode=0 = 0x80 | 0x00 = 128
+     *
      */
-    const unsigned char RSV_OPCODE_FRAGMENT_CONTINUATION = 0;
-    const unsigned char RSV_OPCODE_FRAGMENT_BEGIN_TEXT = 1;
-    const unsigned char RSV_OPCODE_FRAGMENT_BEGIN_BINARY = 2;
-    const unsigned char RSV_OPCODE_FRAGMENT_END = 128;
-    const unsigned char RSV_OPCODE_CONNECTION_CLOSE = 8;
-    const unsigned char RSV_OPCODE_PING = 9;
-    const unsigned char RSV_OPCODE_PONG = 10;
-    const unsigned char RSV_OPCODE_TEXT = 129;
-    const unsigned char RSV_OPCODE_BINARY = 130;
+    //@formatter:off
+    /// \brief fin set bit: 1000 0000
+    const unsigned char FIN1 = 0x80;
+    /// \brief fin clear bit: 0000 0000
+    const unsigned char FIN0 = 0x00;
+    //opcodes
+    /// \brief Continuation Frame
+    const unsigned char OPCODE_CONTINUE = 0x00;
+    /// \brief Text Frame
+    const unsigned char OPCODE_TEXT = 0x01;
+    /// \brief Binary Frame
+    const unsigned char OPCODE_BINARY = 0x02;
+    /// \brief Connection Close Frame
+    const unsigned char OPCODE_CLOSE = 0x08;
+    /// \brief Ping Frame
+    const unsigned char OPCODE_PING = 0x09;
+    /// \brief Pong Frame
+    const unsigned char OPCODE_PONG = 0x0A;
+    // fragment frames flags
+    const unsigned char FLAG_PING = FIN1 | OPCODE_PING;
+    const unsigned char FLAG_PONG = FIN1 | OPCODE_PONG;
+    const unsigned char FLAG_FRAGMENT_BEGIN_TEXT = FIN0 | OPCODE_TEXT;
+    const unsigned char FLAG_FRAGMENT_BEGIN_BINARY = FIN0 | OPCODE_BINARY;
+    const unsigned char FLAG_FRAGMENT_CONTINUE = FIN0 | OPCODE_CONTINUE;
+    const unsigned char FLAG_FRAGMENT_END = FIN1 | OPCODE_CONTINUE;
+    // single frames flags
+    const unsigned char FLAG_FRAME_TEXT = FIN1 | OPCODE_TEXT;
+    const unsigned char FLAG_FRAME_BINARY = FIN1 | OPCODE_BINARY;
+    //@formatter:on
 
     typedef std::function<void(wss::MessagePayload &&, bool hasSent)> OnMessageSentListener;
     typedef std::function<void()> OnServerStopListener;
@@ -121,10 +158,12 @@ class ChatMessageServer : public virtual StandaloneService {
     const UserMap<std::unique_ptr<wss::Statistics>> &getStats();
 
  protected:
+    void onPong(WsConnectionPtr &connection, WsMessagePtr payload);
     void onMessage(WsConnectionPtr &connection, WsMessagePtr payload);
     void onMessageSent(wss::MessagePayload &&payload, std::size_t bytesTransferred, bool hasSent);
     void onConnected(WsConnectionPtr connection);
     void onDisconnected(WsConnectionPtr connection, int status, const std::string &reason);
+    void watchdogWorker(long lifetime);
 
     inline bool hasUndeliveredMessages(UserId id);
     MessageQueue &getUndeliveredMessages(UserId id);

@@ -51,7 +51,7 @@ class EventNotifier : public virtual wss::StandaloneService {
  public:
     /// \brief Constructs event notifier with shared_ptr of main chat server.
     /// \param ws
-    explicit EventNotifier(std::shared_ptr<wss::ChatMessageServer> ws);
+    explicit EventNotifier(std::shared_ptr<wss::ChatMessageServer> &ws);
     ~EventNotifier();
 
     /// \brief Set retry interval seconds.
