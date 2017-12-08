@@ -185,8 +185,6 @@ void wss::event::EventNotifier::handleMessageQueue() {
     }
 }
 void wss::event::EventNotifier::addMessage(wss::MessagePayload payload) {
-//    boost::upgrade_lock<boost::shared_mutex> lock(sendQueueMutex);
-//    boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
     for (auto &target: targets) {
         sendQueue.enqueue({target.second, payload, 0L, 1});
     }
