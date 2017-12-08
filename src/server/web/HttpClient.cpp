@@ -351,10 +351,8 @@ wss::web::Response wss::web::HttpClient::execute(const wss::web::Request &reques
             default:break;
         }
 
-        const char *body;
-
         if (isPost && request.hasBody()) {
-            body = request.getBodyC();
+            const char *body = request.getBodyC();
 
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body);
             L_DEBUG_F("HttpClient", "Request body: %s", body);

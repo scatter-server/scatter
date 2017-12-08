@@ -478,7 +478,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
 }
 std::size_t wss::ChatMessageServer::getThreadName() {
     const std::thread::id id = std::this_thread::get_id();
-    static std::size_t nextindex = 0;
+    static std::size_t nextindex;
     static std::mutex my_mutex;
     static std::map<std::thread::id, std::size_t> ids;
     std::lock_guard<std::mutex> lock(my_mutex);

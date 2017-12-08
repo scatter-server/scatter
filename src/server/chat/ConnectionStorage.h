@@ -109,11 +109,6 @@ class ConnectionStorage {
     /// \brief Disconnect all queued connections, that waits for pong response but not received
     /// \return count of disconnected connections
     std::size_t disconnectWithoutPong();
-
-    /// \brief Works like a map of connections, just pass UserId to square braces
-    /// \param id UserId unsigned long
-    /// \return map of user connections
-    wss::ConnectionMap<wss::WsConnectionPtr> &operator[](wss::UserId id) noexcept;
 };
 
 }

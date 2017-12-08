@@ -133,7 +133,3 @@ std::size_t wss::ConnectionStorage::disconnectWithoutPong() {
 
     return disconnected;
 }
-
-wss::ConnectionMap<wss::WsConnectionPtr> &wss::ConnectionStorage::operator[](wss::UserId id) noexcept {
-    return get(id);
-}

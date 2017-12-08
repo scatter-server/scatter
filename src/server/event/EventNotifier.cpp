@@ -175,6 +175,7 @@ void wss::event::EventNotifier::handleMessageQueue() {
             // we don't need to join this thread back, we just need to send, and if not, re-enqueue payload
             sender.detach();
 
+            i++;
         }
 
         bulk.clear();
