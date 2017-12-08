@@ -1,4 +1,5 @@
 # WsServer - WebSocket message server (Development stage - unstable)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/274ad89f657b4c0695568ec42f7f39bb)](https://www.codacy.com/app/edwardstock/wsserver?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=edwardstock/wsserver&amp;utm_campaign=Badge_Grade)
 
 ## Features
 * Multi-threaded (boost thread pool)
