@@ -11,7 +11,7 @@
 // BASE IO
 wss::web::IOContainer::IOContainer() :
     body() { }
-void wss::web::IOContainer::setBody(const std::string &body) {
+void wss::web::IOContainer::setBody(std::string body) {
     this->body = body;
     setHeader({"Content-Length", std::to_string(this->body.length())});
 }
@@ -98,6 +98,7 @@ const char *wss::web::IOContainer::getBodyC() const {
     const char *out = body.c_str();
     return out;
 }
+
 bool wss::web::IOContainer::hasBody() const {
     return !body.empty();
 }
@@ -108,9 +109,16 @@ wss::web::KeyValueVector wss::web::IOContainer::getHeaders() const {
     return headers;
 }
 std::vector<std::string> wss::web::IOContainer::getHeadersGlued() const {
-    std::vector<std::string> out;
-    for (auto &h: headers) {
-        out.emplace_back(h.first + ": " + h.second);
+    std::vector<std::string> out(headers.size());
+
+    std::stringstream ss;
+    int i = 0;
+    for (auto h: headers) {
+        ss << h.first << ": " << h.second;
+        out[i] = ss.str();
+        ss.str("");
+        ss.clear();
+        i++;
     }
 
     return out;
@@ -320,7 +328,7 @@ wss::web::HttpClient::~HttpClient() {
 void wss::web::HttpClient::enableVerbose(bool enable) {
     verbose = enable;
 }
-wss::web::Response wss::web::HttpClient::execute(wss::web::Request &request) {
+wss::web::Response wss::web::HttpClient::execute(const wss::web::Request &request) {
     CURL *curl;
     CURLcode res = CURLE_OK;
 
@@ -343,8 +351,19 @@ wss::web::Response wss::web::HttpClient::execute(wss::web::Request &request) {
             default:break;
         }
 
+        const char *body;
+
         if (isPost && request.hasBody()) {
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request.getBodyC());
+            body = request.getBodyC();
+
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body);
+            L_DEBUG_F("HttpClient", "Request body: %s", body);
+
+            if (body == nullptr) {
+                resp.status = -1;
+                resp.statusMessage = "Request body is NULL";
+                return resp;
+            }
         }
 
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, connectionTimeout);
@@ -355,8 +374,11 @@ wss::web::Response wss::web::HttpClient::execute(wss::web::Request &request) {
 
         if (request.hasHeaders()) {
             struct curl_slist *headers = nullptr;
-            for (auto &h: request.getHeadersGlued()) {
-                L_DEBUG_F("Request", "Header -> %s", h.c_str());
+            for (const auto &h: request.getHeadersGlued()) {
+                if (verbose) {
+                    L_DEBUG_F("Request", "Header -> %s", h.c_str());
+                }
+
                 headers = curl_slist_append(headers, h.c_str());
             }
 

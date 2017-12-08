@@ -64,6 +64,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/json/src)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/http)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/ini-parser/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/args)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/concurrentqueue)
+
 
 ### Sources
 set(SERVER_SRC

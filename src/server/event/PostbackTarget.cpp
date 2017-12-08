@@ -12,11 +12,12 @@
 bool wss::event::PostbackTarget::send(const wss::MessagePayload &payload, std::string &error) {
     const std::string out = payload.toJson();
     if (out.length() < 1000) {
-        L_DEBUG_F("Event-Send", "Request body: %s", out.c_str());
+//        L_DEBUG_F("Event-Send", "Request body: %s", out.c_str());
     }
+
+    wss::web::Request request(url);
     request.setBody(out);
     request.setMethod(wss::web::Request::POST);
-    request.setHeader({"Content-Length", std::to_string(request.getBody().length())});
     request.setHeader({"Content-Type", "application/json"});
 
     auth->performAuth(request);
@@ -36,11 +37,10 @@ std::string wss::event::PostbackTarget::getType() {
 }
 
 wss::event::PostbackTarget::PostbackTarget(const nlohmann::json &config) :
-    Target(config),
-    request() {
+    Target(config) {
 
     try {
-        request.setUrl(config.at("url"));
+        url = config.at("url");
 
         if (config.find("auth") != config.end()) {
             this->auth = wss::auth::createFromConfig(config);
@@ -48,6 +48,7 @@ wss::event::PostbackTarget::PostbackTarget(const nlohmann::json &config) :
             this->auth = std::make_unique<wss::WebAuth>();
         }
 
+        client.enableVerbose(false);
         client.setConnectionTimeout(config.value("connectionTimeoutSeconds", 10L));
     } catch (const std::exception &e) {
         setErrorMessage("Invalid postback target configuration. " + std::string(e.what()));

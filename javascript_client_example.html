@@ -147,6 +147,15 @@
             ws.send(sPayload);
             return false;
         }
+
+        function generate(num) {
+            var input = $('#message');
+            for (var i = 0; i < num; i++) {
+                input.val(i);
+                send();
+            }
+            return false;
+        }
     </script>
 </head>
 <body>
@@ -161,6 +170,12 @@
 </form>
 
 <input type="file" id="file-input" style="width: 300px; height: auto;"/>
+
+<br/>
+<br/>
+
+<button type="button" name="Generate 500 messages" onclick="return generate(500)">Generate 500 messages</button>
+<button type="button" name="Generate 10 messages" onclick="return generate(10)">Generate 10 messages</button>
 
 
 <script>

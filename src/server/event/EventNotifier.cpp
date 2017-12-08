@@ -7,11 +7,14 @@
  */
 
 #include "EventNotifier.h"
+#include "../base/Settings.hpp"
 
 wss::event::EventNotifier::EventNotifier(std::shared_ptr<wss::ChatMessageServer> &ws) :
     running(true),
     sendStrategy(ONLINE_ONLY),
     ws(ws),
+    enableRetry(wss::Settings::get().event.enableRetry),
+    maxParallelWorkers(wss::Settings::get().event.maxParallelWorkers),
     maxRetries(3),
     intervalSeconds(10),
     ioService(),
@@ -111,92 +114,81 @@ void wss::event::EventNotifier::onStop() {
     running = false;
     threadGroup.interrupt_all();
 }
-const char *wss::event::EventNotifier::getThreadId() {
-    std::stringstream ss;
-    ss << boost::this_thread::get_id();
-    const char *tid = ss.str().c_str();
-    return tid;
-}
-void wss::event::EventNotifier::sendTry(std::unordered_map<std::string,
-                                                           std::deque<wss::event::EventNotifier::SendStatus>> targetQueueMap) {
-    boost::shared_lock<boost::shared_mutex> lock(sendQueueMutex);
 
-    // iterate target-queue
-    for (auto &&targetQueue: targetQueueMap) {
-        const std::string targetName = targetQueue.first;
-        while (!targetQueue.second.empty()) {
-            // if can't send
-            SendStatus status = targetQueue.second.front();
-            // remove top element
-            targetQueue.second.pop_front();
-
-            std::string sendResult;
-            if (!targets[targetName]->send(status.payload, sendResult)) {
-
-                std::stringstream ss;
-                ss << "[" << getThreadId() << "] Can't send message to target " << targetName << ": " << sendResult;
-                Logger::get().debug("Event-Send", ss.str());
-
-                L_DEBUG_F("Event-Send", "Send tries: %d", status.sendTries);
-
-                // if tries < maxRetries
-                if (status.sendTries < maxRetries) {
-                    status.sendTries++;
-                    status.sendTime = std::time(nullptr);
-                    L_DEBUG_F("Event-Send",
-                              "Adding to queue again, will try again after %d seconds",
-                              intervalSeconds);
-                    sendQueue[targetName].push_back(std::move(status));
-                } else {
-                    L_DEBUG_F("Event-Send", "After %d times, removing from queue.", maxRetries);
-                }
-            } else {
-                L_DEBUG_F("Event-Send", "[%s] Message has sent to target: %s", getThreadId(), targetName.c_str());
-            }
-        }
-    }
-}
 void wss::event::EventNotifier::handleMessageQueue() {
     const auto &ready = [this](SendStatus status) {
+      if (!enableRetry) return true;
+
       const long diff = abs(std::time(nullptr) - status.sendTime);
       return diff >= intervalSeconds;
     };
 
     while (running) {
-        std::unordered_map<std::string, std::deque<SendStatus>> tmp;
+        // @TODO play around this time, check performance and cpu consumption
+        // probably we should use notifiers, calculate data additions or average send times, instead of just checking every .5 seconds
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
 
-        {
-            boost::shared_lock<boost::shared_mutex> slock(sendQueueMutex);
-            // iterate all targets
-            for (auto &sq: sendQueue) {
-                for (auto &status: sendQueue[sq.first]) {
-                    if (ready(status)) {
-                        tmp[sq.first].push_back(status);
-                    }
-                }
+        std::vector<SendStatus> bulk;
 
-                sq.second.erase(
-                    std::remove_if(sq.second.begin(), sq.second.end(), ready),
-                    sq.second.end()
-                );
+        try {
+            size_t extract;
+            const size_t approxSize = sendQueue.size_approx();
+            if (approxSize > maxParallelWorkers) {
+                // maximum connections per cycle
+                extract = maxParallelWorkers;
+            } else {
+                extract = approxSize;
             }
 
+            bulk.resize(extract);
+            sendQueue.try_dequeue_bulk(bulk.begin(), bulk.size());
+        } catch (const std::exception &e) {
+            L_DEBUG_F("Event-Send", "can't dequeue bulk: %s", e.what());
+            continue;
         }
 
-        if (!tmp.empty()) {
-            L_DEBUG_F("Event-HandleMQ", "Messages to send: %lu", tmp.size());
-            sendTry(tmp);
-            tmp.clear();
+        int i = 0;
+        for (auto it: bulk) {
+            if (!ready(it)) {
+                sendQueue.enqueue(std::move(it));
+                continue;
+            }
+
+            auto sender = boost::thread([this, s = std::move(it)]() {
+              SendStatus status = s;
+              status.hasSent = status.target->send(status.payload, status.sendResult);
+              if (enableRetry && !status.hasSent) {
+                  std::stringstream ss;
+                  ss << "Can't send message to target " << status.target->getType() << ": " << status.sendResult;
+                  Logger::get().debug("Event-Send", ss.str());
+
+                  // if tries < maxRetries
+                  if (status.sendTries < maxRetries) {
+                      status.sendTries++;
+                      status.sendTime = std::time(nullptr);
+                      sendQueue.enqueue(status);
+                  }
+              } else {
+                  L_DEBUG_F("Event-Send", "Message has sent to target: %s", status.target->getType().c_str());
+              }
+            });
+            // we don't need to join this thread back, we just need to send, and if not, re-enqueue payload
+            sender.detach();
+
         }
 
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
+        bulk.clear();
+        if (i > 0) {
+            L_DEBUG_F("Event-Send", "Prepared %d messages", i);
+        }
+
     }
 }
 void wss::event::EventNotifier::addMessage(wss::MessagePayload payload) {
-    boost::upgrade_lock<boost::shared_mutex> lock(sendQueueMutex);
-    boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
+//    boost::upgrade_lock<boost::shared_mutex> lock(sendQueueMutex);
+//    boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
     for (auto &target: targets) {
-        sendQueue[target.first].push_back(SendStatus{payload, 0L, 1});
+        sendQueue.enqueue({target.second, payload, 0L, 1});
     }
     L_DEBUG("Event-Enqueue", "Adding message to send queue");
 }

@@ -25,6 +25,7 @@
 #include "../base/StandaloneService.h"
 #include "EventTarget.hpp"
 #include "PostbackTarget.h"
+#include "concurrentqueue.h"
 
 namespace wss {
 namespace event {
@@ -46,6 +47,10 @@ class EventNotifier : public virtual wss::StandaloneService {
     std::shared_ptr<Target> createTargetByConfig(const nlohmann::json &json);
     void onStop();
 
+    /// \brief Start the service. Producer: onMessage(), consumer: handleMessageQueue(), but consumer can be a producer at the same time, cause re-enqueues undelivered messages
+    /// \todo calculate performance, cause here we create hardcoded 4 threads,
+    ///     but event emitter (wss::ChatMessageServer) can generate message from the N threads at the same time.
+    ///     Potential bottleneck
     void subscribe();
 
  public:
@@ -77,31 +82,26 @@ class EventNotifier : public virtual wss::StandaloneService {
 
  private:
     struct SendStatus {
+      std::shared_ptr<wss::event::Target> target;
       wss::MessagePayload payload;
       std::time_t sendTime;
       int sendTries;
+      bool hasSent = false;
+      std::string sendResult = "";
       SendStatus() = default;
       ~SendStatus() = default;
       SendStatus(const SendStatus &another) = default;
       SendStatus(SendStatus &&another) = default;
-      SendStatus &operator=(const SendStatus &another) {
-          this->payload = another.payload;
-          this->sendTries = another.sendTries;
-          this->sendTime = another.sendTime;
-          return *this;
-      }
-      SendStatus &operator=(SendStatus &&another) noexcept {
-          this->payload = std::move(another.payload);
-          this->sendTries = another.sendTries;
-          this->sendTime = another.sendTime;
-          return *this;
-      }
+      SendStatus &operator=(const SendStatus &another) = default;
+      SendStatus &operator=(SendStatus &&another) = default;
     };
 
     std::atomic_bool running;
     SendStrategy sendStrategy;
 
     std::shared_ptr<wss::ChatMessageServer> ws;
+    const bool enableRetry;
+    const uint32_t maxParallelWorkers;
     int maxRetries;
     int intervalSeconds;
     boost::asio::io_service ioService;
@@ -109,42 +109,21 @@ class EventNotifier : public virtual wss::StandaloneService {
     boost::asio::io_service::work work;
 
     std::unordered_map<std::string, std::shared_ptr<Target>> targets;
-    std::unordered_map<std::string, std::deque<SendStatus>> sendQueue;
+    moodycamel::ConcurrentQueue<SendStatus> sendQueue;
 
-    boost::shared_mutex sendQueueMutex;
-
-    /**
-     * @return string hex number thread id
-     */
-    const char *getThreadId();
-
-    /**
-     * Calling on event
-     * Send post to io_service with payload
-     * @param payload
-     * @param hasSent is recipient online
-     */
+    /// \brief Calling on event
+    /// Send post to io_service with payload
+    /// \param payload
+    /// \param hasSent is recipient online and recieved websocket frame
     void onMessage(wss::MessagePayload &&payload, bool hasSent);
-    /**
-     * Calling after event in separate thread (io_service.post)
-     * Adds message to send queue
-     * @param payload
-     */
-    void addMessage(wss::MessagePayload payload);
-    /**
-     * Running in separate thread with sleep timer
-     * Handling queued messages and trying to send them
-     */
-    void handleMessageQueue();
-    /**
-     * Calling inside dequeueMessage when trying to send message
-     * Sends messages to targets, if cannot then adds its to sendQueue again with new schedule time and trying-counter
-     * @see maxRetries
-     * @see intervalSeconds
-     * @param targetQueueMap
-     */
-    void sendTry(std::unordered_map<std::string, std::deque<SendStatus>> targetQueueMap);
 
+    /// \brief Calling after event in separate thread (io_service.post)
+    /// Adds message to send queue
+    /// \param payload
+    void addMessage(wss::MessagePayload payload);
+
+    /// \brief Running in separate thread with sleep timer. Handling queued messages and trying to send them
+    void handleMessageQueue();
 };
 
 }

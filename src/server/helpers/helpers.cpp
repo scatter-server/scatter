@@ -38,6 +38,10 @@ std::string wss::helpers::getNowISODateTime() {
     return formatBoostPTime(pt::second_clock::local_time(), DATE_TIME_ISO_8601);
 }
 
+std::string wss::helpers::getNowISODateTimeFractional() {
+    return formatBoostPTime(pt::microsec_clock::local_time(), DATE_TIME_ISO_8601_FRACTIONAL);
+}
+
 std::string wss::helpers::humanReadableBytes(unsigned long bytes, bool si) {
     using namespace toolboxpp::strings;
     unsigned int unit = si ? 1000 : 1024;

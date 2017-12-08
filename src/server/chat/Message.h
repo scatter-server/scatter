@@ -32,6 +32,7 @@ class MessagePayload {
     std::vector<UserId> recipients;
     std::string text;
     std::string type;
+    std::string timestamp;
     json data;
     bool valid = true;
     std::string errorCause;

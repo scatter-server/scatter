@@ -43,6 +43,7 @@
     "sendStrategy": "always",
     "retryIntervalSeconds": 10,
     "retryCount": 3,
+    "maxParallelWorkers": 16,
     "targets": [
       {
         "type": "postback",

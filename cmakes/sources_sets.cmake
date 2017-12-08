@@ -32,3 +32,8 @@ set(HTTP_CLIENT_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/http/client_http.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/http/client_https.hpp
     )
+
+set(LOCK_FREE_QUEUE_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/concurrentqueue/concurrentqueue.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/concurrentqueue/blockingconcurrentqueue.h
+    )

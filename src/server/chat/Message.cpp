@@ -6,6 +6,7 @@
  * @link https://github.com/edwardstock
  */
 #include "Message.h"
+#include "../helpers/helpers.h"
 
 #include <toolboxpp.h>
 
@@ -22,28 +23,33 @@ const char *wss::TYPE_NOTIFICATION_RECEIVED = "notification_received";
 
 wss::MessagePayload::MessagePayload(UserId from, UserId to, std::string &&message) :
     sender(from),
+    recipients(std::vector<UserId> {to}),
     text(std::move(message)),
-    type(TYPE_TEXT) {
-    addRecipient(to);
+    type(TYPE_TEXT),
+    timestamp(wss::helpers::getNowISODateTimeFractional()) {
+
 }
 wss::MessagePayload::MessagePayload(UserId from, std::vector<UserId> &&to, std::string &&message) :
     sender(from),
     recipients(std::move(to)),
     text(std::move(message)),
-    type(TYPE_TEXT) {
+    type(TYPE_TEXT),
+    timestamp(wss::helpers::getNowISODateTimeFractional()) {
     validate();
 }
 MessagePayload::MessagePayload(UserId from, UserId to, const std::string &message) :
     sender(from),
+    recipients(to),
     text(message),
-    type(TYPE_TEXT) {
-    addRecipient(to);
+    type(TYPE_TEXT),
+    timestamp(wss::helpers::getNowISODateTimeFractional()) {
 }
 wss::MessagePayload::MessagePayload(UserId from, const std::vector<UserId> &to, const std::string &message) :
     sender(from),
     recipients(to),
     text(message),
-    type(TYPE_TEXT) {
+    type(TYPE_TEXT),
+    timestamp(wss::helpers::getNowISODateTimeFractional()) {
     validate();
 }
 wss::MessagePayload::MessagePayload(const std::string &json) noexcept {
@@ -145,6 +151,7 @@ void wss::to_json(wss::json &j, const wss::MessagePayload &in) {
     j = json {
         {"type",       in.type},
         {"text",       in.text},
+        {"timestamp", in.timestamp},
         {"sender",     in.sender},
         {"recipients", in.recipients},
         {"data",       in.data}
@@ -163,6 +170,7 @@ void wss::from_json(const wss::json &j, wss::MessagePayload &in) {
     in.recipients = j.at("recipients").get<std::vector<UserId>>();
 
     in.data = j.value("data", json());
+    in.timestamp = j.value("timestamp", wss::helpers::getNowISODateTimeFractional());
 }
 
 wss::MessagePayload MessagePayload::createSendStatus(UserId to) {

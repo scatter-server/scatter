@@ -44,7 +44,7 @@ class IOContainer {
 
     /// \brief Set request body data
     /// \param body string data for request/response
-    void setBody(const std::string &body);
+    void setBody(std::string body);
 
     /// \brief Move request body data
     /// \param body string data for request/response
@@ -274,7 +274,7 @@ class HttpClient {
     /// \brief Make request using request
     /// \param request wss::web::Request
     /// \return wss::web::Response
-    Response execute(Request &request);
+    Response execute(const Request &request);
 };
 
 }

@@ -28,7 +28,7 @@ class Target {
     explicit Target(const nlohmann::json &config) :
         config(config),
         valid(true),
-        errorMessage() { }
+        errorMessage("") { }
 
     /// \brief Send event to entire target
     /// \param payload Payload to send

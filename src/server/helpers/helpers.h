@@ -36,6 +36,7 @@ using hires_clock = std::chrono::high_resolution_clock;
 
 /// \brief ISO 8601 date format without time zone at the end
 static const char DATE_TIME_ISO_8601[] = "%Y-%m-%d %H:%M:%S";
+static const char DATE_TIME_ISO_8601_FRACTIONAL[] = "%Y-%m-%d %H:%M:%s";
 
 /// \brief Parse string date to boost ptime
 /// \param t input string date
@@ -59,6 +60,10 @@ std::string formatBoostPTime(const pt::ptime &t, const char *format);
 /// \brief Returns Current date time
 /// \return string formatted in ISO-8601 format
 std::string getNowISODateTime();
+
+/// \brief Returns current date time, with resolution to mircoseconds
+/// \return Example output: 2017-12-08 19:11:28.003785
+std::string getNowISODateTimeFractional();
 
 /// \brief Format bytes to human readable string
 /// \param bytes Bytes count
