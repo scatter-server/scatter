@@ -34,21 +34,20 @@ struct Server {
     long connectionLifetimeSeconds = 600;
   };
 
-  Secure secure = Secure();
+  Secure secure;
   std::string endpoint = "/chat";
   std::string address = "*";
   uint16_t port = 8085;
   uint32_t workers = 8;
   std::string tmpDir = "/tmp";
-  bool allowOverrideConnection = false;
-  Watchdog watchdog = Watchdog();
-  AuthSettings auth = AuthSettings();
+  Watchdog watchdog;
+  AuthSettings auth;
 };
 struct RestApi {
   bool enabled = false;
   std::string address = "*";
   uint16_t port = 8082;
-  AuthSettings auth = AuthSettings();
+  AuthSettings auth;
 };
 struct Chat {
   struct Message {
@@ -73,10 +72,10 @@ struct Settings {
       static Settings s;
       return s;
   }
-  Server server = Server();
-  RestApi restApi = RestApi();
-  Chat chat = Chat();
-  Event event = Event();
+  Server server;
+  RestApi restApi;
+  Chat chat;
+  Event event;
 };
 
 inline void from_json(const nlohmann::json &j, wss::Settings &in) {
@@ -84,7 +83,6 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
     setConfig(in.server.address, server, "address");
     setConfig(in.server.endpoint, server, "endpoint");
     setConfig(in.server.port, server, "port");
-    setConfig(in.server.allowOverrideConnection, server, "allowOverrideConnection");
 
     if (server.find("secure") != server.end() && server["secure"].value("enabled", false)) {
         in.server.secure.enabled = true;

@@ -5,7 +5,6 @@
     "port": 8085,
     "workers": 8,
     "tmpDir": "/tmp",
-    "allowOverrideConnection": true,
     "secure": {
       "crtPath": "../certs/debug.crt",
       "keyPath": "../certs/pdebug.key"
@@ -47,12 +46,12 @@
     "targets": [
       {
         "type": "postback",
-        "url": "http://api.dev.mdsclub.ru/v1/chat/send",
+        "url": "http://mydomain/postback-url",
         "connectionTimeoutSeconds": 10,
         "auth": {
           "type": "header",
-          "name": "X-Api-Token",
-          "value": "7ppOeHwnA7PMJyl9ciZY97UTBBDqCEME"
+          "name": "X-My-Api-Token",
+          "value": "token"
         }
       }
     ]
