@@ -29,7 +29,6 @@ extern const char *TYPE_NOTIFICATION_RECEIVED;
 /// \todo Protobuf support
 class MessagePayload {
  private:
-    /// \todo Slow uuid generation (probably i missunderstand something?). Tests show 10,000 generations tooks ~75s. Anyway, test performance required.
     unid_t id;
     UserId sender;
     std::vector<UserId> recipients;
