@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_ROOT_MODULE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -Werror -Wextra -pedantic -Wno-unused-parameter -O0")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -Wextra -pedantic -Wno-unused-parameter -O0") #-Werror
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS} -O2")
 
 option(USE_SSL "Certifacates required" OFF)
@@ -101,8 +101,11 @@ set(SERVER_SRC
     src/server/chat/ConnectionStorage.h
     src/server/chat/Statistics.cpp
     src/server/chat/Statistics.h
+    src/server/helpers/unid.cpp
+    src/server/helpers/unid.h
     )
 
+add_subdirectory(libs/fmt/fmt)
 add_executable(${PROJECT_NAME}
                ${SERVER_SRC}
                ${COMMON_LIBS_SRC}
@@ -111,7 +114,6 @@ add_executable(${PROJECT_NAME}
                )
 
 linkdeps(${PROJECT_NAME})
-
 add_subdirectory(src/benchmark)
 
 if ($ENV{USER} STREQUAL "root")

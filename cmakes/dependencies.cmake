@@ -25,4 +25,7 @@ function (linkdeps DEPS_PROJECT)
 	target_link_libraries(${DEPS_PROJECT} ${CURL_LIBRARIES})
 	target_include_directories(${DEPS_PROJECT} PUBLIC ${CURL_INCLUDE_DIRS})
 
+	# FMT
+	target_link_libraries(${DEPS_PROJECT} fmt::fmt)
+	target_include_directories(${DEPS_PROJECT} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libs/fmt)
 endfunction ()

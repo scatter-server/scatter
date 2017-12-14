@@ -6,6 +6,7 @@
  * @link https://github.com/edwardstock
  */
 
+#include <fmt/format.h>
 #include "ChatMessageServer.h"
 #include "../helpers/helpers.h"
 #include "../base/Settings.hpp"
@@ -144,9 +145,9 @@ void wss::ChatMessageServer::watchdogWorker(long lifetime) {
 
                     if (ref->getInactiveTime() >= lifetime) {
                         conn.second->send_close(STATUS_INACTIVE_CONNECTION,
-                                                "Inactive more than "
-                                                    + std::to_string(ref->getInactiveTime())
-                                                    + " (of " + std::to_string(lifetime) + ") seconds");
+                                                fmt::format("Inactive more than {0:d} seconds ({1:d})",
+                                                            lifetime,
+                                                            ref->getInactiveTime()));
                     } else {
                         auto pingStream = std::make_shared<WsMessageStream>();
                         *pingStream << ".";
@@ -456,9 +457,9 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
                            [this, uid, payload, handleUndeliverable, plSize](const SimpleWeb::error_code &errorCode) {
                              if (errorCode) {
                                  // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
-                                 L_ERR_F("Send message", "Server: Error sending message: %s, error message: %s",
-                                         errorCode.category().name(),
-                                         errorCode.message().c_str()
+                                 L_DEBUG_F("Send message", "Server: Error sending message: %s, error message: %s",
+                                           errorCode.category().name(),
+                                           errorCode.message().c_str()
                                  );
                                  handleUndeliverable(uid);
                              } else {
@@ -470,7 +471,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
 
                 i++;
             }
-        } catch (const ConnectionNotFound &e) {
+        } catch (const ConnectionNotFound &) {
             cout << "Connection not found exception. Adding payload to undelivered" << endl;
             handleUndeliverable(uid);
         }
@@ -478,7 +479,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
 }
 std::size_t wss::ChatMessageServer::getThreadName() {
     const std::thread::id id = std::this_thread::get_id();
-    static std::size_t nextindex;
+    static std::size_t nextindex = 0;
     static std::mutex my_mutex;
     static std::map<std::thread::id, std::size_t> ids;
     std::lock_guard<std::mutex> lock(my_mutex);

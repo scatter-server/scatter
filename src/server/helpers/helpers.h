@@ -15,9 +15,11 @@
 #include <boost/random/random_device.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 #include <boost/crc.hpp>
+#include <type_traits>
 #include <chrono>
 #include <unordered_map>
 #include <cmath>
+#include <fmt/format.h>
 #include <toolboxpp.h>
 
 namespace wss {
@@ -75,6 +77,20 @@ std::string humanReadableBytes(unsigned long bytes, bool si = true);
 /// \param length Generated string length. Default = 16 chars
 /// \return Random alpha-num string wrapped with crc32 hash
 const std::string generateRandomStringCRC32(unsigned short length = 16);
+
+/// \brief Integral and floating types to string (fast method, using fmt library)
+/// \tparam T is_integral<T> or is_floating_point<T> required
+/// \param n Value
+/// \return string representation
+template<typename T>
+const std::string toString(T n) {
+    static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value,
+                  "Value can be only integral type or floating point");
+    fmt::MemoryWriter w;
+    w << n;
+
+    return w.str();
+}
 
 }
 }

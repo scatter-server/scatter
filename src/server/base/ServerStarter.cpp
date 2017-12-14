@@ -162,7 +162,7 @@ void wss::ServerStarter::configureChat(wss::Settings &settings) {
 
     std::string messageMaxSize = settings.chat.message.maxSize;
 
-    std::smatch res = matchRegexp(R"(^(\d+)(M|K)$)", messageMaxSize);
+    auto res = matchRegexp(R"(^(\d+)(M|K)$)", messageMaxSize);
     if (res.size() != 3) {
         cerr
             << "Invalid message.maxSize value format. Must be: 10M or 1000K which means 10 megabytes or 1000 kilobytes"

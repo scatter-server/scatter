@@ -15,6 +15,7 @@
 #include <toolboxpp.h>
 #include "json.hpp"
 #include "../defs.h"
+#include "../helpers/unid.h"
 
 namespace wss {
 
@@ -28,6 +29,8 @@ extern const char *TYPE_NOTIFICATION_RECEIVED;
 /// \todo Protobuf support
 class MessagePayload {
  private:
+    /// \todo Slow uuid generation (probably i missunderstand something?). Tests show 10,000 generations tooks ~75s. Anyway, test performance required.
+    unid_t id;
     UserId sender;
     std::vector<UserId> recipients;
     std::string text;
@@ -54,7 +57,7 @@ class MessagePayload {
     /// \return
     static MessagePayload createSendStatus(const MessagePayload &payload);
 
-    MessagePayload() = default;
+    MessagePayload();
     MessagePayload(UserId from, UserId to, const std::string &message);
     MessagePayload(UserId from, UserId to, std::string &&message);
     MessagePayload(UserId from, const std::vector<UserId> &to, const std::string &message);
@@ -67,9 +70,15 @@ class MessagePayload {
     explicit MessagePayload(const std::string &json) noexcept;
     explicit MessagePayload(const nlohmann::json &obj) noexcept;
 
+    bool operator==(wss::MessagePayload const &);
+
     /// \brief Return sender UserId
     /// \return Sender UserId
     UserId getSender() const;
+
+    /// \brief Return message id
+    /// \return string identifier
+    const unid_t getId() const;
 
     /// \brief Recipients ids
     /// \return std::vector<UserId>
@@ -78,9 +87,7 @@ class MessagePayload {
     /// \brief Message type
     /// \return string type. Predefined types:
     /// \see constants TYPE_TEXT, TYPE_BINARY, TYPE_B64_IMAGE, TYPE_URL_IMAGE, TYPE_NOTIFICATION_RECEIVED
-    const std::string getType() const {
-        return type;
-    }
+    const std::string getType() const;
 
     /// \brief Text message
     /// \return string or empty if type not a TYPE_TEXT

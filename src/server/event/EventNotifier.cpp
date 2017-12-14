@@ -189,7 +189,6 @@ void wss::event::EventNotifier::addMessage(wss::MessagePayload payload) {
     for (auto &target: targets) {
         sendQueue.enqueue({target.second, payload, 0L, 1});
     }
-    L_DEBUG("Event-Enqueue", "Adding message to send queue");
 }
 
 void wss::event::EventNotifier::onMessage(wss::MessagePayload &&payload, bool hasSent) {

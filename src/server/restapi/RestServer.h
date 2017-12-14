@@ -15,6 +15,7 @@
 #include <thread>
 #include <memory>
 #include <algorithm>
+#include <fmt/format.h>
 #include "server_http.hpp"
 #include "client_http.hpp"
 #include "../defs.h"
@@ -65,11 +66,13 @@ class RestServer : public virtual StandaloneService {
                       errorOut["message"] = "Unauthorized";
                       const std::string out = errorOut.dump();
 
+                      fmt::MemoryWriter mw;
+                      mw << out.length();
                       *response << buildResponse({
                                                      {"HTTP/1.1",         "401 Unauthorized"},
                                                      {"Server",           "WS Rest Server"},
                                                      {"Connection",       "keep-alive"},
-                                                     {"Content-Length",   std::to_string(out.length())},
+                                                     {"Content-Length",   mw.str()},
                                                      {"WWW-Authenticate", "Basic realm=\"Come to the dark side, we have cookies!\""},
                                                  });
 

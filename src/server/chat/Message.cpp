@@ -8,6 +8,7 @@
 #include "Message.h"
 #include "../helpers/helpers.h"
 
+#include <fmt/format.h>
 #include <toolboxpp.h>
 
 using namespace wss;
@@ -21,7 +22,12 @@ const char *wss::TYPE_B64_IMAGE = "b64image";
 const char *wss::TYPE_URL_IMAGE = "url_image";
 const char *wss::TYPE_NOTIFICATION_RECEIVED = "notification_received";
 
+MessagePayload::MessagePayload() :
+    id(wss::unid::generator()()) {
+}
+
 wss::MessagePayload::MessagePayload(UserId from, UserId to, std::string &&message) :
+    id(wss::unid::generator()()),
     sender(from),
     recipients(std::vector<UserId> {to}),
     text(std::move(message)),
@@ -30,6 +36,7 @@ wss::MessagePayload::MessagePayload(UserId from, UserId to, std::string &&messag
 
 }
 wss::MessagePayload::MessagePayload(UserId from, std::vector<UserId> &&to, std::string &&message) :
+    id(wss::unid::generator()()),
     sender(from),
     recipients(std::move(to)),
     text(std::move(message)),
@@ -38,6 +45,7 @@ wss::MessagePayload::MessagePayload(UserId from, std::vector<UserId> &&to, std::
     validate();
 }
 MessagePayload::MessagePayload(UserId from, UserId to, const std::string &message) :
+    id(wss::unid::generator()()),
     sender(from),
     recipients(to),
     text(message),
@@ -45,6 +53,7 @@ MessagePayload::MessagePayload(UserId from, UserId to, const std::string &messag
     timestamp(wss::helpers::getNowISODateTimeFractional()) {
 }
 wss::MessagePayload::MessagePayload(UserId from, const std::vector<UserId> &to, const std::string &message) :
+    id(wss::unid::generator()()),
     sender(from),
     recipients(to),
     text(message),
@@ -52,7 +61,8 @@ wss::MessagePayload::MessagePayload(UserId from, const std::vector<UserId> &to, 
     timestamp(wss::helpers::getNowISODateTimeFractional()) {
     validate();
 }
-wss::MessagePayload::MessagePayload(const std::string &json) noexcept {
+wss::MessagePayload::MessagePayload(const std::string &json) noexcept:
+    id(wss::unid::generator()()) {
     if (json.length() == 0) {
         errorCause = "Empty message";
         valid = false;
@@ -67,7 +77,8 @@ wss::MessagePayload::MessagePayload(const std::string &json) noexcept {
     }
 }
 
-wss::MessagePayload::MessagePayload(const wss::json &obj) noexcept {
+wss::MessagePayload::MessagePayload(const wss::json &obj) noexcept:
+    id(wss::unid::generator()()) {
     fromJson(obj);
     validate();
 }
@@ -81,6 +92,9 @@ void wss::MessagePayload::validate() {
 
 void wss::MessagePayload::fromJson(const json &obj) {
     from_json(obj, *this);
+}
+const unid_t MessagePayload::getId() const {
+    return id;
 }
 UserId wss::MessagePayload::getSender() const {
     return sender;
@@ -117,6 +131,9 @@ bool wss::MessagePayload::typeIs(const char *t) const {
     const char *lc = type.c_str();
     return strcmp(lc, t) == 0;
 }
+const std::string MessagePayload::getType() const {
+    return type;
+}
 const std::string wss::MessagePayload::getError() const {
     return errorCause;
 }
@@ -142,6 +159,10 @@ void wss::MessagePayload::handleJsonException(const std::exception &e, const std
     errorCause = ss.str();
     L_WARN("MessagePayload", ss.str().c_str())
 }
+bool MessagePayload::operator==(wss::MessagePayload const &rhs) {
+    return id == rhs.id;
+}
+
 wss::MessagePayload &MessagePayload::addRecipient(UserId to) {
     recipients.push_back(to);
     return *this;
@@ -149,9 +170,10 @@ wss::MessagePayload &MessagePayload::addRecipient(UserId to) {
 
 void wss::to_json(wss::json &j, const wss::MessagePayload &in) {
     j = json {
+        {"id",         in.id},
         {"type",       in.type},
         {"text",       in.text},
-        {"timestamp", in.timestamp},
+        {"timestamp",  in.timestamp},
         {"sender",     in.sender},
         {"recipients", in.recipients},
         {"data",       in.data}
@@ -184,5 +206,6 @@ wss::MessagePayload MessagePayload::createSendStatus(UserId to) {
 wss::MessagePayload MessagePayload::createSendStatus(const MessagePayload &payload) {
     return createSendStatus(payload.getSender());
 }
+
 
 

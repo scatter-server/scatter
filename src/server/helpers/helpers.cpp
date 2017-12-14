@@ -45,7 +45,7 @@ std::string wss::helpers::getNowISODateTimeFractional() {
 std::string wss::helpers::humanReadableBytes(unsigned long bytes, bool si) {
     using namespace toolboxpp::strings;
     unsigned int unit = si ? 1000 : 1024;
-    if (bytes < unit) return std::to_string(bytes) + " B";
+    if (bytes < unit) return wss::helpers::toString(bytes) + " B";
     auto exp = (std::size_t) (log(bytes) / log(unit));
 
     std::string units = (si ? "kMGTPE" : "KMGTPE");
@@ -78,5 +78,5 @@ const std::string wss::helpers::generateRandomStringCRC32(unsigned short length)
     boost::crc_32_type result;
     result.process_bytes(randomed.data(), randomed.length());
 
-    return std::to_string(result.checksum());
+    return wss::helpers::toString(result.checksum());
 }

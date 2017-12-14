@@ -7,17 +7,18 @@
  */
 
 #include "HttpClient.h"
+#include "../helpers/helpers.h"
 
 // BASE IO
 wss::web::IOContainer::IOContainer() :
     body() { }
 void wss::web::IOContainer::setBody(std::string body) {
     this->body = body;
-    setHeader({"Content-Length", std::to_string(this->body.length())});
+    setHeader({"Content-Length", wss::helpers::toString(this->body.length())});
 }
 void wss::web::IOContainer::setBody(std::string &&body) {
     this->body = std::move(body);
-    setHeader({"Content-Length", std::to_string(this->body.length())});
+    setHeader({"Content-Length", wss::helpers::toString(this->body.length())});
 }
 void wss::web::IOContainer::setHeader(wss::web::KeyValue &&keyValue) {
     using toolboxpp::strings::equalsIgnoreCase;
@@ -393,10 +394,11 @@ wss::web::Response wss::web::HttpClient::execute(const wss::web::Request &reques
             resp.status = -1;
             resp.statusMessage = "CURL error: " + std::string(curl_easy_strerror(res));
         } else {
-            std::vector<std::string> headerLines = toolboxpp::strings::split(resp._headersBuffer, "\r\n");
+            std::vector<std::string> headerLines = toolboxpp::strings::split(resp._headersBuffer, "\\r\\n");
             for (auto &header: headerLines) {
                 if (toolboxpp::strings::hasSubstring(header, "HTTP")) {
-                    std::smatch match = toolboxpp::strings::matchRegexp(R"(HTTP\/\d\.\d.(\d+).(.*))", header);
+                    std::vector<std::string>
+                        match = toolboxpp::strings::matchRegexp(R"(HTTP\/\d\.\d.(\d+).(.*))", header);
                     resp.status = std::stoi(match[1]);
                     resp.statusMessage = match[2];
                     continue;
