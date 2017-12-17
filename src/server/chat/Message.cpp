@@ -18,12 +18,10 @@ using std::endl;
 
 const char *wss::TYPE_TEXT = "text";
 const char *wss::TYPE_BINARY = "binary";
-const char *wss::TYPE_B64_IMAGE = "b64image";
-const char *wss::TYPE_URL_IMAGE = "url_image";
 const char *wss::TYPE_NOTIFICATION_RECEIVED = "notification_received";
 
 MessagePayload::MessagePayload() :
-    id(wss::unid::generator()()) {
+    id({0, 0, 0, 0}) {
 }
 
 wss::MessagePayload::MessagePayload(UserId from, UserId to, std::string &&message) :
@@ -118,11 +116,11 @@ bool wss::MessagePayload::isMyMessage(UserId id) const {
 bool wss::MessagePayload::isValid() const {
     return valid && !recipients.empty();
 }
-bool wss::MessagePayload::isSingleRecipient() const {
+bool wss::MessagePayload::haveSingleRecipient() const {
     return recipients.size() == 1;
 }
 bool wss::MessagePayload::isBinary() const {
-    return typeIs(TYPE_B64_IMAGE);
+    return typeIs(TYPE_BINARY);
 }
 bool wss::MessagePayload::isSentStatus() const {
     return typeIs(TYPE_NOTIFICATION_RECEIVED);

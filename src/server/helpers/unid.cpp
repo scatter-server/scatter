@@ -15,7 +15,7 @@
 #include "unid.h"
 
 wss::unid::unid() :
-    pid(getpid()),
+    pid((uint16_t) (getpid() & 0x0000FFFF)),
     counter(1) {
     generateUUID();
 }
@@ -40,29 +40,34 @@ void wss::unid::generateUUID() {
     /// is this a good idea? i'm lazy to read whole rfc
     /// \todo use unique machine id (mac address, cpu serial or somthing else) instead of uuid bytes
     /// \link https://tools.ietf.org/html/rfc4122
-    uuidBytes = (randomBytes[0] << 24) | (randomBytes[1] << 16) | (randomBytes[2] << 8) | randomBytes[3];
+    uuidBytes.store(
+        ((randomBytes[0] << 24) | (randomBytes[1] << 16) | (randomBytes[2] << 8) | randomBytes[3]) & 0xFFFFFFFF,
+        std::memory_order_relaxed
+    );
 }
 wss::unid::id wss::unid::next() {
-    // every 1000 ids generating new uuid
-    if (counter.load() % 1000 == 0) {
+
+    uint32_t cnt = counter.load(std::memory_order_acquire);// force acquire latest inc
+
+    // every N counter we need new uuid, just in case
+    if (cnt % maxCounterUUID == 0) {
         generateUUID();
     }
 
     // prevent overflow
-    if (counter + 1 == 0xFFFFFFFF) {
-        counter = 0;
+    if (cnt == maxCounter) {
+        cnt = 0;
     }
 
-    counter++;
+    cnt++;
 
-    //@formatter:off
-    uint32_t part1 = (int)time(nullptr)      & 0xFFFFFFFF;  // 4 bytes
-    uint32_t part2 = uuidBytes               & 0xFFFFFFFF;  // 4 bytes
-    uint16_t part3 = (uint16_t)         (pid & 0x0000FFFF); // 2 bytes
-    uint32_t part4 = counter;                               // 4 bytes
-    //@formatter:on
-
-    return {part1, part2, part3, part4};
+    counter.store(cnt, std::memory_order_relaxed); // no matter, what thread will increment last value, relax sync
+    return {
+        (uint32_t) time(nullptr),
+        uuidBytes.load(std::memory_order_acquire),
+        pid,
+        cnt
+    };
 }
 
 wss::unid::id wss::unid::operator()() noexcept {

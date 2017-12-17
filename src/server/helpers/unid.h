@@ -72,8 +72,13 @@ class unid {
     /// \brief Generates new uuid and set new value to uuidBytes
     void generateUUID();
 
+    /// \brief Maximum auto increment value
+    const uint32_t maxCounter = 0xFFFFFFFF - 1;
+    /// \brief Number of when we'll generate new UUID
+    const uint32_t maxCounterUUID = 1000;
+
     /// \brief PID 2 bytes usual (max 65535)
-    pid_t pid;
+    uint16_t pid;
     /// \brief First 4 random bytes from uuid
     std::atomic<uint32_t> uuidBytes;
     /// \brief Incremental counter

@@ -21,8 +21,6 @@ namespace wss {
 
 extern const char *TYPE_TEXT;
 extern const char *TYPE_BINARY;
-extern const char *TYPE_B64_IMAGE;
-extern const char *TYPE_URL_IMAGE;
 extern const char *TYPE_NOTIFICATION_RECEIVED;
 
 /// \brief Main structured message payload
@@ -120,7 +118,7 @@ class MessagePayload {
 
     /// \brief Check recipients count is only one
     /// \return
-    bool isSingleRecipient() const;
+    bool haveSingleRecipient() const;
 
     /// \brief Error message
     /// \return Empty string if no one error. Check @see isValid() before
