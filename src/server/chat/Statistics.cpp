@@ -7,7 +7,7 @@
  */
 
 #include "Statistics.h"
-wss::Statistics::Statistics(wss::UserId id) :
+wss::Statistics::Statistics(wss::user_id_t id) :
     id(id),
     lastConnectionTime(time(nullptr)),
     lastDisconnectionTime(0),
@@ -28,7 +28,7 @@ wss::Statistics::Statistics() :
     receivedMessages(0),
     lastMessageTime(0) { }
 
-wss::Statistics &wss::Statistics::setId(wss::UserId _id) {
+wss::Statistics &wss::Statistics::setId(wss::user_id_t _id) {
     id = _id;
     return *this;
 }

@@ -24,16 +24,16 @@ MessagePayload::MessagePayload() :
     id({0, 0, 0, 0}) {
 }
 
-wss::MessagePayload::MessagePayload(UserId from, UserId to, std::string &&message) :
+wss::MessagePayload::MessagePayload(user_id_t from, user_id_t to, std::string &&message) :
     id(wss::unid::generator()()),
     sender(from),
-    recipients(std::vector<UserId> {to}),
+    recipients(std::vector<user_id_t> {to}),
     text(std::move(message)),
     type(TYPE_TEXT),
     timestamp(wss::helpers::getNowISODateTimeFractional()) {
 
 }
-wss::MessagePayload::MessagePayload(UserId from, std::vector<UserId> &&to, std::string &&message) :
+wss::MessagePayload::MessagePayload(user_id_t from, std::vector<user_id_t> &&to, std::string &&message) :
     id(wss::unid::generator()()),
     sender(from),
     recipients(std::move(to)),
@@ -42,7 +42,7 @@ wss::MessagePayload::MessagePayload(UserId from, std::vector<UserId> &&to, std::
     timestamp(wss::helpers::getNowISODateTimeFractional()) {
     validate();
 }
-MessagePayload::MessagePayload(UserId from, UserId to, const std::string &message) :
+MessagePayload::MessagePayload(user_id_t from, user_id_t to, const std::string &message) :
     id(wss::unid::generator()()),
     sender(from),
     recipients(to),
@@ -50,7 +50,7 @@ MessagePayload::MessagePayload(UserId from, UserId to, const std::string &messag
     type(TYPE_TEXT),
     timestamp(wss::helpers::getNowISODateTimeFractional()) {
 }
-wss::MessagePayload::MessagePayload(UserId from, const std::vector<UserId> &to, const std::string &message) :
+wss::MessagePayload::MessagePayload(user_id_t from, const std::vector<user_id_t> &to, const std::string &message) :
     id(wss::unid::generator()()),
     sender(from),
     recipients(to),
@@ -94,10 +94,10 @@ void wss::MessagePayload::fromJson(const json &obj) {
 const unid_t MessagePayload::getId() const {
     return id;
 }
-UserId wss::MessagePayload::getSender() const {
+user_id_t wss::MessagePayload::getSender() const {
     return sender;
 }
-const std::vector<UserId> wss::MessagePayload::getRecipients() const {
+const std::vector<user_id_t> wss::MessagePayload::getRecipients() const {
     return recipients;
 }
 const std::string wss::MessagePayload::toJson() const {
@@ -110,7 +110,7 @@ const std::string wss::MessagePayload::toJson() const {
 const std::string wss::MessagePayload::getText() const {
     return text;
 }
-bool wss::MessagePayload::isMyMessage(UserId id) const {
+bool wss::MessagePayload::isMyMessage(user_id_t id) const {
     return getSender() == id;
 }
 bool wss::MessagePayload::isValid() const {
@@ -136,16 +136,16 @@ const std::string wss::MessagePayload::getError() const {
     return errorCause;
 }
 
-wss::MessagePayload &MessagePayload::setRecipient(UserId id) {
+wss::MessagePayload &MessagePayload::setRecipient(user_id_t id) {
     recipients.clear();
     recipients.push_back(id);
     return *this;
 }
-wss::MessagePayload &MessagePayload::setRecipients(const std::vector<UserId> &recipients) {
+wss::MessagePayload &MessagePayload::setRecipients(const std::vector<user_id_t> &recipients) {
     this->recipients = recipients;
     return *this;
 }
-wss::MessagePayload &MessagePayload::setRecipients(std::vector<UserId> &&recipients) {
+wss::MessagePayload &MessagePayload::setRecipients(std::vector<user_id_t> &&recipients) {
     this->recipients = std::move(recipients);
     return *this;
 }
@@ -161,7 +161,7 @@ bool MessagePayload::operator==(wss::MessagePayload const &rhs) {
     return id == rhs.id;
 }
 
-wss::MessagePayload &MessagePayload::addRecipient(UserId to) {
+wss::MessagePayload &MessagePayload::addRecipient(user_id_t to) {
     recipients.push_back(to);
     return *this;
 }
@@ -186,14 +186,14 @@ void wss::from_json(const wss::json &j, wss::MessagePayload &in) {
         in.text = j.value("text", "");
     }
 
-    in.sender = j.at("sender").get<UserId>();
-    in.recipients = j.at("recipients").get<std::vector<UserId>>();
+    in.sender = j.at("sender").get<user_id_t>();
+    in.recipients = j.at("recipients").get<std::vector<user_id_t>>();
 
     in.data = j.value("data", json());
     in.timestamp = j.value("timestamp", wss::helpers::getNowISODateTimeFractional());
 }
 
-wss::MessagePayload MessagePayload::createSendStatus(UserId to) {
+wss::MessagePayload MessagePayload::createSendStatus(user_id_t to) {
     MessagePayload payload;
     payload.sender = 0;
     payload.addRecipient(to);

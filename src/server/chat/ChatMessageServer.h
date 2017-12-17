@@ -99,32 +99,32 @@ class ChatMessageServer : public virtual StandaloneService {
      */
     //@formatter:off
     /// \brief fin set bit: 1000 0000
-    const unsigned char FIN1 = 0x80;
+    const uint8_t FIN1 = 0x80;
     /// \brief fin clear bit: 0000 0000
-    const unsigned char FIN0 = 0x00;
+    const uint8_t FIN0 = 0x00;
     //opcodes
     /// \brief Continuation Frame
-    const unsigned char OPCODE_CONTINUE = 0x00;
+    const uint8_t OPCODE_CONTINUE = 0x00;
     /// \brief Text Frame
-    const unsigned char OPCODE_TEXT = 0x01;
+    const uint8_t OPCODE_TEXT = 0x01;
     /// \brief Binary Frame
-    const unsigned char OPCODE_BINARY = 0x02;
+    const uint8_t OPCODE_BINARY = 0x02;
     /// \brief Connection Close Frame
-    const unsigned char OPCODE_CLOSE = 0x08;
+    const uint8_t OPCODE_CLOSE = 0x08;
     /// \brief Ping Frame
-    const unsigned char OPCODE_PING = 0x09;
+    const uint8_t OPCODE_PING = 0x09;
     /// \brief Pong Frame
-    const unsigned char OPCODE_PONG = 0x0A;
+    const uint8_t OPCODE_PONG = 0x0A;
     // fragment frames flags
-    const unsigned char FLAG_PING = FIN1 | OPCODE_PING;
-    const unsigned char FLAG_PONG = FIN1 | OPCODE_PONG;
-    const unsigned char FLAG_FRAGMENT_BEGIN_TEXT = FIN0 | OPCODE_TEXT;
-    const unsigned char FLAG_FRAGMENT_BEGIN_BINARY = FIN0 | OPCODE_BINARY;
-    const unsigned char FLAG_FRAGMENT_CONTINUE = FIN0 | OPCODE_CONTINUE;
-    const unsigned char FLAG_FRAGMENT_END = FIN1 | OPCODE_CONTINUE;
+    const uint8_t FLAG_PING = FIN1 | OPCODE_PING;
+    const uint8_t FLAG_PONG = FIN1 | OPCODE_PONG;
+    const uint8_t FLAG_FRAGMENT_BEGIN_TEXT = FIN0 | OPCODE_TEXT;
+    const uint8_t FLAG_FRAGMENT_BEGIN_BINARY = FIN0 | OPCODE_BINARY;
+    const uint8_t FLAG_FRAGMENT_CONTINUE = FIN0 | OPCODE_CONTINUE;
+    const uint8_t FLAG_FRAGMENT_END = FIN1 | OPCODE_CONTINUE;
     // single frames flags
-    const unsigned char FLAG_FRAME_TEXT = FIN1 | OPCODE_TEXT;
-    const unsigned char FLAG_FRAME_BINARY = FIN1 | OPCODE_BINARY;
+    const uint8_t FLAG_FRAME_TEXT = FIN1 | OPCODE_TEXT;
+    const uint8_t FLAG_FRAME_BINARY = FIN1 | OPCODE_BINARY;
     //@formatter:on
 
     typedef std::function<void(wss::MessagePayload &&, bool hasSent)> OnMessageSentListener;
@@ -136,9 +136,14 @@ class ChatMessageServer : public virtual StandaloneService {
         const std::string &crtPath, const std::string &keyPath,
         const std::string &host, unsigned short port, const std::string &regexPath);
     #else
+    /// \brief Insecure message server ctr
+    /// \param host hostname - ip address or hostname without protocol
+    /// \param port port number
+    /// \param regexPath endpoint regex: example ^/chat$
     ChatMessageServer(const std::string &host, unsigned short port, const std::string &regexPath);
     #endif
 
+    /// \brief Stops io_service
     ~ChatMessageServer();
 
     void joinThreads() override;
@@ -146,43 +151,111 @@ class ChatMessageServer : public virtual StandaloneService {
     void runService() override;
     void stopService() override;
 
+    /// \brief Send payload. Payload already contains recipients and sender
+    /// \param payload
     void send(const MessagePayload &payload);
 
+    /// \brief Max number of workers for incoming messages
+    /// \param size Recommended - core numbers
     void setThreadPoolSize(std::size_t size);
+
+    /// \brief Set maximum websocket message size (for fragmented message - sum of sizes)
+    /// \param bytes
     void setMessageSizeLimit(size_t bytes);
+
+    /// \brief Set websocket authorization method. If planning to use browser JS clients, recommended to use Basic Auth
+    /// \see wss::BasicAuth - requires basic auth
+    /// \see wss::WebAuth - does not requires authorization
+    /// \param config
     void setAuth(const nlohmann::json &config);
+
+    /// \brief Whether true, respond to sender simple notification payload with type "notification_received"
+    /// \see wss::MessagePayload
+    /// \param enabled
     void setEnabledMessageDeliveryStatus(bool enabled);
+
+    /// \brief Adds event listener for message send event
+    /// \param callback semantic: void(wss::MessagePayload &&, bool hasSent)
     void addMessageListener(wss::ChatMessageServer::OnMessageSentListener callback);
+
+    /// \brief Adds event listener for server stopping event
+    /// \param callback semantic: void(void)
     void addStopListener(wss::ChatMessageServer::OnServerStopListener callback);
 
+    /// \brief Returns map of user connections/sends statistics. Key - user id, value - statistics
+    /// \return
     const UserMap<std::unique_ptr<wss::Statistics>> &getStats();
 
  protected:
+    /// \brief Called when pong frame received from client
+    /// \param connection
+    /// \param payload
     void onPong(WsConnectionPtr &connection, WsMessagePtr payload);
+
+    /// \brief Called when message received from client
+    /// \param connection
+    /// \param payload
     void onMessage(WsConnectionPtr &connection, WsMessagePtr payload);
+
+    /// \brief Called when message has sent to recipient, for entire recipient. Payload contains only 1 entire recipient.
+    /// \param payload
+    /// \param bytesTransferred Payload message size
+    /// \param hasSent Indicates that message has send or not
     void onMessageSent(wss::MessagePayload &&payload, std::size_t bytesTransferred, bool hasSent);
+
+    /// \brief Called when client has connected
+    /// \param connection
     void onConnected(WsConnectionPtr connection);
+
+    /// \brief Called when client has disconnected
+    /// \param connection
+    /// \param status Disconnection status code
+    /// \param reason Disconnection string reason. May be empty.
     void onDisconnected(WsConnectionPtr connection, int status, const std::string &reason);
     void watchdogWorker(long lifetime);
 
-    inline bool hasUndeliveredMessages(UserId id);
-    MessageQueue &getUndeliveredMessages(UserId id);
+    /// \brief Check for entire user has undelivered message
+    /// \param recipientId recipient id
+    /// \return
+    inline bool hasUndeliveredMessages(user_id_t recipientId);
+    /// \brief Returns queue of undelivered messages
+    /// \param recipientId recipient id
+    /// \return
+    MessageQueue &getUndeliveredMessages(user_id_t recipientId);
+
+    /// \brief Returns list of queues of undelivered messages.
+    /// \param payload Function takes all recipients from payload
+    /// \return
     std::vector<MessageQueue *> getUndeliveredMessages(const MessagePayload &payload);
+
+    /// \brief Store undelivered message for payload recipients (for each recipient - single queue element)
+    /// \param payload
     void enqueueUndeliveredMessage(const MessagePayload &payload);
-    int redeliverMessagesTo(UserId id);
+
+    /// \brief Take from undelivered queue messages for recipient, and tries to resend them
+    /// \param recipientId
+    /// \return Number of successfully sent messages
+    int redeliverMessagesTo(user_id_t recipientId);
+
+    /// \brief Works like wss::ChatMessageServer::redeliverMessagesTo(user_id_t recipientId) but uses multiple recipients from payload
+    /// \param payload
+    /// \return Number of successfully sent messages
     int redeliverMessagesTo(const MessagePayload &payload);
 
-    std::unique_ptr<wss::Statistics> &getStat(UserId id);
+    /// \brief Returns statistics for entire user
+    /// \param id
+    /// \return
+    std::unique_ptr<wss::Statistics> &getStat(user_id_t id);
 
  private:
     // secure
     const bool useSSL;
-    std::string crtPath;
-    std::string keyPath;
 
+    /// \brief Current auth method
     std::unique_ptr<wss::WebAuth> auth;
 
     // chat
+    /// \brief Number in bytes
     std::size_t maxMessageSize; // 10 megabytes by default
     bool enableMessageDeliveryStatus = false;
 
@@ -205,11 +278,28 @@ class ChatMessageServer : public virtual StandaloneService {
     UserMap<std::queue<wss::MessagePayload>> undeliveredMessagesMap;
     UserMap<std::unique_ptr<Statistics>> statistics;
 
-    // @TODO вынести все на сторону сервера и убрать отсюда
-    bool hasFrameBuffer(UserId id);
-    bool writeFrameBuffer(UserId id, const std::string &input, bool clear = false);
-    const std::string readFrameBuffer(UserId id, bool clear = true);
+    /// \todo move out to server side
 
+    /// \brief Check for existence of fragmented frame was written to temporary buffer
+    /// \param senderId
+    /// \return
+    bool hasFrameBuffer(user_id_t senderId);
+
+    /// \brief Write to buffer fragmented frame
+    /// \param senderId
+    /// \param input input data
+    /// \param clear if true, buffer for will be cleared for entire sender
+    /// \return
+    bool writeFrameBuffer(user_id_t senderId, const std::string &input, bool clear = false);
+
+    /// \brief Read from buffer fragmented frame
+    /// \param senderId
+    /// \param clear
+    /// \return
+    const std::string readFrameBuffer(user_id_t senderId, bool clear = true);
+
+    /// \brief Running thread index
+    /// \return incremental simple integer
     std::size_t getThreadName();
 };
 

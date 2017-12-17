@@ -37,7 +37,7 @@ void wss::ChatRestServer::actionCheckOnline(wss::HttpResponse response, wss::Htt
         return;
     }
 
-    wss::UserId id;
+    wss::user_id_t id;
     try {
         id = std::stoul(req.getParam("id"));
     } catch (const std::invalid_argument &e) {
@@ -65,7 +65,7 @@ void wss::ChatRestServer::actionStat(wss::HttpResponse response, wss::HttpReques
         return;
     }
 
-    wss::UserId id;
+    wss::user_id_t id;
     try {
         id = std::stoul(req.getParam("id"));
     } catch (const std::invalid_argument &e) {

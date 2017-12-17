@@ -18,7 +18,7 @@ namespace wss {
 /// \brief User statistics storage
 class Statistics {
  private:
-    std::atomic<UserId> id;
+    std::atomic<user_id_t> id;
     std::atomic<time_t> lastConnectionTime;
     std::atomic<time_t> lastDisconnectionTime;
     std::atomic_size_t connectedTimes;
@@ -29,13 +29,13 @@ class Statistics {
     std::atomic<time_t> lastMessageTime;
 
  public:
-    explicit Statistics(UserId id);
+    explicit Statistics(user_id_t id);
     Statistics();
 
     /// \brief Set to statistic user id
     /// \param _id UserId
     /// \return self
-    Statistics &setId(UserId _id);
+    Statistics &setId(user_id_t _id);
 
     /// \brief Add 1 to connections count
     /// \return self

@@ -31,7 +31,7 @@ class ConnectionStorage {
     mutable std::recursive_mutex connectionMutex;
     mutable std::mutex pongMutex;
     wss::UserMap<wss::ConnectionMap<WsConnectionPtr>> idMap;
-    wss::ConnectionMap<std::pair<UserId, bool>> waitForPong;
+    wss::ConnectionMap<std::pair<user_id_t, bool>> waitForPong;
 
  public:
     /// \brief Default empty constructor
@@ -51,12 +51,12 @@ class ConnectionStorage {
     /// \brief Check for existing connection using UserId
     /// \param id UserId
     /// \return true if connection with UserId in map
-    bool exists(wss::UserId id) const;
+    bool exists(wss::user_id_t id) const;
 
     /// \brief Check connection is not nullptr, remove if null
     /// \param connection
     /// \return true if is valid connection, false othwerwise
-    bool verify(wss::UserId userId, wss::ConnectionId connectionId);
+    bool verify(wss::user_id_t userId, wss::ConnectionId connectionId);
 
     /// \brief Count total users in map
     /// \return Size of map user:connections
@@ -65,20 +65,20 @@ class ConnectionStorage {
     /// \brief Count total connections for entire user
     /// \param id UserId
     /// \return Size of vector user connections
-    std::size_t size(wss::UserId id);
+    std::size_t size(wss::user_id_t id);
 
     /// \brief Add to map new connection (non-unique)
     /// \param id UserId
     /// \param connection SimpleWeb::Connection shared_ptr
-    void add(wss::UserId id, const wss::WsConnectionPtr &connection);
+    void add(wss::user_id_t id, const wss::WsConnectionPtr &connection);
 
     /// \brief Remove from map connections by user id
     /// \param id UserId
-    void remove(wss::UserId id);
+    void remove(wss::user_id_t id);
 
     /// \brief Remove from map connections by user id and connection unique id
     /// \param id UserId
-    void remove(wss::UserId id, wss::ConnectionId connectionId);
+    void remove(wss::user_id_t id, wss::ConnectionId connectionId);
 
     /// \brief Remove from connection by unique connection id : std::stoul("ip address without dots" + "remote port num").
     /// \param connection SimpleWeb::Connection shared_ptr
@@ -87,7 +87,7 @@ class ConnectionStorage {
     /// \brief Return from map connections for entire user
     /// \param id UserId
     /// \return  Vector of connections
-    wss::ConnectionMap<wss::WsConnectionPtr> &get(wss::UserId id);
+    wss::ConnectionMap<wss::WsConnectionPtr> &get(wss::user_id_t id);
 
     /// \brief Return whole map by const reference
     /// \return unordered_map< UserId, vector<WsConnectionPtr> >
@@ -96,7 +96,7 @@ class ConnectionStorage {
     /// \brief Callback function to handle connections for entire UserId
     /// \param id UserId
     /// \param handler callback function (void<WsConnectionPtr &>)
-    void handle(UserId id, std::function<void(WsConnectionPtr &)> &&handler);
+    void handle(user_id_t id, std::function<void(WsConnectionPtr &)> &&handler);
 
     /// \brief Mark connection as waiting for pong response from client.
     /// \param connection

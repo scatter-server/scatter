@@ -16,8 +16,6 @@ wss::ChatMessageServer::ChatMessageServer(
     const std::string &crtPath, const std::string &keyPath,
     const std::string &host, unsigned short port, const std::string &regexPath) :
     useSSL(true),
-    crtPath(),
-    keyPath(),
     maxMessageSize(10 * 1024 * 1024),
     server(std::make_unique<WsServer>(crtPath, keyPath)),
     connectionStorage(std::make_unique<wss::ConnectionStorage>())
@@ -46,8 +44,6 @@ wss::ChatMessageServer::ChatMessageServer(
 #else
 wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned short port, const std::string &regexPath) :
     useSSL(false),
-    crtPath(),
-    keyPath(),
     maxMessageSize(10 * 1024 * 1024),
     server(std::make_unique<WsServer>()),
     connectionStorage(std::make_unique<wss::ConnectionStorage>()) {
@@ -185,19 +181,19 @@ void wss::ChatMessageServer::onMessage(WsConnectionPtr &connection, WsMessagePtr
 
     if (opcode != FLAG_FRAME_TEXT && opcode != FLAG_FRAME_BINARY) {
         // fragmented frame message
-        UserId id = connection->getId();
+        user_id_t senderId = connection->getId();
 
         if (opcode == FLAG_FRAGMENT_BEGIN_TEXT || opcode == FLAG_FRAGMENT_BEGIN_BINARY) {
             L_DEBUG_F("OnMessage", "Fragmented frame begin (flag: 0x%08x)", opcode);
-            writeFrameBuffer(id, message->string(), true);
+            writeFrameBuffer(senderId, message->string(), true);
             return;
         } else if (opcode == FLAG_FRAGMENT_CONTINUE) {
-            writeFrameBuffer(id, message->string(), false);
+            writeFrameBuffer(senderId, message->string(), false);
             return;
         } else if (opcode == FLAG_FRAGMENT_END) {
             L_DEBUG("OnMessage", "Fragmented frame end");
             std::stringstream final;
-            final << readFrameBuffer(id, true);
+            final << readFrameBuffer(senderId, true);
             final << message->string();
             std::string buffered = final.str();
             final.str("");
@@ -277,7 +273,7 @@ void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
         return;
     }
 
-    UserId id;
+    user_id_t id;
     try {
         id = std::stoul(request.getParam("id"));
     } catch (const std::invalid_argument &e) {
@@ -315,51 +311,54 @@ void wss::ChatMessageServer::onDisconnected(WsConnectionPtr connection, int stat
     connectionStorage->remove(connection);
 }
 
-bool wss::ChatMessageServer::hasFrameBuffer(wss::UserId id) {
-    return frameBuffer.find(id) != frameBuffer.end();
+bool wss::ChatMessageServer::hasFrameBuffer(wss::user_id_t senderId) {
+    return frameBuffer.find(senderId) != frameBuffer.end();
 }
 
-bool wss::ChatMessageServer::writeFrameBuffer(wss::UserId id, const std::string &input, bool clear) {
+bool wss::ChatMessageServer::writeFrameBuffer(wss::user_id_t senderId, const std::string &input, bool clear) {
     std::lock_guard<std::mutex> fbLock(frameBufferMutex);
-    if (!hasFrameBuffer(id)) {
-        frameBuffer[id] = std::make_shared<std::stringstream>();
+    if (!hasFrameBuffer(senderId)) {
+        frameBuffer[senderId] = std::make_shared<std::stringstream>();
     } else if (clear) {
-        frameBuffer[id]->str("");
-        frameBuffer[id]->clear();
+        frameBuffer[senderId]->str("");
+        frameBuffer[senderId]->clear();
     }
 
-    (*frameBuffer[id]) << input;
+    (*frameBuffer[senderId]) << input;
     return true;
 }
-const std::string wss::ChatMessageServer::readFrameBuffer(wss::UserId id, bool clear) {
+const std::string wss::ChatMessageServer::readFrameBuffer(wss::user_id_t senderId, bool clear) {
     std::lock_guard<std::mutex> fbLock(frameBufferMutex);
-    if (!hasFrameBuffer(id)) {
+    if (!hasFrameBuffer(senderId)) {
         return std::string();
     }
 
-    const std::string out = frameBuffer[id]->str();
+    const std::string out = frameBuffer[senderId]->str();
     if (clear) {
-        frameBuffer.erase(id);
+        frameBuffer.erase(senderId);
     }
     return out;
 }
 
 int wss::ChatMessageServer::redeliverMessagesTo(const wss::MessagePayload &payload) {
     int cnt = 0;
-    for (UserId id: payload.getRecipients()) {
+    for (user_id_t id: payload.getRecipients()) {
         cnt += redeliverMessagesTo(id);
     }
 
     return cnt;
 }
-bool wss::ChatMessageServer::hasUndeliveredMessages(UserId id) {
+bool wss::ChatMessageServer::hasUndeliveredMessages(user_id_t recipientId) {
     std::lock_guard<std::mutex> locker(undeliveredMutex);
-    L_DEBUG_F("Server", "Check for undelivered messages for user %lu: %lu", id, undeliveredMessagesMap[id].size());
-    return !undeliveredMessagesMap[id].empty();
+    L_DEBUG_F("Server",
+              "Check for undelivered messages for user %lu: %lu",
+              recipientId,
+              undeliveredMessagesMap[recipientId].size());
+    return !undeliveredMessagesMap[recipientId].empty();
 }
-wss::MessageQueue &wss::ChatMessageServer::getUndeliveredMessages(UserId id) {
+wss::MessageQueue &wss::ChatMessageServer::getUndeliveredMessages(user_id_t recipientId) {
     std::lock_guard<std::mutex> locker(undeliveredMutex);
-    return undeliveredMessagesMap[id];
+    return undeliveredMessagesMap[recipientId];
 }
 
 std::vector<wss::MessageQueue *>
@@ -367,7 +366,7 @@ wss::ChatMessageServer::getUndeliveredMessages(const MessagePayload &payload) {
     std::vector<wss::MessageQueue *> out;
     {
         std::lock_guard<std::mutex> locker(undeliveredMutex);
-        for (UserId id: payload.getRecipients()) {
+        for (user_id_t id: payload.getRecipients()) {
             out.push_back(&undeliveredMessagesMap[id]);
         }
     }
@@ -381,18 +380,18 @@ void wss::ChatMessageServer::enqueueUndeliveredMessage(const wss::MessagePayload
         undeliveredMessagesMap[recipient].push(payload);
     }
 }
-int wss::ChatMessageServer::redeliverMessagesTo(UserId id) {
+int wss::ChatMessageServer::redeliverMessagesTo(user_id_t recipientId) {
     if (not wss::Settings::get().chat.enableUndeliveredQueue) {
         return 0;
     }
 
-    if (!hasUndeliveredMessages(id)) {
+    if (!hasUndeliveredMessages(recipientId)) {
         return 0;
     }
 
     int cnt = 0;
-    auto &queue = getUndeliveredMessages(id);
-    L_DEBUG_F("Server", "Redeliver %lu message(s) to user %lu", queue.size(), id);
+    auto &queue = getUndeliveredMessages(recipientId);
+    L_DEBUG_F("Server", "Redeliver %lu message(s) to user %lu", queue.size(), recipientId);
     while (!queue.empty()) {
         MessagePayload payload = queue.front();
         queue.pop();
@@ -409,7 +408,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
     std::size_t plSize = pl.length();
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
 
-    const auto &handleUndeliverable = [this, payload](UserId uid) {
+    const auto &handleUndeliverable = [this, payload](user_id_t uid) {
       if (!wss::Settings::get().chat.enableUndeliveredQueue) {
           L_DEBUG_F("Send message", "User %lu is unavailable. Skipping message.", uid);
           return;
@@ -422,7 +421,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
     };
 
     unsigned char fin_rsv_opcode = 129;//static_cast<unsigned char>(payload.isBinary() ? 130 : 129);
-    for (UserId uid: payload.getRecipients()) {
+    for (user_id_t uid: payload.getRecipients()) {
         if (!connectionStorage->exists(uid)) {
             handleUndeliverable(uid);
             MessagePayload sent = payload;
@@ -506,7 +505,7 @@ void wss::ChatMessageServer::addMessageListener(wss::ChatMessageServer::OnMessag
 void wss::ChatMessageServer::addStopListener(wss::ChatMessageServer::OnServerStopListener callback) {
     stopListeners.push_back(callback);
 }
-std::unique_ptr<wss::Statistics> &wss::ChatMessageServer::getStat(wss::UserId id) {
+std::unique_ptr<wss::Statistics> &wss::ChatMessageServer::getStat(wss::user_id_t id) {
     if (statistics.find(id) == statistics.end()) {
         statistics[id] = std::make_unique<wss::Statistics>(id);
     }

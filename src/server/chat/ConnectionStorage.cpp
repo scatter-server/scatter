@@ -20,11 +20,11 @@ wss::ConnectionStorage::~ConnectionStorage() {
     }
     idMap.clear();
 }
-bool wss::ConnectionStorage::exists(wss::UserId id) const {
+bool wss::ConnectionStorage::exists(wss::user_id_t id) const {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     return idMap.find(id) != idMap.end();
 }
-bool wss::ConnectionStorage::verify(wss::UserId userId, wss::ConnectionId connectionId) {
+bool wss::ConnectionStorage::verify(wss::user_id_t userId, wss::ConnectionId connectionId) {
 
     const auto &it = idMap.find(userId);
     if (it == idMap.end()) {
@@ -47,21 +47,21 @@ std::size_t wss::ConnectionStorage::size() const {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     return idMap.size();
 }
-std::size_t wss::ConnectionStorage::size(wss::UserId id) {
+std::size_t wss::ConnectionStorage::size(wss::user_id_t id) {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     return idMap[id].size();
 }
-void wss::ConnectionStorage::add(wss::UserId id, const wss::WsConnectionPtr &connection) {
+void wss::ConnectionStorage::add(wss::user_id_t id, const wss::WsConnectionPtr &connection) {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     connection->setId(id);
     idMap[id][connection->getUniqueId()] = connection;
     L_DEBUG_F("SetConnection", "Adding connection for %lu. Now size: %lu", connection->getId(), idMap[id].size());
 }
-void wss::ConnectionStorage::remove(wss::UserId id) {
+void wss::ConnectionStorage::remove(wss::user_id_t id) {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     idMap.erase(id);
 }
-void wss::ConnectionStorage::remove(wss::UserId id, wss::ConnectionId connectionId) {
+void wss::ConnectionStorage::remove(wss::user_id_t id, wss::ConnectionId connectionId) {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     const auto &it = idMap.find(id);
     if (it != idMap.end()) {
@@ -72,7 +72,7 @@ void wss::ConnectionStorage::remove(wss::UserId id, wss::ConnectionId connection
 }
 void wss::ConnectionStorage::remove(const wss::WsConnectionPtr &connection) {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
-    const UserId id = connection->getId();
+    const user_id_t id = connection->getId();
     const ConnectionId connId = connection->getUniqueId();
 
     const auto &userMapIt = idMap.find(id);
@@ -87,7 +87,7 @@ void wss::ConnectionStorage::remove(const wss::WsConnectionPtr &connection) {
               connection->getUniqueId(),
               idMap[id].size());
 }
-wss::ConnectionMap<wss::WsConnectionPtr> &wss::ConnectionStorage::get(wss::UserId id) {
+wss::ConnectionMap<wss::WsConnectionPtr> &wss::ConnectionStorage::get(wss::user_id_t id) {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     if (!exists(id)) {
         throw ConnectionNotFound();
@@ -97,7 +97,7 @@ wss::ConnectionMap<wss::WsConnectionPtr> &wss::ConnectionStorage::get(wss::UserI
 const wss::UserMap<wss::ConnectionMap<wss::WsConnectionPtr>> &wss::ConnectionStorage::get() {
     return idMap;
 }
-void wss::ConnectionStorage::handle(wss::UserId id, std::function<void(wss::WsConnectionPtr &)> &&handler) {
+void wss::ConnectionStorage::handle(wss::user_id_t id, std::function<void(wss::WsConnectionPtr &)> &&handler) {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     for (auto &conn: get(id)) {
         handler(conn.second);

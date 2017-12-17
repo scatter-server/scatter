@@ -28,8 +28,8 @@ extern const char *TYPE_NOTIFICATION_RECEIVED;
 class MessagePayload {
  private:
     unid_t id;
-    UserId sender;
-    std::vector<UserId> recipients;
+    user_id_t sender;
+    std::vector<user_id_t> recipients;
     std::string text;
     std::string type;
     std::string timestamp;
@@ -47,7 +47,7 @@ class MessagePayload {
     /// \brief Creates simple send-status messages, using only UserId
     /// \param to sender UserId
     /// \return valid payload object
-    static MessagePayload createSendStatus(UserId to);
+    static MessagePayload createSendStatus(user_id_t to);
 
     /// \brief Creates simple send-status messages, using other payload (extracts sender)
     /// \param payload
@@ -55,10 +55,10 @@ class MessagePayload {
     static MessagePayload createSendStatus(const MessagePayload &payload);
 
     MessagePayload();
-    MessagePayload(UserId from, UserId to, const std::string &message);
-    MessagePayload(UserId from, UserId to, std::string &&message);
-    MessagePayload(UserId from, const std::vector<UserId> &to, const std::string &message);
-    MessagePayload(UserId from, std::vector<UserId> &&to, std::string &&message);
+    MessagePayload(user_id_t from, user_id_t to, const std::string &message);
+    MessagePayload(user_id_t from, user_id_t to, std::string &&message);
+    MessagePayload(user_id_t from, const std::vector<user_id_t> &to, const std::string &message);
+    MessagePayload(user_id_t from, std::vector<user_id_t> &&to, std::string &&message);
     MessagePayload(const MessagePayload &payload) = default;
     MessagePayload(MessagePayload &&payload) = default;
     MessagePayload &operator=(const MessagePayload &payload) = default;
@@ -71,7 +71,7 @@ class MessagePayload {
 
     /// \brief Return sender UserId
     /// \return Sender UserId
-    UserId getSender() const;
+    user_id_t getSender() const;
 
     /// \brief Return message id
     /// \return string identifier
@@ -79,7 +79,7 @@ class MessagePayload {
 
     /// \brief Recipients ids
     /// \return std::vector<UserId>
-    const std::vector<UserId> getRecipients() const;
+    const std::vector<user_id_t> getRecipients() const;
 
     /// \brief Message type
     /// \return string type. Predefined types:
@@ -97,7 +97,7 @@ class MessagePayload {
     /// \brief Checks by passed id, that current payload belongs to sender
     /// \param id UserId
     /// \return true if is my message, otherwise message belongs to my chat-friend
-    bool isMyMessage(UserId id) const;
+    bool isMyMessage(user_id_t id) const;
 
     /// \brief If can't parse input json or some input data is not valid, false will returned
     /// \return
@@ -124,10 +124,10 @@ class MessagePayload {
     /// \return Empty string if no one error. Check @see isValid() before
     const std::string getError() const;
 
-    MessagePayload &setRecipient(UserId id);
-    MessagePayload &setRecipients(const std::vector<UserId> &recipients);
-    MessagePayload &setRecipients(std::vector<UserId> &&recipients);
-    MessagePayload &addRecipient(UserId to);
+    MessagePayload &setRecipient(user_id_t id);
+    MessagePayload &setRecipients(const std::vector<user_id_t> &recipients);
+    MessagePayload &setRecipients(std::vector<user_id_t> &&recipients);
+    MessagePayload &addRecipient(user_id_t to);
 };
 
 void to_json(wss::json &j, const wss::MessagePayload &in);
