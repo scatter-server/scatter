@@ -50,7 +50,7 @@ wss::unid::id wss::unid::next() {
     uint32_t cnt = counter.load(std::memory_order_acquire);// force acquire latest inc
 
     // every N counter we need new uuid, just in case
-    if (cnt % maxCounterUUID == 0) {
+    if (cnt % maxCounterUUID == 0 || cnt == maxCounter) {
         generateUUID();
     }
 
