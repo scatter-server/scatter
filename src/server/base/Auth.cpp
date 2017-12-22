@@ -75,6 +75,11 @@ std::string wss::HeaderAuth::getValue() const {
 // BEARER
 wss::BearerAuth::BearerAuth(std::string &&value) :
     HeaderAuth("Authorization", std::string("Bearer " + value)) { }
+
+wss::BearerAuth::BearerAuth(const std::string &value) :
+    HeaderAuth("Authorization", std::string("Bearer " + value)) {
+
+}
 std::string wss::BearerAuth::getType() {
     return "bearer";
 }

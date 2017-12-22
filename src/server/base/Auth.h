@@ -19,6 +19,9 @@
 namespace wss {
 
 /// \brief  available:
+/// type: noauth
+///    : has no fields
+///
 /// type: basic
 ///    user: basic_username
 ///    password: basic_password
@@ -99,9 +102,12 @@ class HeaderAuth : public WebAuth {
 /// \brief OAuth bearer authorization, using header "Authorization: Bearer {token}"
 class BearerAuth : public HeaderAuth {
  public:
-    /// \brief
+    /// \brief rvalue ctr
     /// \param value Bearer oauth token
     explicit BearerAuth(std::string &&value);
+    /// \brief lvalue ctr
+    /// \param value
+    explicit BearerAuth(const std::string &value);
 
     /// \brief Auth type
     /// \return string: bearer
