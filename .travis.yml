@@ -10,11 +10,13 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
+            - george-edison55-precise-backports
           packages:
             - g++-4.9
+            - cmake
+            - cmake-data
       env:
          - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
-
 
 before_install:
   - git config --global http.lowSpeedTime 600
