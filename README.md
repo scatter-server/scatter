@@ -90,20 +90,22 @@ Then look for html doc inside **docs/** directory
 
 Look at the config [config.json](https://github.com/edwardstock/wsserver/blob/master/bin/config.json)
 
-### Server
-**endpoint**: Target websocket endpoint. Finally, address will loks like: ws://myserver/myendpoint
-
-**address**: Server address. Leave asterisk (*) for apply any address, or set your server IP-address
-
-**port**: Server incoming port. By default, is 8085. Don't forget to add rule for your **iptables** of **firewalld** rule: *8085/tcp*
-
-**workers**: Number of threads for incoming connections. Recommended value - processor cores number.
-
-**tmpDir**: Temporary dir. Reserved, not used now.
-
-#### secure
-**secure.crtPath**: If server compiled with `-DUSE_SSL`, you must pass SSL cerificate file path.
-
-**secure.keyPath**: If server compiled with `-DUSE_SSL`, you must pass SSL private key file path. 
-
-#### watchdog
+|                Field               | Value type | Default value        | Description                                                                                                                                                                                                                                                                |   |   |
+|:----------------------------------:|------------|----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---|---|
+| endpoint                           | string     | "/chat"              | Target websocket endpoint. Finally, address will loks like: ws://myserver/myendpoint                                                                                                                                                                                       |   |   |
+| address                            | string     | "*" (any)            | Server address. Leave asterisk (*) for apply any address, or set your server IP-address                                                                                                                                                                                    |   |   |
+| port                               | uint16     | 8085                 | Server incoming port. By default, is 8085. Don't forget to add rule for your **iptables** of **firewalld** rule: *8085/tcp*                                                                                                                                                |   |   |
+| workers                            | uint32     | (system dependent)   | Number of threads for incoming connections. Recommended value - processor cores number. If wsserver can't determine number of cores, will set value to: 2                                                                                                                  |   |   |
+| tmpDir                             | string     | "/tmp"               | Temporary dir. Reserved, not used now.                                                                                                                                                                                                                                     |   |   |
+|                                    |            |                      |                                                                                                                                                                                                                                                                            |   |   |
+| secure                             | object     |                      |                                                                                                                                                                                                                                                                            |   |   |
+| secure.crtPath                     | string     | "../certs/debug.crt" | If server compiled with `-DUSE_SSL`, you must pass SSL cerificate file path.                                                                                                                                                                                               |   |   |
+| secure.keyPath                     | string     | "../certs/debug.key" | If server compiled with `-DUSE_SSL`, you must pass SSL private key file path.                                                                                                                                                                                              |   |   |
+|                                    |            |                      |                                                                                                                                                                                                                                                                            |   |   |
+| watchdog                           | object     |                      |                                                                                                                                                                                                                                                                            |   |   |
+| watchdog.enabled                   | bool       | false                | Enables watchdog. Server will send every ~1 minute PING requests to clients, if they will not respond PONG or detected dangling connection, it will disconnected. Other case, if connection is unused `watchdog.connectionLifetimeSeconds` seconds, will disconnected too. |   |   |
+| watchdog.connectionLifetimeSeconds | ulong      | 600                  | Lifetime for inactive connection. Default: 10 minutes (600 seconds)                                                                                                                                                                                                        |   |   |
+|                                    |            |                      |                                                                                                                                                                                                                                                                            |   |   |
+| auth                               | object     |                      |                                                                                                                                                                                                                                                                            |   |   |
+| auth.type                          | string     | "noauth"             |                                                                                                                                                                                                                                                                            |   |   |
+|                                    |            |                      |                                                                                                                                                                                                                                                                            |   |   |

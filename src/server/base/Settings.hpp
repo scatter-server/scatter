@@ -124,8 +124,6 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
         setConfig(in.chat.message.maxSize, chat, "maxSize");
         setConfig(in.chat.message.enableDeliveryStatus, chat, "enableDeliveryStatus");
         setConfig(in.chat.enableUndeliveredQueue, chat, "enableUndeliveredQueue");
-    } else {
-        std::cout << "Chat config not found" << std::endl;
     }
 
     if (j.find("event") != j.end()) {
