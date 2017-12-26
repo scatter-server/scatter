@@ -187,7 +187,7 @@ void wss::event::EventNotifier::handleMessageQueue() {
 }
 void wss::event::EventNotifier::addMessage(wss::MessagePayload payload) {
     for (auto &target: targets) {
-        sendQueue.enqueue({target.second, payload, 0L, 1});
+        sendQueue.enqueue(SendStatus(target.second, payload, 0L, 1));
     }
 }
 

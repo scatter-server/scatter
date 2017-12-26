@@ -87,7 +87,16 @@ class EventNotifier : public virtual wss::StandaloneService {
       std::time_t sendTime;
       int sendTries;
       bool hasSent = false;
-      std::string sendResult = "";
+      std::string sendResult;
+
+      SendStatus(std::shared_ptr<wss::event::Target> target,
+                 wss::MessagePayload payload,
+                 std::time_t sendTime,
+                 int tries) :
+          target(target),
+          payload(payload),
+          sendTime(sendTime),
+          sendTries(tries) { }
       SendStatus() = default;
       ~SendStatus() = default;
       SendStatus(const SendStatus &another) = default;
