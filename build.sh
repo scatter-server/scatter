@@ -9,6 +9,6 @@ cmake --build . --target install
 cd ../../
 
 mkdir -p build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Debug -DWITH_TEST=OFF
+cmake .. -DCMAKE_BUILD_TYPE=Release
 cmake --build . --target wsserver
 cmake --build . --target install
