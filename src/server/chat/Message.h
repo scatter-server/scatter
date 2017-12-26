@@ -15,7 +15,7 @@
 #include <toolboxpp.h>
 #include "json.hpp"
 #include "../defs.h"
-#include "../helpers/unid.h"
+#include "src/server/base/unid.h"
 
 namespace wss {
 

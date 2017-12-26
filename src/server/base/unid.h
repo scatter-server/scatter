@@ -11,6 +11,7 @@
 #define WSSERVER_UNID_H
 
 #include <string>
+#include <atomic>
 #include <json.hpp>
 #include <fmt/format.h>
 

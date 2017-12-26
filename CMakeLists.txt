@@ -106,8 +106,8 @@ set(SERVER_SRC
     src/server/chat/ConnectionStorage.h
     src/server/chat/Statistics.cpp
     src/server/chat/Statistics.h
-    src/server/helpers/unid.cpp
-    src/server/helpers/unid.h
+    src/server/base/unid.cpp
+    src/server/base/unid.h
     )
 
 set(SERVER_EXEC_SRCS
