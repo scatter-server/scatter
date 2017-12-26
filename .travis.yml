@@ -10,20 +10,18 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - george-edison55-precise-backports
           packages:
             - g++-4.9
-            - cmake-data
-            - cmake
       env:
          - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
 
 
 before_install:
+  - git config --global http.lowSpeedTime 600
   - eval "${MATRIX_EVAL}"
 
 install:
   - sudo apt-get update
-  - sudo apt-get install -y lcov python
+  - sudo apt-get install -y lcov libssl-dev libcurl3 libboost1.55-all-dev
 
-script: ./build.sh
+script: sudo -E ./build.sh
