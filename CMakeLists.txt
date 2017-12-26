@@ -3,26 +3,32 @@ project(wsserver)
 
 
 ### Configuration
-set(CXX_FLAGS "-Wall -Wno-unused-parameter")
-
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_ROOT_MODULE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -Wextra -pedantic -Wno-unused-parameter -O0") #-Werror
+# gnu
+set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wno-unsused-parameter ${CMAKE_CXX_FLAGS}")
+
+# linux clang
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	set(CMAKE_CXX_FLAGS "-stdlib=libc++ ${CMAKE_CXX_FLAGS} ")
+elseif (APPLE)
+	set(CMAKE_CXX_FLAGS "-stdlib=libc++ ${CMAKE_CXX_FLAGS}")
+	set(CMAKE_CXX_LINKER_FLAGS "${CMAKE_CXX_LINKER_FLAGS} -std=c++14 -stdlib=libc++ -undefined dynamic_lookup")
+elseif (MSVC)
+	message(STATUS "Build for Windows")
+	add_compile_options(/W1)
+endif ()
+
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -Wextra -pedantic -O0") #-Werror
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS} -O3")
 
 option(USE_SSL "Certifacates required" OFF)
-
 
 add_definitions(-DWS_BIN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
 if (USE_SSL)
 	add_definitions(-DUSE_SECURE_SERVER=1)
-endif ()
-
-if (MSVC)
-	add_compile_options(/W1)
 endif ()
 
 
