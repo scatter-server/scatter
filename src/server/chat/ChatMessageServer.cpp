@@ -171,7 +171,7 @@ void wss::ChatMessageServer::watchdogWorker(long lifetime) {
     }
 }
 
-void wss::ChatMessageServer::onPong(wss::WsConnectionPtr &connection, wss::WsMessagePtr payload) {
+void wss::ChatMessageServer::onPong(wss::WsConnectionPtr &connection, wss::WsMessagePtr) {
     connectionStorage->markPongReceived(connection);
 }
 

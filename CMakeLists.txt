@@ -6,7 +6,7 @@ project(wsserver)
 set(CMAKE_ROOT_MODULE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 # gnu
-set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wno-unsused-parameter ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wno-unused-parameter ${CMAKE_CXX_FLAGS}")
 
 # linux clang
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

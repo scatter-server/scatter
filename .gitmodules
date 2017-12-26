@@ -1,15 +1,15 @@
 [submodule "libs/http"]
 	path = libs/http
-	url = git@github.com:eidheim/Simple-Web-Server.git
+	url = https://github.com/eidheim/Simple-Web-Server.git
 [submodule "libs/ws"]
 	path = libs/ws
-	url = git@github.com:edwardstock/Simple-WebSocket-Server.git
+	url = https://github.com/edwardstock/Simple-WebSocket-Server.git
 [submodule "libs/json"]
 	path = libs/json
-	url = git@github.com:nlohmann/json.git
+	url = https://github.com/nlohmann/json.git
 [submodule "libs/concurrentqueue"]
 	path = libs/concurrentqueue
-	url = git@github.com:cameron314/concurrentqueue.git
+	url = https://github.com/cameron314/concurrentqueue.git
 [submodule "libs/fmt"]
 	path = libs/fmt
 	url = https://github.com/fmtlib/fmt.git
