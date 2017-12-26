@@ -1,7 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 DOXY_BIN=`which doxygen | tr '\n' ' '`
-if (( DOXY_BIN == "" ));
+if [ "${DOXY_BIN}" == "" ]
 then
 	echo "Doxygen binary did not found!"
 	exit 1
