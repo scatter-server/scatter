@@ -1,12 +1,5 @@
 #!/bin/bash
 
-if [[ "${COVERITY_SCAN_BRANCH}" == 1 ]];
-then
-	echo "Don't build on coverty_scan branch.";
-	exit 0;
-fi
-
-
 function findCmake {
 	local res=`find /usr/local/ -name "cmake" | grep "/bin" | sort | head -1`
 	echo "${res}"
