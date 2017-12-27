@@ -1,34 +1,40 @@
 language: cpp
 sudo: required
 dist: trusty
-branch:
+branches:
   only:
   - master
   - ci
-
+  - coverity_scan
 matrix:
   include:
-    # 4.9
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - george-edison55-precise-backports
-          packages:
-            - g++-4.9
-            - cmake
-            - cmake-data
-      env:
-         - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
-
-
-
+  - os: linux
+    addons:
+      apt:
+        sources:
+        - ubuntu-toolchain-r-test
+        - george-edison55-precise-backports
+        packages:
+        - g++-4.9
+        - cmake
+        - cmake-data
+      coverity_scan:
+        project:
+          name: edwardstock/wsserver
+          description: WebSocket Message Server
+        notification_email: edward.vstock@gmail.com
+        #build_command_prepend: ./configure
+        build_command: sudo -E ./build.sh
+        branch_pattern: coverity_scan
+    env:
+    - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
+env:
+  global:
+  - secure: KhfBgh94w8up97xYwLy2QT9819RJyUc/Ku6EH4Wa/QdKsHaFIbFLNklbuTywaGiw9KnExGTZ2ItqBdlqxWoxIs9wNA7S3dE7wFGHxvUnF7UHV8+Qw8wd/gMpG7fTJSZ3In4fKFtkzFN+FSvBLkKh+wWAxn3BwixBnSoSsyxvFBk6/BKds5qQGhvnBa3eB6wfwU7PTqHX+4OPLHB/9eDMADgIhFq7hmYE1VX44h5pUEcNXT/aHm3WbPy71K16+BbyLx5qFTYefnMUzWtG+IQiYMIKLUp9ATJR1MNlL+zr09888XQ6Sf4ijBt3O7oovP133ifrcD+uWoH0GZOX0P4kP9gSVG26dUTyA3GsyYRMBGC+S+tOY4sRkZ3RNRYWZOF4I3jpqqEvXJsXidULeKYXKOrT3l4RfL4o/OOmC4Woy07oK1g15TinMuO2pePxf7RflZEzrgV7pub9j8oXILR/T4F5rtsJnizZed8WPsjbc2Tu1oE0eO7WlDW64VU9feflKM48OCNhsLj5O9gLvZrJlO3IU4iT7k64pvQC+sKeiJFMwUAOdQHutI1TkBrk+flJ6AisCaPjWhZuIAHcfoHxOMshNKUT8d772UbQCnt/4KeqqVHF1m/tH7doDEWhA/1koIBWyQXPu5WEfnZDWKFFb8MfN/5bCZm4C6zZn7I87vU=
 before_install:
-  - git config --global http.lowSpeedTime 600
-  - eval "${MATRIX_EVAL}"
-
+- echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+- git config --global http.lowSpeedTime 600
+- eval "${MATRIX_EVAL}"
 install:
-  - sudo apt-get install -y lcov libssl-dev libcurl3 libboost1.55-all-dev
-
+- sudo apt-get install -y lcov libssl-dev libcurl3 libboost1.55-all-dev
 script: sudo -E ./build.sh

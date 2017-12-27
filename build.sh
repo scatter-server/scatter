@@ -1,5 +1,14 @@
 #!/bin/bash
 
+if [ ! -f build.lock ]
+then
+	touch build.lock
+else
+	echo "Project already built"
+	exit 0
+fi
+
+
 function findCmake {
 	local res=`find /usr/local/ -name "cmake" | grep "/bin" | sort | head -1`
 	echo "${res}"
