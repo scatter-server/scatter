@@ -1,11 +1,9 @@
 #!/bin/bash
 
-if [ ! -f build.lock ]
+if [[ "${COVERITY_SCAN_BRANCH}" == 1 ]];
 then
-	touch build.lock
-else
-	echo "Project already built"
-	exit 0
+	echo "Don't build on coverty_scan branch.";
+	exit 0;
 fi
 
 

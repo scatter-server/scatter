@@ -23,8 +23,8 @@ matrix:
           name: edwardstock/wsserver
           description: WebSocket Message Server
         notification_email: edward.vstock@gmail.com
-        build_command_prepend: echo "Prepend"
-        build_command: sudo -E ./build.sh
+        build_command_prepend: cov-configure --comptype gcc --compiler g++-4.9
+        build_command: sudo ./build.sh
         branch_pattern: coverity_scan
     env:
     - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
