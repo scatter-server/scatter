@@ -1,7 +1,9 @@
 # WsServer - WebSocket message server (Development stage - unstable, but works)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/274ad89f657b4c0695568ec42f7f39bb)](https://www.codacy.com/app/edwardstock/wsserver?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=edwardstock/wsserver&amp;utm_campaign=Badge_Grade)
 [![Build Status](https://travis-ci.org/edwardstock/wsserver.svg?branch=master)](https://travis-ci.org/edwardstock/wsserver)
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/274ad89f657b4c0695568ec42f7f39bb)](https://www.codacy.com/app/edwardstock/wsserver?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=edwardstock/wsserver&amp;utm_campaign=Badge_Grade)
+
+[![Coverify Scan](https://scan.coverity.com/projects/14700/badge.svg)](https://scan.coverity.com/projects/edwardstock-wsserver)
 ## Features
 * Multi-threaded (boost thread pool)
 * Undelivered messages queue (with TTL in future)
