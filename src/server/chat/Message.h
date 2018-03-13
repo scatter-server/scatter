@@ -103,6 +103,10 @@ class MessagePayload {
     /// \return
     bool isValid() const;
 
+    /// \brief Check if this messages is sent from bot (senderId=0)
+    /// \return
+    bool isBotMessage();
+
     /// \brief Check message type
     /// \param type
     /// \return

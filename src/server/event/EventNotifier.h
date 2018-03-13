@@ -37,8 +37,7 @@ class EventNotifier : public virtual wss::StandaloneService {
     /// \brief Notifier send strategy.
     enum SendStrategy {
       ALWAYS, /*!< Send when: user online, offline, enqueued to undelivered queue, etc */
-      ONLINE_ONLY /*! Send when: user online, will send after user come to online if previously was offline */
-
+        ONLINE_ONLY, /*! Send when: user online, will send after user come to online if previously was offline */
     };
 
     /// \brief Creates event target instance from global server config file.

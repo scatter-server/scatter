@@ -116,6 +116,10 @@ bool wss::MessagePayload::isMyMessage(user_id_t id) const {
 bool wss::MessagePayload::isValid() const {
     return valid && !recipients.empty();
 }
+
+bool MessagePayload::isBotMessage() {
+    return sender == 0;
+}
 bool wss::MessagePayload::haveSingleRecipient() const {
     return recipients.size() == 1;
 }
@@ -190,7 +194,7 @@ void wss::from_json(const wss::json &j, wss::MessagePayload &in) {
     in.recipients = j.at("recipients").get<std::vector<user_id_t>>();
 
     in.data = j.value("data", json());
-    in.timestamp = j.value("timestamp", wss::helpers::getNowISODateTimeFractional());
+    in.timestamp = wss::helpers::getNowISODateTimeFractional();
 }
 
 wss::MessagePayload MessagePayload::createSendStatus(user_id_t to) {

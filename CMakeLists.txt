@@ -134,7 +134,7 @@ else ()
 	message(STATUS "INSTALL:
 	To enable install command,
 	please run script as root user,
-	because binaries and configs must be installed in system dirs.
+	because binaries and configs must be installed into the system dirs.
 	")
 endif ()
 

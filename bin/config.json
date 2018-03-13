@@ -40,6 +40,7 @@
     "enabled": false,
     "enableRetry": true,
     "sendStrategy": "always",
+    "sendBotMessages": false,
     "retryIntervalSeconds": 10,
     "retryCount": 3,
     "maxParallelWorkers": 16,

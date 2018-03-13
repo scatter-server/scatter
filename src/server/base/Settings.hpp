@@ -60,6 +60,7 @@ struct Chat {
 struct Event {
   bool enabled = false;
   bool enableRetry = false;
+    bool sendBotMessages = false;
   int retryIntervalSeconds = 10;
   int retryCount = 3;
   uint32_t maxParallelWorkers = 8;
@@ -131,6 +132,7 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
         setConfig(in.event.enabled, event, "enabled");
         if (in.event.enabled) {
             setConfig(in.event.enableRetry, event, "enableRetry");
+            setConfig(in.event.sendBotMessages, event, "sendBotMessages");
             setConfig(in.event.retryIntervalSeconds, event, "retryIntervalSeconds");
             setConfig(in.event.retryCount, event, "retryCount");
             setConfig(in.event.sendStrategy, event, "sendStrategy");

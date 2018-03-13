@@ -192,6 +192,10 @@ void wss::event::EventNotifier::addMessage(wss::MessagePayload payload) {
 }
 
 void wss::event::EventNotifier::onMessage(wss::MessagePayload &&payload, bool hasSent) {
+    if (payload.isBotMessage() && not wss::Settings::get().event.sendBotMessages) {
+        return;
+    }
+
     if (sendStrategy == ALWAYS || hasSent) {
         ioService.post(boost::bind(&EventNotifier::addMessage, this, payload));
     }
