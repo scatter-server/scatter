@@ -17,7 +17,7 @@ bool wss::event::PostbackTarget::send(const wss::MessagePayload &payload, std::s
 
     wss::web::Request request(url);
     request.setBody(out);
-    request.setMethod(wss::web::Request::POST);
+    request.setMethod(httpMethod);
     request.setHeader({"Content-Type", "application/json"});
 
     auth->performAuth(request);
@@ -46,6 +46,11 @@ wss::event::PostbackTarget::PostbackTarget(const nlohmann::json &config) :
             this->auth = wss::auth::createFromConfig(config);
         } else {
             this->auth = std::make_unique<wss::WebAuth>();
+        }
+
+        if (config.find("method") != config.end()) {
+            wss::web::Request req;
+            httpMethod = req.methodFromString(config.value(std::string("method"), "POST"));
         }
 
         client.enableVerbose(false);

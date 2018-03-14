@@ -126,9 +126,7 @@ std::size_t wss::ConnectionStorage::disconnectWithoutPong() {
             disconnected++;
         }
 
-        waitForPong.erase(it);
-
-        ++it;
+        waitForPong.erase(it++);
     }
 
     return disconnected;
