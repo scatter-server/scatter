@@ -7,20 +7,20 @@
 # For more info about custom unit files, see
 # http://fedoraproject.org/wiki/Systemd#How_do_I_customize_a_unit_file.2F_add_a_custom_unit_file.3F
 [Unit]
-Description=WebSocket Message Server
-Documentation=https://github.com/edwardstock/wsserver
-After=network-online.target remote-fs.target nss-lookup.target
-Wants=network-online.target
+Description = WebSocket Message Server
+Documentation = https://github.com/edwardstock/wsserver
+After = network-online.target remote-fs.target nss-lookup.target
+Wants = network-online.target
 
 [Service]
-Type=simple
-PIDFile=/run/wsserver.pid
-ExecStartPre=/usr/sbin/wsserver --config /etc/wsserver/config.json --test=1
-ExecStart=/usr/sbin/wsserver --config /etc/wsserver/config.json
-ExecReload=/bin/kill -s HUP $MAINPID
-ExecStop=/bin/kill -s TERM $MAINPID
+Type = simple
+PIDFile = /run/wsserver.pid
+ExecStartPre = /usr/sbin/wsserver --config /etc/wsserver/config.json --test=1
+ExecStart = /usr/sbin/wsserver --config /etc/wsserver/config.json
+ExecReload = /bin/kill -s HUP $MAINPID
+ExecStop = /bin/kill -s TERM $MAINPID
 TimeoutStartSec = "5s"
-Restart=on-failure
+Restart = on-failure
 
 [Install]
-WantedBy=multi-user.target
+WantedBy = multi-user.target
