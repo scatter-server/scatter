@@ -422,7 +422,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
 
     unsigned char fin_rsv_opcode = 129;//static_cast<unsigned char>(payload.isBinary() ? 130 : 129);
     for (user_id_t uid: payload.getRecipients()) {
-        if (!connectionStorage->exists(uid)) {
+        if (!connectionStorage->size(uid)) {
             handleUndeliverable(uid);
             MessagePayload sent = payload;
             sent.setRecipient(uid);

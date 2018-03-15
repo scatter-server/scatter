@@ -393,9 +393,12 @@ wss::web::Response wss::web::HttpClient::execute(const wss::web::Request &reques
             resp.status = -1;
             resp.statusMessage = "CURL error: " + std::string(curl_easy_strerror(res));
         } else {
-            std::vector<std::string> headerLines = toolboxpp::strings::split(resp._headersBuffer, "\\r\\n");
+            std::vector<std::string> headerLines = toolboxpp::strings::split(resp._headersBuffer, "\r\n");
             for (auto &header: headerLines) {
-                if (toolboxpp::strings::hasSubstring(header, "HTTP")) {
+                if (header.length() == 0) {
+                    continue;
+                }
+                if (toolboxpp::strings::hasRegex("HTTP", header)) {
                     std::vector<std::string>
                         match = toolboxpp::strings::matchRegexp(R"(HTTP\/\d\.\d.(\d+).(.*))", header);
                     resp.status = std::stoi(match[1]);

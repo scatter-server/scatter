@@ -21,6 +21,7 @@ wss::ConnectionStorage::~ConnectionStorage() {
     idMap.clear();
 }
 bool wss::ConnectionStorage::exists(wss::user_id_t id) const {
+    // мы проверяем только наличие мапы, но есть ли такое содениение с уникальным айдишником - нет, тут баг
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     return idMap.find(id) != idMap.end();
 }
@@ -49,6 +50,11 @@ std::size_t wss::ConnectionStorage::size() const {
 }
 std::size_t wss::ConnectionStorage::size(wss::user_id_t id) {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
+
+    if (idMap.find(id) == idMap.end()) {
+        return 0;
+    }
+
     return idMap[id].size();
 }
 void wss::ConnectionStorage::add(wss::user_id_t id, const wss::WsConnectionPtr &connection) {
