@@ -167,6 +167,12 @@ void wss::event::EventNotifier::handleMessageQueue() {
                       status.sendTries++;
                       status.sendTime = std::time(nullptr);
                       sendQueue.enqueue(status);
+                  } else {
+                      // can't send over maxTries times
+                      // notify listeners
+                      for (auto &listener: sendErrorListeners) {
+                          listener(std::move(status.payload));
+                      }
                   }
               } else {
                   L_DEBUG_F("Event-Send", "Message has sent to target: %s", status.target->getType().c_str());
@@ -202,4 +208,9 @@ void wss::event::EventNotifier::onMessage(wss::MessagePayload &&payload, bool ha
     }
 
 }
+void wss::event::EventNotifier::addErrorListener(wss::event::EventNotifier::OnSendError listener) {
+    sendErrorListeners.push_back(listener);
+}
+
+
 

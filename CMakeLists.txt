@@ -120,6 +120,8 @@ set(SERVER_EXEC_SRCS
 add_subdirectory(libs/fmt/fmt)
 add_executable(${PROJECT_NAME} src/server/main.cpp ${SERVER_EXEC_SRCS})
 
+add_subdirectory(libs/hiredis)
+
 linkdeps(${PROJECT_NAME})
 add_subdirectory(src/benchmark)
 

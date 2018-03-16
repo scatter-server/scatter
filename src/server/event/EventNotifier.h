@@ -37,7 +37,7 @@ class EventNotifier : public virtual wss::StandaloneService {
     /// \brief Notifier send strategy.
     enum SendStrategy {
       ALWAYS, /*!< Send when: user online, offline, enqueued to undelivered queue, etc */
-        ONLINE_ONLY, /*! Send when: user online, will send after user come to online if previously was offline */
+      ONLINE_ONLY, /*! Send when: user online, will send after user come to online if previously was offline */
     };
 
     /// \brief Creates event target instance from global server config file.
@@ -53,6 +53,8 @@ class EventNotifier : public virtual wss::StandaloneService {
     void subscribe();
 
  public:
+    typedef std::function<void(wss::MessagePayload &&)> OnSendError;
+
     /// \brief Constructs event notifier with shared_ptr of main chat server.
     /// \param ws
     explicit EventNotifier(std::shared_ptr<wss::ChatMessageServer> &ws);
@@ -73,6 +75,10 @@ class EventNotifier : public virtual wss::StandaloneService {
     void addTarget(std::shared_ptr<Target> &&target);
     void setSendStrategy(const std::string &strategy);
     void setSendStrategy(SendStrategy strategy);
+
+    /// \brief Error listener. Called when can't send message to target #maxRetries times
+    /// \param listener
+    void addErrorListener(wss::event::EventNotifier::OnSendError listener);
 
     void joinThreads() override;
     void detachThreads() override;
@@ -118,6 +124,7 @@ class EventNotifier : public virtual wss::StandaloneService {
 
     std::unordered_map<std::string, std::shared_ptr<Target>> targets;
     moodycamel::ConcurrentQueue<SendStatus> sendQueue;
+    std::vector<wss::event::EventNotifier::OnSendError> sendErrorListeners;
 
     /// \brief Calling on event
     /// Send post to io_service with payload
