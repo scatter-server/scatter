@@ -119,12 +119,12 @@ void wss::ChatRestServer::actionStat(wss::HttpResponse response, wss::HttpReques
 }
 
 void wss::ChatRestServer::actionStats(wss::HttpResponse response, wss::HttpRequest request) {
-    L_DEBUG_F("Http Server", "%s %s", request->method.c_str(), request->path.c_str())
+    L_DEBUG_F("Http::Server", "%s %s", request->method.c_str(), request->path.c_str())
     json content;
     content["success"] = true;
 
     std::vector<json> statItems(chatMessageServer->getStats().size());
-    L_DEBUG_F("Http Server", "Statistics: available %lu records", chatMessageServer->getStats().size());
+    L_DEBUG_F("Http::Server", "Statistics: available %lu records", chatMessageServer->getStats().size());
     std::size_t i = 0;
     for (auto &idStat: chatMessageServer->getStats()) {
         json statItem;

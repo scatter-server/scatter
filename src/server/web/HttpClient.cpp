@@ -374,7 +374,7 @@ wss::web::Response wss::web::HttpClient::execute(const wss::web::Request &reques
             struct curl_slist *headers = nullptr;
             for (const auto &h: request.getHeadersGlued()) {
                 if (verbose) {
-                    L_DEBUG_F("Request", "Header -> %s", h.c_str());
+                    L_DEBUG_F("Http::Request", "Header -> %s", h.c_str());
                 }
 
                 headers = curl_slist_append(headers, h.c_str());

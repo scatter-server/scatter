@@ -34,12 +34,6 @@ using toolboxpp::Logger;
 
 class EventNotifier : public virtual wss::StandaloneService {
  private:
-    /// \brief Notifier send strategy.
-    enum SendStrategy {
-      ALWAYS, /*!< Send when: user online, offline, enqueued to undelivered queue, etc */
-      ONLINE_ONLY, /*! Send when: user online, will send after user come to online if previously was offline */
-    };
-
     /// \brief Creates event target instance from global server config file.
     /// \param json Part of config.
     /// \return shared pointer of target
@@ -73,8 +67,6 @@ class EventNotifier : public virtual wss::StandaloneService {
     void addTarget(const nlohmann::json &targetConfig);
     void addTarget(const std::shared_ptr<Target> &target);
     void addTarget(std::shared_ptr<Target> &&target);
-    void setSendStrategy(const std::string &strategy);
-    void setSendStrategy(SendStrategy strategy);
 
     /// \brief Error listener. Called when can't send message to target #maxRetries times
     /// \param listener
@@ -111,7 +103,6 @@ class EventNotifier : public virtual wss::StandaloneService {
     };
 
     std::atomic_bool running;
-    SendStrategy sendStrategy;
 
     std::shared_ptr<wss::ChatMessageServer> ws;
     const bool enableRetry;
@@ -130,7 +121,7 @@ class EventNotifier : public virtual wss::StandaloneService {
     /// Send post to io_service with payload
     /// \param payload
     /// \param hasSent is recipient online and recieved websocket frame
-    void onMessage(wss::MessagePayload &&payload, bool hasSent);
+    void onMessage(wss::MessagePayload &&payload);
 
     /// \brief Calling after event in separate thread (io_service.post)
     /// Adds message to send queue

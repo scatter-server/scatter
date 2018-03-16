@@ -51,7 +51,7 @@ class RestServer : public virtual StandaloneService {
     template<typename ResponseCallback = std::function<void(HttpResponse, HttpRequest)> >
     RestServer &addEndpoint(const std::string &path, const std::string &methodName, ResponseCallback &&callback) {
         const std::string endpoint = "^/" + path + "$";
-        L_INFO_F("Http Server", "Endpoint: %s /%s", methodName.c_str(), path.c_str());
+        L_INFO_F("HttpServer", "Endpoint: %s /%s", methodName.c_str(), path.c_str());
         server.resource[endpoint][toolboxpp::strings::toUpper(methodName)] =
             [this, callback](wss::HttpResponse response, wss::HttpRequest request) {
               const wss::web::Request verifyRequest(request);

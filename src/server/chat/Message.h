@@ -114,7 +114,7 @@ class MessagePayload {
 
     /// \brief Whether message type is just send status
     /// \return
-    bool isSentStatus() const;
+    bool isTypeOfSentStatus() const;
 
     /// \brief Whether message type is binary
     /// \return

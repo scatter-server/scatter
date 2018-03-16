@@ -61,7 +61,7 @@ void wss::ConnectionStorage::add(wss::user_id_t id, const wss::WsConnectionPtr &
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     connection->setId(id);
     idMap[id][connection->getUniqueId()] = connection;
-    L_DEBUG_F("SetConnection", "Adding connection for %lu. Now size: %lu", connection->getId(), idMap[id].size());
+    L_DEBUG_F("Connection::Add", "Adding connection for %lu. Now size: %lu", connection->getId(), idMap[id].size());
 }
 void wss::ConnectionStorage::remove(wss::user_id_t id) {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
@@ -88,7 +88,7 @@ void wss::ConnectionStorage::remove(const wss::WsConnectionPtr &connection) {
         }
     }
 
-    L_DEBUG_F("RemoveConnection", "User %lu (%lu). Left connections: %lu",
+    L_DEBUG_F("Connection::Remove", "User %lu (%lu). Left connections: %lu",
               connection->getId(),
               connection->getUniqueId(),
               idMap[id].size());

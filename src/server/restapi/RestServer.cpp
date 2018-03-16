@@ -124,7 +124,7 @@ void wss::RestServer::runService() {
       this->server.start();
     });
     const char *hostname = server.config.address.empty() ? "[any:address]" : server.config.address.c_str();
-    L_INFO_F("Http Server", "Started at http://%s:%d", hostname, server.config.port);
+    L_INFO_F("HttpServer", "Started at http://%s:%d", hostname, server.config.port);
 }
 void wss::RestServer::stopService() {
     this->server.stop();

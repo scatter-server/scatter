@@ -127,7 +127,7 @@ class ChatMessageServer : public virtual StandaloneService {
     const uint8_t FLAG_FRAME_BINARY = FIN1 | OPCODE_BINARY;
     //@formatter:on
 
-    typedef std::function<void(wss::MessagePayload &&, bool hasSent)> OnMessageSentListener;
+    typedef std::function<void(wss::MessagePayload &&)> OnMessageSentListener;
     typedef std::function<void()> OnServerStopListener;
 
  public:
@@ -277,6 +277,7 @@ class ChatMessageServer : public virtual StandaloneService {
     UserMap<std::shared_ptr<std::stringstream>> frameBuffer;
     UserMap<std::queue<wss::MessagePayload>> undeliveredMessagesMap;
     UserMap<std::unique_ptr<Statistics>> statistics;
+    UserMap<bool> sentUniqueId;
 
     /// \todo move out to server side
 
@@ -301,6 +302,10 @@ class ChatMessageServer : public virtual StandaloneService {
     /// \brief Running thread index
     /// \return incremental simple integer
     std::size_t getThreadName();
+
+    /// \brief Calling message event listeners
+    /// \param paylod
+    void callOnMessageListeners(wss::MessagePayload paylod);
 };
 
 }

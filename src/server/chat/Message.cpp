@@ -126,7 +126,7 @@ bool wss::MessagePayload::haveSingleRecipient() const {
 bool wss::MessagePayload::isBinary() const {
     return typeIs(TYPE_BINARY);
 }
-bool wss::MessagePayload::isSentStatus() const {
+bool wss::MessagePayload::isTypeOfSentStatus() const {
     return typeIs(TYPE_NOTIFICATION_RECEIVED);
 }
 bool wss::MessagePayload::typeIs(const char *t) const {
@@ -159,7 +159,7 @@ void wss::MessagePayload::handleJsonException(const std::exception &e, const std
     std::stringstream ss;
     ss << "Can't deserialize json: " << e.what();
     errorCause = ss.str();
-    L_WARN("MessagePayload", ss.str().c_str())
+    L_WARN("Chat::Message::Payload", ss.str().c_str())
 }
 bool MessagePayload::operator==(wss::MessagePayload const &rhs) {
     return id == rhs.id;

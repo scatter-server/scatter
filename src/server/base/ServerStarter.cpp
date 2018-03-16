@@ -215,7 +215,6 @@ bool wss::ServerStarter::configureEventNotifier(wss::Settings &settings) {
 
     eventNotifier->setMaxTries(settings.event.retryCount);
     eventNotifier->setRetryIntervalSeconds(settings.event.retryIntervalSeconds);
-    eventNotifier->setSendStrategy(settings.event.sendStrategy);
 
     int i = 0;
     for (auto &target: settings.event.targets) {

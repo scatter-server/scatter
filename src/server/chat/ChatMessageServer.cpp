@@ -184,14 +184,14 @@ void wss::ChatMessageServer::onMessage(WsConnectionPtr &connection, WsMessagePtr
         user_id_t senderId = connection->getId();
 
         if (opcode == FLAG_FRAGMENT_BEGIN_TEXT || opcode == FLAG_FRAGMENT_BEGIN_BINARY) {
-            L_DEBUG_F("OnMessage", "Fragmented frame begin (flag: 0x%08x)", opcode);
+            L_DEBUG_F("Chat::Message", "Fragmented frame begin (flag: 0x%08x)", opcode);
             writeFrameBuffer(senderId, message->string(), true);
             return;
         } else if (opcode == FLAG_FRAGMENT_CONTINUE) {
             writeFrameBuffer(senderId, message->string(), false);
             return;
         } else if (opcode == FLAG_FRAGMENT_END) {
-            L_DEBUG("OnMessage", "Fragmented frame end");
+            L_DEBUG("Chat::Message", "Fragmented frame end");
             std::stringstream final;
             final << readFrameBuffer(senderId, true);
             final << message->string();
@@ -230,7 +230,7 @@ void wss::ChatMessageServer::onMessage(WsConnectionPtr &connection, WsMessagePtr
 }
 
 void wss::ChatMessageServer::onMessageSent(wss::MessagePayload &&payload, std::size_t bytesTransferred, bool hasSent) {
-    if (payload.isSentStatus()) return;
+    if (payload.isTypeOfSentStatus()) return;
 
     getStat(payload.getSender())
         ->addSendMessage()
@@ -246,10 +246,6 @@ void wss::ChatMessageServer::onMessageSent(wss::MessagePayload &&payload, std::s
         wss::MessagePayload status = MessagePayload::createSendStatus(payload);
         send(status);
     }
-
-    for (auto &listener: messageListeners) {
-        listener(std::move(payload), hasSent);
-    }
 }
 
 void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
@@ -263,11 +259,11 @@ void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
     }
 
     if (request.getParams().empty()) {
-        L_WARN_F("OnConnected", "Invalid request: %s", connection->query_string.c_str());
+        L_WARN_F("Chat::Connect::Error", "Invalid request: %s", connection->query_string.c_str());
         connection->send_close(STATUS_INVALID_QUERY_PARAMS, "Invalid request");
         return;
     } else if (!request.hasParam("id") || request.getParam("id").empty()) {
-        L_WARN("OnConnected", "Id required in query parameter: ?id={id}");
+        L_WARN("Chat::Connect::Error", "Id required in query parameter: ?id={id}");
 
         connection->send_close(STATUS_INVALID_QUERY_PARAMS, "Id required in query parameter: ?id={id}");
         return;
@@ -278,7 +274,7 @@ void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
         id = std::stoul(request.getParam("id"));
     } catch (const std::invalid_argument &e) {
         const std::string errReason = "Passed invalid id: id=" + request.getParam("id") + ". " + e.what();
-        L_WARN("OnConnected", errReason);
+        L_WARN("Chat::Connect::Error", errReason);
         connection->send_close(STATUS_INVALID_QUERY_PARAMS, errReason);
         return;
     }
@@ -286,7 +282,7 @@ void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
     connectionStorage->add(id, connection);
     getStat(id)->addConnection();
 
-    L_DEBUG_F("OnConnected", "User %lu connected (%s:%d) on thread %lu",
+    L_DEBUG_F("Chat::Connect", "User %lu connected (%s:%d) on thread %lu",
               id,
               connection->remote_endpoint_address().c_str(),
               connection->remote_endpoint_port(),
@@ -300,7 +296,7 @@ void wss::ChatMessageServer::onDisconnected(WsConnectionPtr connection, int stat
         return;
     }
 
-    L_DEBUG_F("OnDisconnected", "User %lu (%lu) has disconnected by reason: %s[%d]",
+    L_DEBUG_F("Chat::Disconnect", "User %lu (%lu) has disconnected by reason: %s[%d]",
               connection->getId(),
               connection->getUniqueId(),
               reason.c_str(),
@@ -350,7 +346,7 @@ int wss::ChatMessageServer::redeliverMessagesTo(const wss::MessagePayload &paylo
 }
 bool wss::ChatMessageServer::hasUndeliveredMessages(user_id_t recipientId) {
     std::lock_guard<std::mutex> locker(undeliveredMutex);
-    L_DEBUG_F("Server",
+    L_DEBUG_F("Chat::Underlivered",
               "Check for undelivered messages for user %lu: %lu",
               recipientId,
               undeliveredMessagesMap[recipientId].size());
@@ -391,7 +387,7 @@ int wss::ChatMessageServer::redeliverMessagesTo(user_id_t recipientId) {
 
     int cnt = 0;
     auto &queue = getUndeliveredMessages(recipientId);
-    L_DEBUG_F("Server", "Redeliver %lu message(s) to user %lu", queue.size(), recipientId);
+    L_DEBUG_F("Chat::Undelivered", "Redeliver %lu message(s) to user %lu", queue.size(), recipientId);
     while (!queue.empty()) {
         MessagePayload payload = queue.front();
         queue.pop();
@@ -410,15 +406,17 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
 
     const auto &handleUndeliverable = [this, payload](user_id_t uid) {
       if (!wss::Settings::get().chat.enableUndeliveredQueue) {
-          L_DEBUG_F("Send message", "User %lu is unavailable. Skipping message.", uid);
+          L_DEBUG_F("Chat::Send", "User %lu is unavailable. Skipping message.", uid);
           return;
       }
       MessagePayload inaccessibleUserPayload = payload;
       inaccessibleUserPayload.setRecipient(uid);
       // так как месага не дошла только кому-то конкретному, то ему и перешлем заново
       enqueueUndeliveredMessage(inaccessibleUserPayload);
-      L_DEBUG_F("Send message", "User %lu is unavailable. Adding message to queue", uid);
+      L_DEBUG_F("Chat::Send", "User %lu is unavailable. Adding message to queue", uid);
     };
+
+    callOnMessageListeners(payload);
 
     unsigned char fin_rsv_opcode = 129;//static_cast<unsigned char>(payload.isBinary() ? 130 : 129);
     for (user_id_t uid: payload.getRecipients()) {
@@ -445,7 +443,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
                 auto sendStream = std::make_shared<WsMessageStream>();
                 *sendStream << pl;
 
-                L_DEBUG_F("OnSend",
+                L_DEBUG_F("Chat::Send",
                           "Sending message to recipient %lu, connection[%d]=%lu",
                           uid,
                           i,
@@ -453,13 +451,21 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
 
                 connection.second
                     ->send(sendStream,
-                           [this, uid, payload, handleUndeliverable, plSize](const SimpleWeb::error_code &errorCode) {
+                           [this, uid, payload, handleUndeliverable, plSize,
+                               cid = connection.first](const SimpleWeb::error_code &errorCode) {
                              if (errorCode) {
                                  // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
-                                 L_DEBUG_F("Send message", "Server: Error sending message: %s, error message: %s",
+                                 L_DEBUG_F("Chat::Send::Error", "Unable to send message. Cause: %s, message: %s",
                                            errorCode.category().name(),
                                            errorCode.message().c_str()
                                  );
+                                 if (errorCode.value() == boost::system::errc::broken_pipe) {
+                                     L_DEBUG_F("Chat::Send::Error",
+                                               "Disconnecting Broken connection %lu (%lu)",
+                                               uid,
+                                               cid);
+                                     connectionStorage->remove(uid, cid);
+                                 }
                                  handleUndeliverable(uid);
                              } else {
                                  MessagePayload sent = payload;
@@ -471,7 +477,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
                 i++;
             }
         } catch (const ConnectionNotFound &) {
-            cout << "Connection not found exception. Adding payload to undelivered" << endl;
+            L_DEBUG("Chat::Send", "Connection not found exception. Adding payload to undelivered");
             handleUndeliverable(uid);
         }
     }
@@ -515,4 +521,9 @@ std::unique_ptr<wss::Statistics> &wss::ChatMessageServer::getStat(wss::user_id_t
 
 const wss::UserMap<std::unique_ptr<wss::Statistics>> &wss::ChatMessageServer::getStats() {
     return statistics;
+}
+void wss::ChatMessageServer::callOnMessageListeners(wss::MessagePayload payload) {
+    for (auto &listener: messageListeners) {
+        listener(std::move(payload));
+    }
 }

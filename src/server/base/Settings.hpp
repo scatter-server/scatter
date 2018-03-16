@@ -64,7 +64,6 @@ struct Event {
   int retryIntervalSeconds = 10;
   int retryCount = 3;
   uint32_t maxParallelWorkers = 8;
-  std::string sendStrategy = "onlineOnly";
   nlohmann::json targets;
 };
 
@@ -135,7 +134,6 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
             setConfig(in.event.sendBotMessages, event, "sendBotMessages");
             setConfig(in.event.retryIntervalSeconds, event, "retryIntervalSeconds");
             setConfig(in.event.retryCount, event, "retryCount");
-            setConfig(in.event.sendStrategy, event, "sendStrategy");
             setConfig(in.event.maxParallelWorkers, event, "maxParallelWorkers");
             in.event.targets = event.at("targets");
         }

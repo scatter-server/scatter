@@ -11,7 +11,6 @@
 
 wss::event::EventNotifier::EventNotifier(std::shared_ptr<wss::ChatMessageServer> &ws) :
     running(true),
-    sendStrategy(ONLINE_ONLY),
     ws(ws),
     enableRetry(wss::Settings::get().event.enableRetry),
     maxParallelWorkers(wss::Settings::get().event.maxParallelWorkers),
@@ -65,22 +64,6 @@ void wss::event::EventNotifier::addTarget(std::shared_ptr<wss::event::Target> &&
     targets.insert({target->getType(), std::move(target)});
 }
 
-void wss::event::EventNotifier::setSendStrategy(const std::string &strategy) {
-    using toolboxpp::strings::equalsIgnoreCase;
-
-    if (equalsIgnoreCase(strategy, "always")) {
-        sendStrategy = ALWAYS;
-    } else if (equalsIgnoreCase(strategy, "onlineOnly")) {
-        sendStrategy = ONLINE_ONLY;
-    } else {
-        throw std::runtime_error(std::string("Unsupported send strategy: " + strategy));
-    }
-}
-
-void wss::event::EventNotifier::setSendStrategy(wss::event::EventNotifier::SendStrategy strategy) {
-    sendStrategy = strategy;
-}
-
 void wss::event::EventNotifier::subscribe() {
     for (int i = 0; i < 4; i++) {
         threadGroup.create_thread(
@@ -88,7 +71,7 @@ void wss::event::EventNotifier::subscribe() {
         );
     }
 
-    ws->addMessageListener(std::bind(&EventNotifier::onMessage, this, std::placeholders::_1, std::placeholders::_2));
+    ws->addMessageListener(std::bind(&EventNotifier::onMessage, this, std::placeholders::_1));
     ws->addStopListener(std::bind(&EventNotifier::onStop, this));
     ioService.post(boost::bind(&EventNotifier::handleMessageQueue, this));
 }
@@ -143,7 +126,7 @@ void wss::event::EventNotifier::handleMessageQueue() {
             bulk.resize(extract);
             sendQueue.try_dequeue_bulk(bulk.begin(), bulk.size());
         } catch (const std::exception &e) {
-            L_DEBUG_F("Event-Send", "can't dequeue bulk: %s", e.what());
+            L_DEBUG_F("Event::Send", "Can't dequeue bulk: %s", e.what());
             continue;
         }
 
@@ -175,7 +158,7 @@ void wss::event::EventNotifier::handleMessageQueue() {
                       }
                   }
               } else {
-                  L_DEBUG_F("Event-Send", "Message has sent to target: %s", status.target->getType().c_str());
+                  L_DEBUG_F("Event::Send", "Message has sent to target: %s", status.target->getType().c_str());
               }
             });
             // we don't need to join this thread back, we just need to send, and if not, re-enqueue payload
@@ -186,9 +169,8 @@ void wss::event::EventNotifier::handleMessageQueue() {
 
         bulk.clear();
         if (i > 0) {
-            L_DEBUG_F("Event-Send", "Prepared %d messages", i);
+            L_DEBUG_F("Event::Send", "Prepared %d messages", i);
         }
-
     }
 }
 void wss::event::EventNotifier::addMessage(wss::MessagePayload payload) {
@@ -197,16 +179,13 @@ void wss::event::EventNotifier::addMessage(wss::MessagePayload payload) {
     }
 }
 
-void wss::event::EventNotifier::onMessage(wss::MessagePayload &&payload, bool hasSent) {
+void wss::event::EventNotifier::onMessage(wss::MessagePayload &&payload) {
     if (payload.isBotMessage() && not wss::Settings::get().event.sendBotMessages) {
-        L_DEBUG("Event-Send", "Skipping Bot message (sender=0)");
+        L_DEBUG("Event::Enqueue", "Skipping Bot message (sender=0)");
         return;
     }
 
-    if (sendStrategy == ALWAYS || hasSent) {
-        ioService.post(boost::bind(&EventNotifier::addMessage, this, payload));
-    }
-
+    ioService.post(boost::bind(&EventNotifier::addMessage, this, payload));
 }
 void wss::event::EventNotifier::addErrorListener(wss::event::EventNotifier::OnSendError listener) {
     sendErrorListeners.push_back(listener);
