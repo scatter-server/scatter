@@ -19,8 +19,7 @@ ExecStartPre=/usr/sbin/wsserver --config /etc/wsserver/config.json --test=1
 ExecStart=/usr/sbin/wsserver --config /etc/wsserver/config.json
 ExecReload=/bin/kill -s HUP $MAINPID
 ExecStop=/bin/kill -s TERM $MAINPID
-TimeoutStartSec = "5s"
-Restart=on-failure
+Restart = always
 
 [Install]
 WantedBy=multi-user.target
