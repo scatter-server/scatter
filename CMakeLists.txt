@@ -5,18 +5,22 @@ project(wsserver)
 ### Configuration
 set(CMAKE_ROOT_MODULE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
+include(cmakes/configure.cmake)
+
 # gnu
 set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wno-unused-parameter ${CMAKE_CXX_FLAGS}")
 
 # linux clang
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	set(CMAKE_CXX_FLAGS "-stdlib=libc++ ${CMAKE_CXX_FLAGS} ")
-elseif (APPLE)
+elseif (APPLE) # apple clang
 	set(CMAKE_CXX_FLAGS "-stdlib=libc++ ${CMAKE_CXX_FLAGS}")
 	set(CMAKE_CXX_LINKER_FLAGS "${CMAKE_CXX_LINKER_FLAGS} -std=c++14 -stdlib=libc++ -undefined dynamic_lookup")
-elseif (MSVC)
+elseif (MSVC) # visual studio
 	message(STATUS "Build for Windows")
 	add_compile_options(/W1)
+else () #gnu only
+	set(CMAKE_CXX_FLAGS "-rdynamic ${CMAKE_CXX_FLAGS}")
 endif ()
 
 

@@ -33,7 +33,7 @@ if (IS_REDHAT)
             COMMAND /bin/bash ${CMAKE_CURRENT_SOURCE_DIR}/bin/rhel/uninstall.sh
     )
 elseif (IS_DEBIAN)
-    if (DEBIAN_SYSTEMD_SERVICE)
+    #    if (DEBIAN_SYSTEMD_SERVICE)
         install(
                 FILES ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/wsserver.service DESTINATION /lib/systemd/system
                 PERMISSIONS OWNER_READ OWNER_WRITE #0644
@@ -47,18 +47,18 @@ elseif (IS_DEBIAN)
                 uninstall
                 COMMAND /bin/bash ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/uninstall_systemd.sh
         )
-    else ()
-        install(
-                FILES ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/wsserver DESTINATION /etc/init.d
-                PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE #0755
-                GROUP_READ GROUP_EXECUTE
-                WORLD_READ WORLD_EXECUTE
-        )
-        add_custom_target(
-                uninstall
-                COMMAND /bin/bash ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/uninstall_initd.sh
-        )
-    endif ()
+    #    else ()
+    #        install(
+    #                FILES ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/wsserver DESTINATION /etc/init.d
+    #                PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE #0755
+    #                GROUP_READ GROUP_EXECUTE
+    #                WORLD_READ WORLD_EXECUTE
+    #        )
+    #        add_custom_target(
+    #                uninstall
+    #                COMMAND /bin/bash ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/uninstall_initd.sh
+    #        )
+    #    endif ()
 else ()
     message(STATUS "Install target on this system is not supported")
 endif ()
