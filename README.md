@@ -49,12 +49,13 @@
 	* Boost 1.65 and 1.65.1 require CMake 3.9.3 or newer
 	* Boost.Asio
 * OpenSSL
+* libcurl-ssl-dev
 * ToolBox++ (https://github.com/edwardstock/toolboxpp) 
  
  
 ## Cloning (with submodules)
 ```bash
-git clone --recursive git@github.com/edwardstock/wsserver.git
+git clone --recursive https://github.com/edwardstock/wsserver.git
 ```
  
 ## Build
@@ -67,20 +68,17 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_SSL=ON/OFF -DBOOST_ROOT_DIR=/opt/myboo
 
 cmake --build .
 sudo cmake --build . --target install
+
+# OR
+
+sudo make && make install
 ```
 
-## Run
-For Debian users:
-```bash
-# start service
-sudo /etc/init.d/wsserver start 
-```
-
-For RedHat users (tested on Centos7)
+## Run (systemd)
 ```bash
 sudo systemctl start wsserver.service
 # or oldschool style:
-sudo service wsserver start
+sudo  /etc/init.d/wsserver start 
 ```
 
 ## Documentation (Doxygen)
