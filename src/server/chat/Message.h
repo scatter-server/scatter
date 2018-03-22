@@ -23,6 +23,17 @@ extern const char *TYPE_TEXT;
 extern const char *TYPE_BINARY;
 extern const char *TYPE_NOTIFICATION_RECEIVED;
 
+struct InvalidPayloadException : std::exception {
+  std::string err;
+
+  InvalidPayloadException(std::string &&err) {
+      this->err = std::move(err);
+  }
+  const char *what() const throw() override {
+      return err.c_str();
+  }
+};
+
 /// \brief Main structured message payload
 /// \todo Protobuf support
 class MessagePayload {

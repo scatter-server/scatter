@@ -80,7 +80,7 @@ static inline void print_stacktrace(FILE *out = stderr, unsigned int max_frames 
     free(symbollist);
 }
 
-void handler(int sig) {
+void handler(int) {
     print_stacktrace();
     exit(1);
 }

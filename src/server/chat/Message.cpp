@@ -157,7 +157,7 @@ wss::MessagePayload &MessagePayload::setRecipients(std::vector<user_id_t> &&reci
 void wss::MessagePayload::handleJsonException(const std::exception &e, const std::string &) {
     valid = false;
     std::stringstream ss;
-    ss << "Can't deserialize json: " << e.what();
+    ss << "Invalid payload: " << e.what();
     errorCause = ss.str();
     L_WARN("Chat::Message::Payload", ss.str().c_str())
 }
@@ -182,16 +182,34 @@ void wss::to_json(wss::json &j, const wss::MessagePayload &in) {
     };
 }
 void wss::from_json(const wss::json &j, wss::MessagePayload &in) {
+    if (j.at("type").is_null()) {
+        throw InvalidPayloadException("$.type must be a string");
+    } else if (j.at("sender").is_null() || !j.at("sender").is_number()) {
+        throw InvalidPayloadException("$.sender must be uint64_t");
+    } else if (j.at("recipients").is_null() || !j.at("recipients").is_array()) {
+        throw InvalidPayloadException("$.recipients[] must be uint64_t[]");
+    }
+
     in.type = j.value("type", std::string(TYPE_TEXT));
 
     if (strcmp(in.type.c_str(), TYPE_TEXT) == 0) {
+        if (!j.at("text").is_string()) {
+            throw InvalidPayloadException("$.text must be string");
+        }
         in.text = j.at("text").get<std::string>();
     } else {
-        in.text = j.value("text", "");
+        if (!j.at("text").is_string()) {
+            in.text = std::string();
+        } else {
+            in.text = j.value("text", "");
+        }
     }
 
     in.sender = j.at("sender").get<user_id_t>();
     in.recipients = j.at("recipients").get<std::vector<user_id_t>>();
+    if (in.recipients.empty()) {
+        throw InvalidPayloadException("$.recipients[] must contains at least 1 value");
+    }
 
     in.data = j.value("data", json());
     in.timestamp = wss::helpers::getNowISODateTimeFractional();
