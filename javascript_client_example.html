@@ -33,6 +33,8 @@
         var recipient;
         var sender;
 
+        document.cookie = "dogsy=auth_token; path=/;";
+
         window.onload = function () {
             var url_string = window.location.href;
             var url = new URL(url_string);
@@ -42,6 +44,7 @@
             if (addr == null) {
                 addr = "localhost";
             }
+
 
             ws = new WebSocket("ws://" + addr + ":8085/chat?id=" + sender);
             ws.onmessage = function (evt) {

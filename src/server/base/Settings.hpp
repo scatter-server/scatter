@@ -12,6 +12,14 @@
 #include "json.hpp"
 #include <iostream>
 
+#ifdef setConfig
+#undef setConfig
+#endif
+
+#ifdef setConfigDef
+#undef setConfigDef
+#endif
+
 #define setConfig(path, src, name) path = (src).value(std::string(name), path)
 #define setConfigDef(path, src, name, def) path = (src).value(std::string(name), def)
 

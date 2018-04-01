@@ -129,8 +129,6 @@ void wss::ChatMessageServer::watchdogWorker(long lifetime) {
     try {
         while (true) {
             boost::this_thread::sleep_for(boost::chrono::minutes(1));
-            L_DEBUG("Watchdog", "Checking for inactive connections");
-
             for (auto &t: connectionStorage->get()) {
                 const auto &ref = getStat(t.first);
                 for (const auto &conn: t.second) {
