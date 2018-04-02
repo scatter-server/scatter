@@ -1,4 +1,4 @@
-# WsServer - WebSocket message server (Development stage - unstable, but works)
+# WsServer - WebSocket message server
 [![Build Status](https://travis-ci.org/edwardstock/wsserver.svg?branch=master)](https://travis-ci.org/edwardstock/wsserver)
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/274ad89f657b4c0695568ec42f7f39bb)](https://www.codacy.com/app/edwardstock/wsserver?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=edwardstock/wsserver&amp;utm_campaign=Badge_Grade)
@@ -58,19 +58,51 @@
 git clone --recursive https://github.com/edwardstock/wsserver.git
 ```
  
-## Build
+## Building
+
+### Prepare Centos7
+* GCC-7 (if not installed (required 4.9+, recommended 5+))
 ```bash
+yum install centos-release-scl
+yum install devtoolset-7-gcc*
+scl enable devtoolset-7 bash
+```
+
+* Dependencies
+```bash
+yum install openssl openssl-devel curl libcurl-devel
+```
+
+* Boost
+```bash
+wget https://dl.bintray.com/boostorg/release/1.66.0/source/boost_1_66_0.tar.gz
+tar -xzf boost_1_66_0.tar.gz && cd boost_1_66_0
+./bootstrap.sh --prefix=/opt/boost1660
+./b2 install --prefix=/opt/boost1660 --with=all
+```
+
+
+### Prepare Debian 9 (stretch)
+```
+apt-get install libboost1.62-all-dev libcurl4-openssl-dev
+```
+
+### Build
+```bash
+# preparation
+
 # clone repo and cd /to/repo/path
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_SSL=ON/OFF # enables SSL if set ON, default - OFF
 # if boost installed in specific directory, just set it
-cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_SSL=ON/OFF -DBOOST_ROOT_DIR=/opt/myboost/x.x.x
+cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_SSL=ON/OFF -DBOOST_ROOT_DIR=/opt/boost1660
+
+
+# making
 
 cmake --build .
 sudo cmake --build . --target install
-
-# OR
-
+# or
 sudo make && make install
 ```
 
@@ -78,7 +110,7 @@ sudo make && make install
 ```bash
 sudo systemctl start wsserver.service
 # or oldschool style:
-sudo  /etc/init.d/wsserver start 
+sudo service wsserver start
 ```
 
 ## Documentation (Doxygen)

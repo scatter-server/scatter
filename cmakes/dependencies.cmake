@@ -19,7 +19,7 @@ function (linkdeps DEPS_PROJECT)
 	# OpenSSL
 	target_link_libraries(${DEPS_PROJECT} ${OPENSSL_LIBRARIES})
 	target_include_directories(${DEPS_PROJECT} PUBLIC ${OPENSSL_INCLUDE_DIR})
-	message(STATUS "\t- openssl")
+	message(STATUS "\t- openssl (${OPENSSL_LIBRARIES}}")
 
 	# Helper
 	target_link_libraries(${DEPS_PROJECT} ${TOOLBOXPP_LIBRARIES})

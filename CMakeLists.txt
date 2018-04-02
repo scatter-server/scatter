@@ -1,6 +1,29 @@
 cmake_minimum_required(VERSION 3.0)
-project(wsserver)
+project(wsserver VERSION 1.0.0)
 
+# ARCH
+if (WITH_ARCH)
+	set(PROJECT_ARCH ${WITH_ARCH})
+else ()
+	include(cmakes/FindLinuxPlatform.cmake)
+	if (IS_DEBIAN)
+		if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+			set(PROJECT_ARCH "amd64")
+		elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "unknown")
+			set(PROJECT_ARCH "i386")
+		else ()
+			set(PROJECT_ARCH ${CMAKE_SYSTEM_PROCESSOR})
+		endif ()
+	else ()
+		set(PROJECT_ARCH ${CMAKE_SYSTEM_PROCESSOR})
+	endif ()
+endif ()
+message(STATUS "Build arch: ${PROJECT_ARCH}")
+
+## Build type
+if (NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE "Debug")
+endif ()
 
 ### Configuration
 set(CMAKE_ROOT_MODULE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -8,7 +31,7 @@ set(CMAKE_ROOT_MODULE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 include(cmakes/configure.cmake)
 
 # gnu
-set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wno-unused-parameter ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wno-unused-parameter ${CMAKE_CXX_FLAGS} -Wno-vla")
 
 # linux clang
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -20,7 +43,7 @@ elseif (MSVC) # visual studio
 	message(STATUS "Build for Windows")
 	add_compile_options(/W1)
 else () #gnu only
-	set(CMAKE_CXX_FLAGS "-rdynamic ${CMAKE_CXX_FLAGS}")
+	set(CMAKE_CXX_FLAGS "-rdynamic ${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++")
 endif ()
 
 
@@ -43,7 +66,7 @@ find_package(Threads REQUIRED)
 
 # Boost
 set(Boost_DEBUG OFF)
-set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
 find_package(Boost 1.54.0 COMPONENTS system thread coroutine context random REQUIRED)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
@@ -54,7 +77,7 @@ endif ()
 if (APPLE)
 	set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
 endif ()
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL 1.0.0 REQUIRED)
 
 # ToolBox++
 find_library(TOOLBOXPP_LIBRARIES NAMES toolboxpp)
@@ -63,7 +86,7 @@ if (TOOLBOXPP_LIBRARIES-NOTFOUND)
 endif ()
 
 # cURL
-find_package(CURL REQUIRED)
+find_package(CURL 7.26.0 REQUIRED)
 
 
 include(cmakes/sources_sets.cmake)
@@ -127,7 +150,9 @@ add_executable(${PROJECT_NAME} src/server/main.cpp ${SERVER_EXEC_SRCS})
 add_subdirectory(libs/hiredis)
 
 linkdeps(${PROJECT_NAME})
-add_subdirectory(src/benchmark)
+if (WITH_BENCHMARK)
+	add_subdirectory(src/benchmark)
+endif ()
 
 if (WITH_TEST)
 	include(cmakes/testing.cmake)
