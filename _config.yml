@@ -1,1 +1,14 @@
 theme: jekyll-theme-hacker
+name: wsserver
+description: Websocket Open Message Server
+author: Eduard Maximovich
+author_email: edward.vstock@gmail.com
+exclude:
+  - libs/json/README.md
+  - libs/http/README.md
+  - libs/hiredis/README.md
+  - libs/googletest/README.md
+  - libs/fmt/README.md
+  - libs/concurrentqueue/README.md
+  - libs/ws/README.md
+
