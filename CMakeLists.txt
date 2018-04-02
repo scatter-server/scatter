@@ -31,7 +31,7 @@ set(CMAKE_ROOT_MODULE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 include(cmakes/configure.cmake)
 
 # gnu
-set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wno-unused-parameter ${CMAKE_CXX_FLAGS} -Wno-vla")
+set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wno-unused-parameter ${CMAKE_CXX_FLAGS} -Wno-vla -Wno-vla-extension -Wno-c++1z-extensions")
 
 # linux clang
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

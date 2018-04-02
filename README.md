@@ -1,9 +1,8 @@
-# WsServer - WebSocket message server
+# WsServer - WebSocket Open Message Server
 [![Build Status](https://travis-ci.org/edwardstock/wsserver.svg?branch=master)](https://travis-ci.org/edwardstock/wsserver)
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/274ad89f657b4c0695568ec42f7f39bb)](https://www.codacy.com/app/edwardstock/wsserver?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=edwardstock/wsserver&amp;utm_campaign=Badge_Grade)
 
-[![Coverify Scan](https://scan.coverity.com/projects/14700/badge.svg)](https://scan.coverity.com/projects/edwardstock-wsserver)
 ## Features
 * Multi-threaded (boost thread pool)
 * Undelivered messages queue (with TTL in future)
@@ -13,15 +12,17 @@
 * Support fragmented frame buffer
 * Benchmark (almost stress-test) included
 * Custom payload via json
-* User-independent
+* User-independent (negative side - user id can be only unsigned long number, strings not supported now)
 * Payload size limit
-* Multi-connection support (multiple connections for single user, example: connected with few devices)
+* Multiple connections per user (hello **Viber** 👽)
 * Watchdog. Check for alive connections, using PING-PONG.
 * REST Api server
 	* list active users with simple statistics
 	* sending message
-* Event notifier. Send message copy to your server. Supports couple auth methods: **basic**, **header-based**, **bearer**
-	* Postbacks: set url on where notifier will send messages payload
+	* simple statistics for all or each user
+	* checking user is online
+* Event notifier. Server send message copy to your server. Supports couple auth methods: **basic**, **header-based**, **bearer**, **cookie**, et cetera (see [Configuring](#configuring) section)
+    * url-based **postbacks** (or **webhook** as you like)
 	
 ### Todo features
 * Lock-free queues (now implemented only for events [thx to cameron314](https://github.com/cameron314/concurrentqueue))
@@ -29,15 +30,21 @@
 * Persistence for queued messages
 * Runtime switch using **ws**/**wss** protocol (now only at compile time: `-DUSE_SSL=ON`)
 * Event notifier targets:
-	* Redis pub/sub
 	* SQL (PostgreSQL, MySQL)
 	* MongoDB
+	* Redis pub/sub
 	* Maybe: Cloud DBs (like Firebase RTD)
 	* Maybe: some message queue like RabbitMQ
 	* Maybe: unix socket, tcp or udp, or all of this
-* Maybe: Process forks instead of threads
 
- 
+## In development
+* Storing to redis queue (**lpop/rpush**) undelivered messages.
+
+
+## Downloads
+* [Debian Jessie DEB (amd64)](https://github.com/edwardstock/wsserver/releases/download/1.0.0/wsserver-1.0.0-linux-amd64.jessie.deb)
+* [Debian Stretch DEB (amd64)](https://github.com/edwardstock/wsserver/releases/download/1.0.0/wsserver-1.0.0-linux-amd64.stretch.deb)
+* [RHEL7 RPM (x86_64)](https://github.com/edwardstock/wsserver/releases/download/1.0.0/wsserver-1.0.0-linux-x86_64.el7.rpm)
 
 ## Requirements
 * GCC/CLang: -stdlib=c++14
