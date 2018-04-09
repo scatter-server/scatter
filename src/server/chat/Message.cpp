@@ -27,7 +27,7 @@ MessagePayload::MessagePayload() :
 wss::MessagePayload::MessagePayload(user_id_t from, user_id_t to, std::string &&message) :
     id(wss::unid::generator()()),
     sender(from),
-    recipients(std::vector<user_id_t> {to}),
+    recipients(std::vector<user_id_t>{to}),
     text(std::move(message)),
     type(TYPE_TEXT),
     timestamp(wss::helpers::getNowISODateTimeFractional()) {
@@ -117,9 +117,14 @@ bool wss::MessagePayload::isValid() const {
     return valid && !recipients.empty();
 }
 
-bool MessagePayload::isBotMessage() {
+bool MessagePayload::isFromBot() const {
     return sender == 0;
 }
+
+bool MessagePayload::isForBot() const {
+    return recipients.size() == 1 && recipients[0] == 0L;
+}
+
 bool wss::MessagePayload::haveSingleRecipient() const {
     return recipients.size() == 1;
 }
@@ -171,7 +176,7 @@ wss::MessagePayload &MessagePayload::addRecipient(user_id_t to) {
 }
 
 void wss::to_json(wss::json &j, const wss::MessagePayload &in) {
-    j = json {
+    j = json{
         {"id",         in.id},
         {"type",       in.type},
         {"text",       in.text},
@@ -182,11 +187,11 @@ void wss::to_json(wss::json &j, const wss::MessagePayload &in) {
     };
 }
 void wss::from_json(const wss::json &j, wss::MessagePayload &in) {
-    if (j.at("type").is_null()) {
+    if (j.find("type") == j.end() || j.at("type").is_null()) {
         throw InvalidPayloadException("$.type must be a string");
-    } else if (j.at("sender").is_null() || !j.at("sender").is_number()) {
+    } else if (j.find("sender") == j.end() || j.at("sender").is_null() || !j.at("sender").is_number()) {
         throw InvalidPayloadException("$.sender must be uint64_t");
-    } else if (j.at("recipients").is_null() || !j.at("recipients").is_array()) {
+    } else if (j.find("recipients") == j.end() || j.at("recipients").is_null() || !j.at("recipients").is_array()) {
         throw InvalidPayloadException("$.recipients[] must be uint64_t[]");
     }
 
@@ -198,7 +203,7 @@ void wss::from_json(const wss::json &j, wss::MessagePayload &in) {
         }
         in.text = j.at("text").get<std::string>();
     } else {
-        if (!j.at("text").is_string()) {
+        if (j.find("text") == j.end() || !j.at("text").is_string()) {
             in.text = std::string();
         } else {
             in.text = j.value("text", "");

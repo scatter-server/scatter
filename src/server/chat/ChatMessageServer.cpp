@@ -397,9 +397,15 @@ int wss::ChatMessageServer::redeliverMessagesTo(user_id_t recipientId) {
 }
 
 void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
-    // обертка над std::istream, потэтому работает так же
-    std::string pl = payload.toJson();
-    std::size_t plSize = pl.length();
+    // if recipient is a BOT, than we don't need to find conneciton, just trigger event notifier ilsteners
+    if (payload.isForBot()) {
+        callOnMessageListeners(payload);
+        L_DEBUG("Chat::Send", "Sending message to bot");
+        return;
+    }
+
+    const std::string payloadString = payload.toJson();
+    std::size_t payloadSize = payloadString.length();
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
 
     const auto &handleUndeliverable = [this, payload](user_id_t uid) {
@@ -409,7 +415,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
       }
       MessagePayload inaccessibleUserPayload = payload;
       inaccessibleUserPayload.setRecipient(uid);
-      // так как месага не дошла только кому-то конкретному, то ему и перешлем заново
+      // as messages did not sent to exact user, we add to undelivered queue exact this user in payload recipients
       enqueueUndeliveredMessage(inaccessibleUserPayload);
       L_DEBUG_F("Chat::Send", "User %lu is unavailable. Adding message to queue", uid);
     };
@@ -418,17 +424,21 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
 
     unsigned char fin_rsv_opcode = 129;//static_cast<unsigned char>(payload.isBinary() ? 130 : 129);
     for (user_id_t uid: payload.getRecipients()) {
+        if (uid == 0L) {
+            // just in case, prevent sending bot-only message to nobody
+            continue;
+        }
+
         if (!connectionStorage->size(uid)) {
             handleUndeliverable(uid);
             MessagePayload sent = payload;
             sent.setRecipient(uid);
-            onMessageSent(std::move(sent), plSize, false);
+            onMessageSent(std::move(sent), payloadSize, false);
             continue;
         }
 
         try {
             const auto &connections = connectionStorage->get(uid);
-            // connection->send is an asynchronous function
             int i = 0;
             for (auto &connection: connections) {
 
@@ -439,7 +449,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
 
                 // DO NOT reuse stream, it will die after first sending
                 auto sendStream = std::make_shared<WsMessageStream>();
-                *sendStream << pl;
+                *sendStream << payloadString;
 
                 L_DEBUG_F("Chat::Send",
                           "Sending message to recipient %lu, connection[%d]=%lu",
@@ -447,9 +457,10 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
                           i,
                           connection.second->getUniqueId());
 
+                // connection->send is an asynchronous function
                 connection.second
                     ->send(sendStream,
-                           [this, uid, payload, handleUndeliverable, plSize,
+                           [this, uid, payload, handleUndeliverable, payloadSize,
                                cid = connection.first](const SimpleWeb::error_code &errorCode) {
                              if (errorCode) {
                                  // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
@@ -468,7 +479,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
                              } else {
                                  MessagePayload sent = payload;
                                  sent.setRecipient(uid);
-                                 onMessageSent(std::move(sent), plSize, true);
+                                 onMessageSent(std::move(sent), payloadSize, true);
                              }
                            }, fin_rsv_opcode);
 

@@ -180,7 +180,7 @@ void wss::event::EventNotifier::addMessage(wss::MessagePayload payload) {
 }
 
 void wss::event::EventNotifier::onMessage(wss::MessagePayload &&payload) {
-    if (payload.isBotMessage() && not wss::Settings::get().event.sendBotMessages) {
+    if (payload.isFromBot() && not wss::Settings::get().event.sendBotMessages) {
         L_DEBUG("Event::Enqueue", "Skipping Bot message (sender=0)");
         return;
     }

@@ -45,7 +45,6 @@
                 addr = "localhost";
             }
 
-
             ws = new WebSocket("ws://" + addr + ":8085/chat?id=" + sender);
             ws.onmessage = function (evt) {
                 var result = JSON.parse(evt.data);
@@ -159,6 +158,24 @@
             }
             return false;
         }
+
+        function hasReadMessage() {
+            writeMessage("Has read 👌", false);
+
+            var payload = {
+                sender: parseInt(sender),
+                recipients: [0],
+                type: 'dogsy_notification_has_read',
+                data: {
+                    dialogId: 1010
+                }
+            };
+
+            var sPayload = JSON.stringify(payload);
+            console.log("Sending payload: " + sPayload);
+            ws.send(sPayload);
+            return false;
+        }
     </script>
 </head>
 <body>
@@ -179,6 +196,7 @@
 
 <button type="button" name="Generate 500 messages" onclick="return generate(500)">Generate 500 messages</button>
 <button type="button" name="Generate 10 messages" onclick="return generate(10)">Generate 10 messages</button>
+<button type="button" name="Send 'has read' message" onclick="return hasReadMessage()">Send 'has read' message</button>
 
 
 <script>

@@ -116,7 +116,11 @@ class MessagePayload {
 
     /// \brief Check if this messages is sent from bot (senderId=0)
     /// \return
-    bool isBotMessage();
+    bool isFromBot() const;
+
+    /// \brief Check is this message must be sent to bot (recipients contains exact 1 element and recipients[0] == 0L )
+    /// \return
+    bool isForBot() const;
 
     /// \brief Check message type
     /// \param type

@@ -28,9 +28,6 @@ void wss::ChatRestServer::createEndpoints() {
 }
 
 void wss::ChatRestServer::actionCheckOnline(wss::HttpResponse response, wss::HttpRequest request) {
-    json content;
-    content["success"] = true;
-
     wss::web::Request req(request);
     if (!req.hasParam("id")) {
         setError(response, HttpStatus::client_error_bad_request, 400, "Id required");
@@ -44,6 +41,9 @@ void wss::ChatRestServer::actionCheckOnline(wss::HttpResponse response, wss::Htt
         setError(response, HttpStatus::client_error_bad_request, 400, "Invalid id");
         return;
     }
+
+    json content;
+    content["success"] = true;
 
     json statItem;
 
@@ -56,9 +56,6 @@ void wss::ChatRestServer::actionCheckOnline(wss::HttpResponse response, wss::Htt
 }
 
 void wss::ChatRestServer::actionStat(wss::HttpResponse response, wss::HttpRequest request) {
-    json content;
-    content["success"] = true;
-
     wss::web::Request req(request);
     if (!req.hasParam("id")) {
         setError(response, HttpStatus::client_error_bad_request, 400, "Id required");
@@ -72,6 +69,9 @@ void wss::ChatRestServer::actionStat(wss::HttpResponse response, wss::HttpReques
         setError(response, HttpStatus::client_error_bad_request, 400, "Invalid id");
         return;
     }
+
+    json content;
+    content["success"] = true;
 
     if (chatMessageServer->getStats().find(id) == chatMessageServer->getStats().end()) {
         json statItem;
@@ -168,8 +168,13 @@ void wss::ChatRestServer::actionSendMessage(wss::HttpResponse response, wss::Htt
         return;
     }
 
+    if (payload.isForBot()) {
+        setError(response, HttpStatus::client_error_bad_request, 400, "Can't send message to bot through the api");
+        return;
+    }
+
     chatMessageServer->send(payload);
-    setResponseStatus(response, HttpStatus::success_accepted, 0);
+    setResponseStatus(response, HttpStatus::success_accepted, 0u);
 
 }
 
