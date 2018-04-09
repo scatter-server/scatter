@@ -12,7 +12,7 @@
 bool wss::event::PostbackTarget::send(const wss::MessagePayload &payload, std::string &error) {
     const std::string out = payload.toJson();
     if (out.length() < 1000) {
-        L_DEBUG_F("Event-Send", "Request body: %s", out.c_str());
+        //L_DEBUG_F("Event-Send", "Request body: %s", out.c_str());
     }
 
     wss::web::Request request(url);
