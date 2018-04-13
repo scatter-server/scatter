@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(wsserver VERSION 1.0.1)
+project(wsserver VERSION 1.0.2)
 
 ## Build type
 if (NOT CMAKE_BUILD_TYPE)
