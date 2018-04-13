@@ -72,6 +72,7 @@ struct Event {
   int retryIntervalSeconds = 10;
   int retryCount = 3;
   uint32_t maxParallelWorkers = 8;
+  std::vector<std::string> ignoreTypes;
   nlohmann::json targets;
 };
 
@@ -143,6 +144,12 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
             setConfig(in.event.retryIntervalSeconds, event, "retryIntervalSeconds");
             setConfig(in.event.retryCount, event, "retryCount");
             setConfig(in.event.maxParallelWorkers, event, "maxParallelWorkers");
+
+            if (event.find("ignoreTypes") != event.end() && event.at("ignoreTypes").is_array()) {
+                in.event.ignoreTypes = event.at("ignoreTypes").get<std::vector<std::string>>();
+            } else {
+                in.event.ignoreTypes.resize(0);
+            }
             in.event.targets = event.at("targets");
         }
     }

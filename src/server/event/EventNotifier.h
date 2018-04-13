@@ -23,7 +23,7 @@
 #include <boost/asio/io_service.hpp>
 #include "../chat/ChatMessageServer.h"
 #include "../base/StandaloneService.h"
-#include "EventTarget.hpp"
+#include "Target.hpp"
 #include "PostbackTarget.h"
 #include "concurrentqueue.h"
 

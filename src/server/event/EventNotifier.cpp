@@ -185,6 +185,12 @@ void wss::event::EventNotifier::onMessage(wss::MessagePayload &&payload) {
         return;
     }
 
+    for (auto &ignoredType: wss::Settings::get().event.ignoreTypes) {
+        if (toolboxpp::strings::equalsIgnoreCase(ignoredType, payload.getType())) {
+            return;
+        }
+    }
+
     ioService.post(boost::bind(&EventNotifier::addMessage, this, payload));
 }
 void wss::event::EventNotifier::addErrorListener(wss::event::EventNotifier::OnSendError listener) {

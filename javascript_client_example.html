@@ -159,6 +159,19 @@
             return false;
         }
 
+        function typingMessage() {
+            var payload = {
+                sender: parseInt(sender),
+                recipients: [parseInt(recipient)],
+                type: 'dogsy_notification_typing'
+            };
+
+            var sPayload = JSON.stringify(payload);
+            console.log("Sending payload: " + sPayload);
+            ws.send(sPayload);
+            return false;
+        }
+
         function hasReadMessage() {
             writeMessage("Has read 👌", false);
 
@@ -197,6 +210,7 @@
 <button type="button" name="Generate 500 messages" onclick="return generate(500)">Generate 500 messages</button>
 <button type="button" name="Generate 10 messages" onclick="return generate(10)">Generate 10 messages</button>
 <button type="button" name="Send 'has read' message" onclick="return hasReadMessage()">Send 'has read' message</button>
+<button type="button" name="Send 'typing' message" onclick="return typingMessage()">Send 'typing' message</button>
 
 
 <script>

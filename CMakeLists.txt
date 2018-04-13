@@ -1,25 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 project(wsserver VERSION 1.0.1)
 
-# ARCH
-if (WITH_ARCH)
-	set(PROJECT_ARCH ${WITH_ARCH})
-else ()
-	include(cmakes/FindLinuxPlatform.cmake)
-	if (IS_DEBIAN)
-		if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-			set(PROJECT_ARCH "amd64")
-		elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "unknown")
-			set(PROJECT_ARCH "i386")
-		else ()
-			set(PROJECT_ARCH ${CMAKE_SYSTEM_PROCESSOR})
-		endif ()
-	else ()
-		set(PROJECT_ARCH ${CMAKE_SYSTEM_PROCESSOR})
-	endif ()
-endif ()
-message(STATUS "Build arch: ${PROJECT_ARCH}")
-
 ## Build type
 if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Debug")
@@ -50,6 +31,45 @@ endif ()
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -Wextra -pedantic -O0") #-Werror
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS} -O3")
 
+# ARCH
+if (WITH_ARCH)
+	set(PROJECT_ARCH ${WITH_ARCH})
+else ()
+	include(cmakes/FindLinuxPlatform.cmake)
+	if (IS_DEBIAN)
+		if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+			set(PROJECT_ARCH "amd64")
+			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -m64")
+			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_DEBUG} -m64")
+		elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "unknown")
+			set(PROJECT_ARCH "i386")
+			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -m32")
+			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_DEBUG} -m32")
+		else ()
+			set(PROJECT_ARCH ${CMAKE_SYSTEM_PROCESSOR})
+
+			if (CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+				set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -m64")
+				set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_DEBUG} -m64")
+			else ()
+				set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -m32")
+				set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_DEBUG} -m32")
+			endif ()
+		endif ()
+	else ()
+		set(PROJECT_ARCH ${CMAKE_SYSTEM_PROCESSOR})
+		if (CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -m64")
+			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_DEBUG} -m64")
+		else ()
+			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -m32")
+			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_DEBUG} -m32")
+		endif ()
+	endif ()
+endif ()
+message(STATUS "Build arch: ${PROJECT_ARCH}")
+
+
 option(USE_SSL "Certifacates required" OFF)
 
 add_definitions(-DWS_BIN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/bin")
@@ -60,35 +80,6 @@ endif ()
 
 
 ### Dependencies
-
-# Threads
-find_package(Threads REQUIRED)
-
-# Boost
-set(Boost_DEBUG OFF)
-set(Boost_USE_STATIC_LIBS ON)
-set(Boost_USE_MULTITHREADED ON)
-find_package(Boost 1.54.0 COMPONENTS system thread coroutine context random REQUIRED)
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
-	find_package(Boost 1.54.0 COMPONENTS regex REQUIRED)
-endif ()
-
-# OpenSSL (libssl)
-if (APPLE)
-	set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
-endif ()
-find_package(OpenSSL 1.0.0 REQUIRED)
-
-# ToolBox++
-find_library(TOOLBOXPP_LIBRARIES NAMES toolboxpp)
-if (TOOLBOXPP_LIBRARIES-NOTFOUND)
-	message(CRITICAL "ToolBox++ not found")
-endif ()
-
-# cURL
-find_package(CURL 7.26.0 REQUIRED)
-
-
 include(cmakes/sources_sets.cmake)
 include(cmakes/dependencies.cmake)
 
@@ -119,7 +110,7 @@ set(SERVER_SRC
     src/server/event/EventNotifier.h
     src/server/event/PostbackTarget.cpp
     src/server/event/PostbackTarget.h
-    src/server/event/EventTarget.hpp
+    src/server/event/Target.hpp
     src/server/helpers/base64.cpp
     src/server/helpers/base64.h
     src/server/base/StandaloneService.h
@@ -135,7 +126,7 @@ set(SERVER_SRC
     src/server/chat/Statistics.h
     src/server/base/unid.cpp
     src/server/base/unid.h
-    )
+    src/server/event/RedisTarget.cpp src/server/event/RedisTarget.h)
 
 set(SERVER_EXEC_SRCS
     ${SERVER_SRC}

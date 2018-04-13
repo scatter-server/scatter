@@ -19,3 +19,6 @@
 [submodule "libs/hiredis"]
 	path = libs/hiredis
 	url = https://github.com/edwardstock/hiredis.git
+[submodule "libs/toolboxpp"]
+	path = libs/toolboxpp
+	url = https://github.com/edwardstock/toolboxpp.git

@@ -14,7 +14,7 @@
 * Custom payload via json
 * User-independent (negative side - user id can be only unsigned long number, strings not supported now)
 * Payload size limit
-* Multiple connections per user (hello **Viber** 👽)
+* Multiple connections per user (hello **Whatsapp** 👽)
 * Watchdog. Check for alive connections, using PING-PONG.
 * REST Api server
 	* list active users with simple statistics
@@ -45,6 +45,21 @@
 * [Debian Jessie DEB (amd64)](https://github.com/edwardstock/wsserver/releases/download/1.0.0/wsserver-1.0.0-linux-amd64.jessie.deb)
 * [Debian Stretch DEB (amd64)](https://github.com/edwardstock/wsserver/releases/download/1.0.0/wsserver-1.0.0-linux-amd64.stretch.deb)
 * [RHEL7 RPM (x86_64)](https://github.com/edwardstock/wsserver/releases/download/1.0.0/wsserver-1.0.0-linux-x86_64.el7.rpm)
+
+# Install
+* Debian
+```bash
+sudo dpkg -i wsserver.deb
+sudo apt-get -f install
+```
+
+* RedHat
+```bash
+yum install wsserver.rpm
+# or
+rpm -i wsserver.rpm
+
+```
 
 ## Requirements
 * GCC/CLang: -stdlib=c++14
@@ -91,7 +106,7 @@ tar -xzf boost_1_66_0.tar.gz && cd boost_1_66_0
 
 ### Prepare Debian 9 (stretch)
 ```
-apt-get install libboost1.62-all-dev libcurl4-openssl-dev
+apt-get install libboost1.62-all-dev libcurl4-openssl-dev libssl-dev
 ```
 
 ### Build
@@ -174,5 +189,6 @@ Then look for html doc inside **docs/** directory
 |             retryCount             | uint32     | 3                    | Maximum retries count                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 |           sendBotMessages          | bool       | false                | With this option, event notifier can ignore messages, that has come from Rest API method /send-message.  What is a bot messages? Bot message is a message with sender = 0 (at least, for now)                                                                                                                                                                                                                                                                                                                                                                                                                          |
 |         maxParallelWorkers         | uint16     | 16                   | Maximum event notifier workers that sends messages to targets. Recommended workers count: not less than server workers count. Better value: server workers * 2, cause http request is longer than just tcp packet via WS. <br/>Why http request? See below.                                                                                                                                                                                                                                                                                                                                                            |
+|             ignoreTypes            | string[]   | []                   | Ignored message types, that must be excluded from event notifier queue                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 |               targets              | object[]   |                      | Event notifier targets configuration.For now, only available "postback" target. This target send to your server copy of message payload via http and json.  <br/>Available: <br/>**postback**: <br/>**url**: postback url, for example - http://mydomain/postback-url, <br/>**connectionTimeoutSeconds**: maximum connection timeout to server. Big value can impact to performance and may require more event notifier workers. 10 seconds is most optimal (revealed by benchmarking). If 10 seconds is not enough, look at your server performance.,         **auth**: Same configuration as server.auth (see above) |
 |          targets[idx].type         | string     | "postback"           |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |

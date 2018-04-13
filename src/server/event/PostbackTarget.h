@@ -11,7 +11,7 @@
 
 #include <string>
 #include "json.hpp"
-#include "EventTarget.hpp"
+#include "Target.hpp"
 #include "../web/HttpClient.h"
 #include "../chat/ChatMessageServer.h"
 #include "../base/Auth.h"
