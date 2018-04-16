@@ -124,7 +124,7 @@ std::size_t wss::ConnectionStorage::disconnectWithoutPong() {
         if (!it->second.second) {
             WsConnectionPtr &conn = idMap[it->second.first][it->first];
             if (conn) {
-                conn->send_close(1000, "Dangling connection");
+                conn->send_close(4010/*@TODO remove harcode*/, "Dangling connection");
             } else {
                 // by some reason, connection already nullptr
                 idMap[it->second.first].erase(it->first);
