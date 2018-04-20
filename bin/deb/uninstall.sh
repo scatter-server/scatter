@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-rm -rf /usr/sbin/${PROJECT_NAME}
+rm -rf ${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}
 rm -rf /etc/wsserver
 /bin/systemctl stop wsserver.service
 /bin/systemctl disable wsserver.service

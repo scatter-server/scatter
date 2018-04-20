@@ -30,7 +30,7 @@ wss::MessagePayload::MessagePayload(user_id_t from, user_id_t to, std::string &&
     recipients(std::vector<user_id_t>{to}),
     text(std::move(message)),
     type(TYPE_TEXT),
-    timestamp(wss::helpers::getNowISODateTimeFractional()) {
+    timestamp(wss::helpers::getNowISODateTimeFractionalConfigAware()) {
 
 }
 wss::MessagePayload::MessagePayload(user_id_t from, std::vector<user_id_t> &&to, std::string &&message) :
@@ -39,7 +39,7 @@ wss::MessagePayload::MessagePayload(user_id_t from, std::vector<user_id_t> &&to,
     recipients(std::move(to)),
     text(std::move(message)),
     type(TYPE_TEXT),
-    timestamp(wss::helpers::getNowISODateTimeFractional()) {
+    timestamp(wss::helpers::getNowISODateTimeFractionalConfigAware()) {
     validate();
 }
 MessagePayload::MessagePayload(user_id_t from, user_id_t to, const std::string &message) :
@@ -48,7 +48,7 @@ MessagePayload::MessagePayload(user_id_t from, user_id_t to, const std::string &
     recipients(to),
     text(message),
     type(TYPE_TEXT),
-    timestamp(wss::helpers::getNowISODateTimeFractional()) {
+    timestamp(wss::helpers::getNowISODateTimeFractionalConfigAware()) {
 }
 wss::MessagePayload::MessagePayload(user_id_t from, const std::vector<user_id_t> &to, const std::string &message) :
     id(wss::unid::generator()()),
@@ -56,7 +56,7 @@ wss::MessagePayload::MessagePayload(user_id_t from, const std::vector<user_id_t>
     recipients(to),
     text(message),
     type(TYPE_TEXT),
-    timestamp(wss::helpers::getNowISODateTimeFractional()) {
+    timestamp(wss::helpers::getNowISODateTimeFractionalConfigAware()) {
     validate();
 }
 wss::MessagePayload::MessagePayload(const std::string &json) noexcept:
@@ -217,7 +217,7 @@ void wss::from_json(const wss::json &j, wss::MessagePayload &in) {
     }
 
     in.data = j.value("data", json());
-    in.timestamp = wss::helpers::getNowISODateTimeFractional();
+    in.timestamp = wss::helpers::getNowISODateTimeFractionalConfigAware();
 }
 
 wss::MessagePayload MessagePayload::createSendStatus(user_id_t to) {

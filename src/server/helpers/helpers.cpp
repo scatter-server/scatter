@@ -6,6 +6,7 @@
  * @link https://github.com/edwardstock
  */
 
+#include <src/server/base/Settings.hpp>
 #include "helpers.h"
 
 boost::posix_time::ptime wss::helpers::parseDate(const std::string &t, const char *format) {
@@ -34,12 +35,34 @@ std::string wss::helpers::formatBoostPTime(const boost::posix_time::ptime &t, co
 
     return ss.str();
 }
-std::string wss::helpers::getNowISODateTime() {
+std::string wss::helpers::getNowISODateTimeConfigAware() {
+    if (wss::Settings::get().server.useUniversalTime) {
+        return getNowUTCISODateTime();
+    }
+    return getNowLocalISODateTime();
+}
+
+std::string wss::helpers::getNowISODateTimeFractionalConfigAware() {
+    if (wss::Settings::get().server.useUniversalTime) {
+        return getNowUTCISODateTimeFractional();
+    }
+    return getNowLocalISODateTimeFractional();
+}
+
+std::string wss::helpers::getNowLocalISODateTime() {
     return formatBoostPTime(pt::second_clock::local_time(), DATE_TIME_ISO_8601);
 }
 
-std::string wss::helpers::getNowISODateTimeFractional() {
+std::string wss::helpers::getNowLocalISODateTimeFractional() {
     return formatBoostPTime(pt::microsec_clock::local_time(), DATE_TIME_ISO_8601_FRACTIONAL);
+}
+
+std::string wss::helpers::getNowUTCISODateTime() {
+    return formatBoostPTime(pt::second_clock::universal_time(), DATE_TIME_ISO_8601);
+}
+
+std::string wss::helpers::getNowUTCISODateTimeFractional() {
+    return formatBoostPTime(pt::microsec_clock::universal_time(), DATE_TIME_ISO_8601_FRACTIONAL);
 }
 
 std::string wss::helpers::humanReadableBytes(unsigned long bytes, bool si) {
@@ -62,10 +85,10 @@ std::string wss::helpers::humanReadableBytes(unsigned long bytes, bool si) {
 const std::string wss::helpers::generateRandomStringCRC32(unsigned short length) {
     std::string chars(
         "abcdefghijklmnopqrstuvwxyz"
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            "1234567890"
-            "!@#$%^&*()"
-            "`~-_=+[{]}\\|;:'\",<.>/? ");
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "1234567890"
+        "!@#$%^&*()"
+        "`~-_=+[{]}\\|;:'\",<.>/? ");
 
     boost::random::random_device rng;
     boost::random::uniform_int_distribution<> index_dist(0, static_cast<int>(chars.size() - 1));

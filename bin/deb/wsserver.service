@@ -15,8 +15,8 @@ Wants = network-online.target
 [Service]
 Type = simple
 PIDFile = /run/wsserver.pid
-ExecStartPre = /usr/sbin/wsserver --config /etc/wsserver/config.json --test=1
-ExecStart = /usr/sbin/wsserver --config /etc/wsserver/config.json
+ExecStartPre = @CMAKE_INSTALL_PREFIX@/bin/wsserver --config /etc/wsserver/config.json --test=1
+ExecStart = ${CMAKE_INSTALL_PREFIX}/bin/wsserver --config /etc/wsserver/config.json
 ExecReload = /bin/kill -s HUP $MAINPID
 ExecStop = /bin/kill -s TERM $MAINPID
 Restart = always

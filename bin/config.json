@@ -5,6 +5,7 @@
     "port": 8085,
     "workers": 8,
     "tmpDir": "/tmp",
+    "universalTime": false,
     "secure": {
       "crtPath": "../certs/debug.crt",
       "keyPath": "../certs/pdebug.key"

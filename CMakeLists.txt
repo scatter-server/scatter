@@ -9,6 +9,12 @@ endif ()
 ### Configuration
 set(CMAKE_ROOT_MODULE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
+if (NOT CMAKE_INSTALL_PREFIX)
+	set(CMAKE_INSTALL_PREFIX /usr)
+endif ()
+
+message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
+
 include(cmakes/configure.cmake)
 
 # gnu

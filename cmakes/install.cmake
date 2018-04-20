@@ -9,7 +9,7 @@ set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "WebSocket message server")
 
 install(
 	TARGETS ${PROJECT_NAME}
-	RUNTIME DESTINATION /usr/sbin
+	RUNTIME DESTINATION bin
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE #0755
 	GROUP_READ GROUP_EXECUTE
 	WORLD_READ WORLD_EXECUTE
@@ -27,14 +27,18 @@ include(FeatureSummary)
 
 option(DEBIAN_SYSTEMD_SERVICE "Enable systemd service for Debian system" OFF)
 if (IS_REDHAT)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/rhel/wsserver.service ${CMAKE_BINARY_DIR}/bin/rhel/wsserver.service)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/rhel/install.sh ${CMAKE_BINARY_DIR}/bin/rhel/install.sh)
+
 	install(
-		FILES ${CMAKE_CURRENT_SOURCE_DIR}/bin/rhel/wsserver.service DESTINATION /usr/lib/systemd/system
+		FILES ${CMAKE_BINARY_DIR}/bin/rhel/wsserver.service
+		DESTINATION /usr/lib/systemd/system
 		PERMISSIONS OWNER_READ OWNER_WRITE #0644
 		GROUP_READ
 		WORLD_READ
 	)
 
-	install(CODE "execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/bin/rhel/install.sh)")
+	install(CODE "execute_process(COMMAND ${CMAKE_BINARY_DIR}/bin/rhel/install.sh)")
 
 	add_custom_target(
 		uninstall
@@ -52,6 +56,8 @@ if (IS_REDHAT)
 	endif ()
 
 elseif (IS_DEBIAN)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/wsserver.service ${CMAKE_BINARY_DIR}/bin/deb/wsserver.service)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/install.sh ${CMAKE_BINARY_DIR}/bin/deb/install.sh)
 	install(
 		FILES ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/wsserver.service DESTINATION /lib/systemd/system
 		PERMISSIONS OWNER_READ OWNER_WRITE #0644
@@ -59,11 +65,11 @@ elseif (IS_DEBIAN)
 		WORLD_READ
 	)
 
-	install(CODE "execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/install_systemd.sh)")
+	install(CODE "execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/install)")
 
 	add_custom_target(
 		uninstall
-		COMMAND /bin/bash ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/uninstall_systemd.sh
+		COMMAND /bin/bash ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/uninstall.sh
 	)
 
 	set(CPACK_GENERATOR "DEB")

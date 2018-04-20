@@ -61,11 +61,27 @@ std::string formatBoostPTime(const pt::ptime &t, const char *format);
 
 /// \brief Returns Current date time
 /// \return string formatted in ISO-8601 format
-std::string getNowISODateTime();
+std::string getNowISODateTimeConfigAware();
 
 /// \brief Returns current date time, with resolution to mircoseconds
 /// \return Example output: 2017-12-08 19:11:28.003785
-std::string getNowISODateTimeFractional();
+std::string getNowISODateTimeFractionalConfigAware();
+
+/// \brief Returns Current date time
+/// \return string formatted in ISO-8601 format
+std::string getNowLocalISODateTime();
+
+/// \brief Returns current date time, with resolution to mircoseconds
+/// \return Example output: 2017-12-08 19:11:28.003785
+std::string getNowLocalISODateTimeFractional();
+
+/// \brief Returns Current date time
+/// \return string formatted in ISO-8601 format
+std::string getNowUTCISODateTime();
+
+/// \brief Returns current date time, with resolution to mircoseconds
+/// \return Example output: 2017-12-08 19:11:28.003785
+std::string getNowUTCISODateTimeFractional();
 
 /// \brief Format bytes to human readable string
 /// \param bytes Bytes count
