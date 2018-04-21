@@ -48,9 +48,10 @@
             ws = new WebSocket("ws://" + addr + ":8085/chat?id=" + sender);
             ws.onmessage = function (evt) {
                 var result = JSON.parse(evt.data);
+                var inSender = parseInt(result.sender);
                 console.log(result);
                 if (result.type === 'text') {
-                    writeMessage(result.text, true);
+                    writeMessage(result.text, parseInt(sender) !== inSender);
                 } else if (result.type === "notification_received") {
                     writeNotifier();
                 } else if (result.type === "b64image") {
@@ -124,7 +125,7 @@
                 return false;
             }
 
-            writeMessage(messageText, false);
+            // writeMessage(messageText, false);
 
             var payload = {
                 sender: parseInt(sender),
@@ -153,8 +154,10 @@
         function generate(num) {
             var input = $('#message');
             for (var i = 0; i < num; i++) {
-                input.val(i);
-                send();
+                setTimeout(function () {
+                    input.val(num);
+                    send();
+                }, 100);
             }
             return false;
         }

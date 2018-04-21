@@ -6,8 +6,8 @@
  * @link https://github.com/edwardstock
  */
 
-#ifndef DOGSY_REST_SERVER_H
-#define DOGSY_REST_SERVER_H
+#ifndef WSSERVER_REST_SERVER_H
+#define WSSERVER_REST_SERVER_H
 
 #include <string>
 #include <iostream>
@@ -115,4 +115,4 @@ class RestServer : public virtual StandaloneService {
 };
 
 }
-#endif //DOGSY_REST_SERVER_H
+#endif //WSSERVER_REST_SERVER_H

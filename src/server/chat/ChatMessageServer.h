@@ -155,6 +155,10 @@ class ChatMessageServer : public virtual StandaloneService {
     /// \param payload
     void send(const MessagePayload &payload);
 
+    /// \brief Send payload to specified recipient. NOT used payload recipient
+    /// \param payload
+    void sendTo(user_id_t recipient, const MessagePayload &payload);
+
     /// \brief Max number of workers for incoming messages
     /// \param size Recommended - core numbers
     void setThreadPoolSize(std::size_t size);
@@ -306,6 +310,8 @@ class ChatMessageServer : public virtual StandaloneService {
     /// \brief Calling message event listeners
     /// \param paylod
     void callOnMessageListeners(wss::MessagePayload paylod);
+
+    void handleUndeliverable(user_id_t uid, const wss::MessagePayload &payload);
 };
 
 }

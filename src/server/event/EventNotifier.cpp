@@ -9,6 +9,10 @@
 #include "EventNotifier.h"
 #include "../base/Settings.hpp"
 
+#ifdef ENABLE_REDIS_TARGET
+#include "RedisTarget.h"
+#endif
+
 wss::event::EventNotifier::EventNotifier(std::shared_ptr<wss::ChatMessageServer> &ws) :
     running(true),
     ws(ws),
@@ -25,6 +29,10 @@ wss::event::EventNotifier::~EventNotifier() {
     onStop();
 }
 
+void wss::event::EventNotifier::setRetryIntervalSeconds(int seconds) {
+    intervalSeconds = seconds;
+}
+
 std::shared_ptr<wss::event::Target> wss::event::EventNotifier::createTargetByConfig(const nlohmann::json &json) {
     using namespace toolboxpp::strings;
     const auto &eq = equalsIgnoreCase;
@@ -35,16 +43,28 @@ std::shared_ptr<wss::event::Target> wss::event::EventNotifier::createTargetByCon
         throw std::runtime_error("Target type required");
     }
 
+    std::shared_ptr<wss::event::Target> out;
+
     if (eq(type, "postback")) {
-        return std::make_shared<wss::event::PostbackTarget>(json);
-    } else {
+        out = std::make_shared<wss::event::PostbackTarget>(json);
+    } else
+        //@TODO shared modules and target map in config, instead of hardcode
+        #ifdef ENABLE_REDIS_TARGET
+        if(eq(type, "redis")) {
+            out = std::make_shared<wss::event::RedisTarget>(json);
+        } else
+        #endif
+    {
         throw std::runtime_error("Unsupported target type: " + type);
     }
+
+    if (!out->isValid()) {
+        throw std::runtime_error(fmt::format("Unable to init event target {0}: {1}", type, out->getErrorMessage()));
+    }
+
+    return out;
 }
 
-void wss::event::EventNotifier::setRetryIntervalSeconds(int seconds) {
-    intervalSeconds = seconds;
-}
 void wss::event::EventNotifier::setMaxTries(int tries) {
     maxRetries = tries;
 }
@@ -158,7 +178,8 @@ void wss::event::EventNotifier::handleMessageQueue() {
                       }
                   }
               } else {
-                  L_DEBUG_F("Event::Send", "Message has sent to target: %s", status.target->getType().c_str());
+                  const char *typeName = status.target->getType().c_str();
+                  L_DEBUG_F("Event::Send", "Message has sent to target: %s", typeName);
               }
             });
             // we don't need to join this thread back, we just need to send, and if not, re-enqueue payload
@@ -185,7 +206,7 @@ void wss::event::EventNotifier::onMessage(wss::MessagePayload &&payload) {
         return;
     }
 
-    for (auto &ignoredType: wss::Settings::get().event.ignoreTypes) {
+    for (const auto &ignoredType: wss::Settings::get().event.ignoreTypes) {
         if (toolboxpp::strings::equalsIgnoreCase(ignoredType, payload.getType())) {
             return;
         }
@@ -196,6 +217,10 @@ void wss::event::EventNotifier::onMessage(wss::MessagePayload &&payload) {
 void wss::event::EventNotifier::addErrorListener(wss::event::EventNotifier::OnSendError listener) {
     sendErrorListeners.push_back(listener);
 }
+/*
+ *  INFO ssh: Execute: mkdir -p /vagrant (sudo=true)
+DEBUG ssh: stderr: /var/tmp/sclxtHVCU: line 8: -E: command not found
+ */
 
 
 

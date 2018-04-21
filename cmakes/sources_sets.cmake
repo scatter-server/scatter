@@ -1,3 +1,48 @@
+### Sources
+set(SERVER_SRC
+    src/server/chat/ChatMessageServer.h
+    src/server/chat/ChatMessageServer.cpp
+    src/server/defs.h
+    src/server/chat/Message.h
+    src/server/chat/Message.cpp
+    src/server/helpers/threadsafe.hpp
+    src/server/restapi/RestServer.cpp
+    src/server/restapi/RestServer.h
+    src/server/restapi/ChatRestServer.cpp
+    src/server/restapi/ChatRestServer.h
+    src/server/helpers/helpers.h
+    src/server/helpers/helpers.cpp
+    src/server/web/HttpClient.cpp
+    src/server/web/HttpClient.h
+    src/server/event/EventNotifier.h
+    src/server/event/PostbackTarget.cpp
+    src/server/event/PostbackTarget.h
+    src/server/event/Target.hpp
+    src/server/helpers/base64.cpp
+    src/server/helpers/base64.h
+    src/server/base/StandaloneService.h
+    src/server/event/EventNotifier.cpp
+    src/server/base/ServerStarter.cpp
+    src/server/base/ServerStarter.h
+    src/server/base/Settings.hpp
+    src/server/base/Auth.h
+    src/server/base/Auth.cpp
+    src/server/chat/ConnectionStorage.cpp
+    src/server/chat/ConnectionStorage.h
+    src/server/chat/Statistics.cpp
+    src/server/chat/Statistics.h
+    src/server/base/unid.cpp
+    src/server/base/unid.h
+    )
+
+if (ENABLE_REDIS_TARGET)
+	set(SERVER_SRC
+	    ${SERVER_SRC}
+	    src/server/event/RedisTarget.cpp
+	    src/server/event/RedisTarget.h)
+endif ()
+
+
 set(COMMON_LIBS_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/json/src/json.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/args/cmdline.hpp

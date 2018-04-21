@@ -11,6 +11,7 @@
 
 #include "json.hpp"
 #include <iostream>
+#include <thread>
 
 #ifdef setConfig
 #undef setConfig
@@ -64,7 +65,8 @@ struct Chat {
     bool enableDeliveryStatus = false;
   };
   Message message = Message();
-  bool enableUndeliveredQueue = true;
+  bool enableUndeliveredQueue = false;
+  bool enableSendBack = false;
 };
 struct Event {
   bool enabled = false;
@@ -90,9 +92,9 @@ struct Settings {
 
 inline void from_json(const nlohmann::json &j, wss::Settings &in) {
     nlohmann::json server = j.at("server");
-    setConfig(in.server.address, server, "address");
-    setConfig(in.server.endpoint, server, "endpoint");
-    setConfig(in.server.port, server, "port");
+    setConfigDef(in.server.address, server, "address", "*");
+    setConfigDef(in.server.endpoint, server, "endpoint", "/chat");
+    setConfigDef(in.server.port, server, "port", (uint16_t) 8085);
     setConfigDef(in.server.useUniversalTime, server, "universalTime", true);
 
     if (server.find("secure") != server.end() && server["secure"].value("enabled", false)) {
@@ -103,13 +105,14 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
 
     if (server.find("auth") != server.end()) {
         in.server.auth = wss::AuthSettings();
-        setConfig(in.server.auth.type, server["auth"], "type");
+        setConfigDef(in.server.auth.type, server["auth"], "type", "noauth");
         in.server.auth.data = server.at("auth");
     }
 
-    uint32_t nativeThreadsMax = std::thread::hardware_concurrency() == 0 ? 2 : std::thread::hardware_concurrency();
-    setConfigDef(in.server.workers, server, "workers", nativeThreadsMax);
-    setConfig(in.server.tmpDir, server, "tmpDir");
+    uint32_t nativeThreadsMax =
+        (uint32_t) (std::thread::hardware_concurrency() == 0 ? 2 : std::thread::hardware_concurrency());
+    setConfigDef(in.server.workers, server, "workers", (uint32_t) nativeThreadsMax);
+    setConfigDef(in.server.tmpDir, server, "tmpDir", "/tmp");
     if (server.find("watchdog") != server.end()) {
         setConfig(in.server.watchdog.enabled, server["watchdog"], "enabled");
         if (in.server.watchdog.enabled) {
@@ -120,39 +123,53 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
     if (j.find("restApi") != j.end() && j["restApi"].value("enabled", in.restApi.enabled)) {
         nlohmann::json restApi = j.at("restApi");
 
-        setConfig(in.restApi.enabled, restApi, "enabled");
-        setConfig(in.restApi.port, restApi, "port");
-        setConfig(in.restApi.address, restApi, "address");
+        setConfigDef(in.restApi.enabled, restApi, "enabled", false);
+        setConfigDef(in.restApi.port, restApi, "port", (uint16_t) 8082);
+        setConfigDef(in.restApi.address, restApi, "address", "*");
         if (restApi.find("auth") != restApi.end()) {
             in.restApi.auth = wss::AuthSettings();
-            setConfig(in.restApi.auth.type, restApi["auth"], "type");
+            setConfigDef(in.restApi.auth.type, restApi["auth"], "type", "noauth");
             in.restApi.auth.data = restApi["auth"];
         }
     }
 
     if (j.find("chat") != j.end()) {
         nlohmann::json chat = j.at("chat");
-        setConfig(in.chat.message.maxSize, chat, "maxSize");
-        setConfig(in.chat.message.enableDeliveryStatus, chat, "enableDeliveryStatus");
-        setConfig(in.chat.enableUndeliveredQueue, chat, "enableUndeliveredQueue");
+        setConfigDef(in.chat.message.enableDeliveryStatus, chat, "enableDeliveryStatus", false);
+
+        if (chat.find("message") != chat.end()) {
+            nlohmann::json chatMessage = chat.at("message");
+
+            setConfigDef(in.chat.message.maxSize, chatMessage, "maxSize", "10M");
+            setConfigDef(in.chat.enableUndeliveredQueue, chatMessage, "enableUndeliveredQueue", false);
+            setConfigDef(in.chat.enableSendBack, chatMessage, "enableSendBack", false);
+        }
     }
 
     if (j.find("event") != j.end()) {
         nlohmann::json event = j.at("event");
         setConfig(in.event.enabled, event, "enabled");
         if (in.event.enabled) {
-            setConfig(in.event.enableRetry, event, "enableRetry");
-            setConfig(in.event.sendBotMessages, event, "sendBotMessages");
-            setConfig(in.event.retryIntervalSeconds, event, "retryIntervalSeconds");
-            setConfig(in.event.retryCount, event, "retryCount");
-            setConfig(in.event.maxParallelWorkers, event, "maxParallelWorkers");
+            if (event.find("targets") == event.end()) {
+                in.event.targets = nlohmann::json();
+                in.event.enabled = false;
+                // no one target, disabling event notifier
+                return;
+            }
+
+            in.event.targets = event.at("targets");
+
+            setConfigDef(in.event.enableRetry, event, "enableRetry", true);
+            setConfigDef(in.event.sendBotMessages, event, "sendBotMessages", false);
+            setConfigDef(in.event.retryIntervalSeconds, event, "retryIntervalSeconds", 10);
+            setConfigDef(in.event.retryCount, event, "retryCount", 3);
+            setConfigDef(in.event.maxParallelWorkers, event, "maxParallelWorkers", (uint32_t) (nativeThreadsMax * 2));
 
             if (event.find("ignoreTypes") != event.end() && event.at("ignoreTypes").is_array()) {
                 in.event.ignoreTypes = event.at("ignoreTypes").get<std::vector<std::string>>();
             } else {
                 in.event.ignoreTypes.resize(0);
             }
-            in.event.targets = event.at("targets");
         }
     }
 }

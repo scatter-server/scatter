@@ -23,6 +23,7 @@
 	* checking user is online
 * Event notifier. Server send message copy to your server. Supports couple auth methods: **basic**, **header-based**, **bearer**, **cookie**, et cetera (see [Configuring](#configuring) section)
     * url-based **postbacks** (or **webhook** as you like)
+    * redis (queue (rpush) and pubsub channel publishing)
 	
 ### Todo features
 * Lock-free queues (now implemented only for events [thx to cameron314](https://github.com/cameron314/concurrentqueue))
@@ -32,13 +33,9 @@
 * Event notifier targets:
 	* SQL (PostgreSQL, MySQL)
 	* MongoDB
-	* Redis pub/sub
 	* Maybe: Cloud DBs (like Firebase RTD)
 	* Maybe: some message queue like RabbitMQ
 	* Maybe: unix socket, tcp or udp, or all of this
-
-## In development
-* Storing to redis queue (**lpop/rpush**) undelivered messages.
 
 
 ## Downloads
@@ -53,7 +50,7 @@ sudo dpkg -i wsserver.deb
 sudo apt-get -f install
 ```
 
-* RedHat
+* Centos
 ```bash
 yum install wsserver.rpm
 # or
@@ -97,6 +94,9 @@ yum install openssl openssl-devel curl libcurl-devel
 
 * Boost
 ```bash
+# icu required for unicode regexes
+yum install libicu-devel
+
 wget https://dl.bintray.com/boostorg/release/1.66.0/source/boost_1_66_0.tar.gz
 tar -xzf boost_1_66_0.tar.gz && cd boost_1_66_0
 ./bootstrap.sh --prefix=/opt/boost1660
@@ -105,19 +105,22 @@ tar -xzf boost_1_66_0.tar.gz && cd boost_1_66_0
 
 
 ### Prepare Debian 9 (stretch)
-```
+```bash
 apt-get install libboost1.62-all-dev libcurl4-openssl-dev libssl-dev
 ```
 
 ### Build
+
+#### CMake options
+ * `-DBOOST_ROOT=/path/to/boost`
+ * `-DUSE_SSL=On|Off` - use secure server certificates required
+ * `-DENABLE_REDIS_TARGET=On|Off` - enable event notifier redis target
 ```bash
 # preparation
 
 # clone repo and cd /to/repo/path
 mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_SSL=ON/OFF # enables SSL if set ON, default - OFF
-# if boost installed in specific directory, just set it
-cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_SSL=ON/OFF -DBOOST_ROOT_DIR=/opt/boost1660
+cmake .. -DCMAKE_BUILD_TYPE=Release
 
 
 # making
@@ -152,6 +155,7 @@ Then look for html doc inside **docs/** directory
 |                port                | uint16     | 8085                 | Server incoming port. By default, is 8085. Don't forget to add rule for your **iptables** of **firewalld** rule: *8085/tcp*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 |               workers              | uint32     | (system dependent)   | Number of threads for incoming connections. Recommended value - processor cores number. If wsserver can't determine number of cores, will set value to: 2                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 |               tmpDir               | string     | "/tmp"               | Temporary dir. Reserved, not used now.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+|          useUniversalTime          | bool       | false                | Use local or universal time in messages (universal is UTC, local is system time).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 |                                    |            |                      |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 |               secure               | object     |                      |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 |           secure.crtPath           | string     | "../certs/debug.crt" | If server compiled with `-DUSE_SSL`, you must pass SSL cerificate file path.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -181,6 +185,7 @@ Then look for html doc inside **docs/** directory
 |               message              | object     |                      |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 |           message.maxSize          | string     | "10M"                | Maximum message size. <br/>If global payload size will be more than this value, server will disconnect client with error code 1009 (MESSAGE_TOO_BIG). <br/>Value suffix must be "M" - megabytes or "K" - kilobytes                                                                                                                                                                                                                                                                                                                                                                                                     |
 |    message.enableDeliveryStatus    | bool       | false                | Enable sending delivery status message to sender. When message will delivered to recipient, sender will receive a system message with type **notification_received**, informs about successfully delivery.  <br/><br/>*Notice: this option probably will be removed in the future, because it doesn't relates to sent messages by no means.*                                                                                                                                                                                                                                                                           |
+|        message.enableSendBack      | bool       | false                | Enable sending message back to the sender with the same payload (including timestamp and id)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 |                                    |            |                      |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 |          **event** object          |            |                      | **Event notifier. Another words, its a message re-sender to custom target**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 |               enabled              | bool       | false                | Enable event notifier                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -192,3 +197,4 @@ Then look for html doc inside **docs/** directory
 |             ignoreTypes            | string[]   | []                   | Ignored message types, that must be excluded from event notifier queue                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 |               targets              | object[]   |                      | Event notifier targets configuration.For now, only available "postback" target. This target send to your server copy of message payload via http and json.  <br/>Available: <br/>**postback**: <br/>**url**: postback url, for example - http://mydomain/postback-url, <br/>**connectionTimeoutSeconds**: maximum connection timeout to server. Big value can impact to performance and may require more event notifier workers. 10 seconds is most optimal (revealed by benchmarking). If 10 seconds is not enough, look at your server performance.,         **auth**: Same configuration as server.auth (see above) |
 |          targets[idx].type         | string     | "postback"           |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+|          targets[idx].type         | string     | "redis"              | (**available only with compile flag -DENABLE_REDIS_TARGET=On**) see [example.config.json](bin/example.config.json)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |

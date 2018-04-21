@@ -48,9 +48,13 @@ class MessagePayload {
     bool valid = true;
     std::string errorCause;
 
+    mutable std::string cachedJson;
+    mutable bool isCached = false;
+
     void fromJson(const json &json);
     void validate();
     void handleJsonException(const std::exception &e, const std::string &data);
+    void clearCachedJson();
 
     friend void to_json(wss::json &j, const wss::MessagePayload &in);
     friend void from_json(const wss::json &j, wss::MessagePayload &in);
@@ -143,6 +147,7 @@ class MessagePayload {
     /// \return Empty string if no one error. Check @see isValid() before
     const std::string getError() const;
 
+    MessagePayload &setSender(user_id_t id);
     MessagePayload &setRecipient(user_id_t id);
     MessagePayload &setRecipients(const std::vector<user_id_t> &recipients);
     MessagePayload &setRecipients(std::vector<user_id_t> &&recipients);

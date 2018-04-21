@@ -14,3 +14,6 @@ if ("${BUILD_TYPE}" STREQUAL "debug")
 		add_definitions(-DENABLE_BACKTRACE=1)
 	endif ()
 endif ()
+
+
+option(ENABLE_REDIS_TARGET "Enables redis target in event notifier" OFF)

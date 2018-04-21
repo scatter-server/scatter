@@ -114,6 +114,7 @@ class EventNotifier : public virtual wss::StandaloneService {
     boost::asio::io_service::work work;
 
     std::unordered_map<std::string, std::shared_ptr<Target>> targets;
+    std::unordered_map<std::string, std::shared_ptr<Target>> targetsUndelivered;
     moodycamel::ConcurrentQueue<SendStatus> sendQueue;
     std::vector<wss::event::EventNotifier::OnSendError> sendErrorListeners;
 

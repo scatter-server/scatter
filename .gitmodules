@@ -16,9 +16,9 @@
 [submodule "libs/googletest"]
 	path = libs/googletest
 	url = https://github.com/google/googletest.git
-[submodule "libs/hiredis"]
-	path = libs/hiredis
-	url = https://github.com/edwardstock/hiredis.git
 [submodule "libs/toolboxpp"]
 	path = libs/toolboxpp
 	url = https://github.com/edwardstock/toolboxpp.git
+[submodule "libs/cpp_redis"]
+	path = libs/cpp_redis
+	url = https://github.com/Cylix/cpp_redis.git

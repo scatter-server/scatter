@@ -11,13 +11,23 @@
       "keyPath": "../certs/pdebug.key"
     },
     "watchdog": {
-      "enabled": false,
+      "enabled": true,
       "connectionLifetimeSeconds": 600
     },
     "auth": {
       "type": "noauth",
-      "user": "user",
-      "password": "password"
+      "types": [
+        {
+          "type": "cookie",
+          "name": "dogsy",
+          "value": "auth_tokena"
+        },
+        {
+          "type": "cookie",
+          "name": "dogsy",
+          "value": "auth_keya"
+        }
+      ]
     }
   },
   "restApi": {
@@ -35,7 +45,7 @@
     "message": {
       "maxSize": "10M",
       "enableDeliveryStatus": false,
-      "enableSendBack": false
+      "enableSendBack": true
     }
   },
   "event": {
@@ -43,17 +53,22 @@
     "enableRetry": true,
     "sendBotMessages": false,
     "retryIntervalSeconds": 10,
-    "retryCount": 3,
+    "retryCount": 0,
     "maxParallelWorkers": 16,
+    "ignoreTypes": [
+      "notification_typing"
+    ],
     "targets": [
       {
-        "type": "postback",
-        "url": "http://mydomain/postback-url",
-        "connectionTimeoutSeconds": 10,
-        "auth": {
-          "type": "header",
-          "name": "X-My-Api-Token",
-          "value": "token"
+        "type": "redis",
+        "address": "127.0.0.1",
+        "port": 6379,
+        "database": 0,
+        "unixSocket": "/path/to/redis/redis.sock",
+        "password": "redis_password",
+        "mode": {
+          "type": "queue or channel (select one)",
+          "name": "my_redis_queue_where_i_will_get_messages"
         }
       }
     ]

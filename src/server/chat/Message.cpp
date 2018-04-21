@@ -101,11 +101,16 @@ const std::vector<user_id_t> wss::MessagePayload::getRecipients() const {
     return recipients;
 }
 const std::string wss::MessagePayload::toJson() const {
+    if (isCached) {
+        return cachedJson;
+    }
+
     json obj;
     to_json(obj, *this);
 
-    const std::string result = obj.dump();
-    return result;
+    cachedJson = obj.dump();
+    isCached = true;
+    return cachedJson;
 }
 const std::string wss::MessagePayload::getText() const {
     return text;
@@ -145,17 +150,26 @@ const std::string wss::MessagePayload::getError() const {
     return errorCause;
 }
 
+MessagePayload &MessagePayload::setSender(user_id_t id) {
+    sender = id;
+    clearCachedJson();
+    return *this;
+}
+
 wss::MessagePayload &MessagePayload::setRecipient(user_id_t id) {
     recipients.clear();
     recipients.push_back(id);
+    clearCachedJson();
     return *this;
 }
 wss::MessagePayload &MessagePayload::setRecipients(const std::vector<user_id_t> &recipients) {
     this->recipients = recipients;
+    clearCachedJson();
     return *this;
 }
 wss::MessagePayload &MessagePayload::setRecipients(std::vector<user_id_t> &&recipients) {
     this->recipients = std::move(recipients);
+    clearCachedJson();
     return *this;
 }
 
@@ -166,12 +180,21 @@ void wss::MessagePayload::handleJsonException(const std::exception &e, const std
     errorCause = ss.str();
     L_WARN("Chat::Message::Payload", ss.str().c_str())
 }
+
+void MessagePayload::clearCachedJson() {
+    if (isCached) {
+        isCached = false;
+        cachedJson.clear();
+    }
+}
+
 bool MessagePayload::operator==(wss::MessagePayload const &rhs) {
     return id == rhs.id;
 }
 
 wss::MessagePayload &MessagePayload::addRecipient(user_id_t to) {
     recipients.push_back(to);
+    clearCachedJson();
     return *this;
 }
 

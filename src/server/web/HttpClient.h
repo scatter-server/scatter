@@ -144,6 +144,7 @@ class Request : public IOContainer {
       GET, POST, PUT, DELETE
     };
  private:
+    /// \brief like multimap but vector
     KeyValueVector params;
     std::string url;
     Method method;

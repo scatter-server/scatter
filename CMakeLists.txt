@@ -96,44 +96,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/ini-parser/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/args)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/concurrentqueue)
 
-
-### Sources
-set(SERVER_SRC
-    src/server/chat/ChatMessageServer.h
-    src/server/chat/ChatMessageServer.cpp
-    src/server/defs.h
-    src/server/chat/Message.h
-    src/server/chat/Message.cpp
-    src/server/helpers/threadsafe.hpp
-    src/server/restapi/RestServer.cpp
-    src/server/restapi/RestServer.h
-    src/server/restapi/ChatRestServer.cpp
-    src/server/restapi/ChatRestServer.h
-    src/server/helpers/helpers.h
-    src/server/helpers/helpers.cpp
-    src/server/web/HttpClient.cpp
-    src/server/web/HttpClient.h
-    src/server/event/EventNotifier.h
-    src/server/event/PostbackTarget.cpp
-    src/server/event/PostbackTarget.h
-    src/server/event/Target.hpp
-    src/server/helpers/base64.cpp
-    src/server/helpers/base64.h
-    src/server/base/StandaloneService.h
-    src/server/event/EventNotifier.cpp
-    src/server/base/ServerStarter.cpp
-    src/server/base/ServerStarter.h
-    src/server/base/Settings.hpp
-    src/server/base/Auth.h
-    src/server/base/Auth.cpp
-    src/server/chat/ConnectionStorage.cpp
-    src/server/chat/ConnectionStorage.h
-    src/server/chat/Statistics.cpp
-    src/server/chat/Statistics.h
-    src/server/base/unid.cpp
-    src/server/base/unid.h
-    src/server/event/RedisTarget.cpp src/server/event/RedisTarget.h)
-
 set(SERVER_EXEC_SRCS
     ${SERVER_SRC}
     ${COMMON_LIBS_SRC}
@@ -143,8 +105,6 @@ set(SERVER_EXEC_SRCS
 
 add_subdirectory(libs/fmt/fmt)
 add_executable(${PROJECT_NAME} src/server/main.cpp ${SERVER_EXEC_SRCS})
-
-add_subdirectory(libs/hiredis)
 
 linkdeps(${PROJECT_NAME})
 if (WITH_BENCHMARK)

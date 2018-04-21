@@ -24,9 +24,23 @@ set_target_properties(
 	toolboxpp PROPERTIES
 	ENABLE_STATIC ON
 )
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/toolboxpp/include)
 
 # cURL
 find_package(CURL 7.26.0 REQUIRED)
+
+if (ENABLE_REDIS_TARGET)
+	add_definitions(-DENABLE_REDIS_TARGET)
+	# Redis client
+	add_subdirectory(libs/cpp_redis)
+	set_target_properties(
+		cpp_redis PROPERTIES
+		LOGGING_ENABLED Off
+		USE_CUSTOM_TCP_CLIENT Off
+		BUILD_EXAMPLES Off
+		BUILD_TESTS Off
+	)
+endif ()
 
 function (linkdeps DEPS_PROJECT)
 	message(STATUS "Link libraries to target \"${DEPS_PROJECT}\":")
@@ -65,8 +79,11 @@ function (linkdeps DEPS_PROJECT)
 	target_include_directories(${DEPS_PROJECT} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libs/fmt)
 	message(STATUS "\t- fmt")
 
-	# Redis (HIREDIS)
-	target_link_libraries(${DEPS_PROJECT} hiredis)
-	target_include_directories(${DEPS_PROJECT} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libs/hiredis)
-	message(STATUS "\t- hiredis")
+
+	if (ENABLE_REDIS_TARGET)
+		# Redis (cpp_redis)
+		target_link_libraries(${DEPS_PROJECT} cpp_redis)
+		target_include_directories(${DEPS_PROJECT} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libs/cpp_redis/includes)
+		message(STATUS "\t- cpp_redis")
+	endif ()
 endfunction ()

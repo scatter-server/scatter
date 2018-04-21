@@ -6,8 +6,8 @@
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_TYPES_H
-#define WSSERVER_TYPES_H
+#ifndef WSSERVER_DEFS_H
+#define WSSERVER_DEFS_H
 
 #include <memory>
 #include <thread>
@@ -45,4 +45,4 @@ using ConnectionMap = std::unordered_map<ConnectionId, T>;
 
 }
 
-#endif //WSSERVER_TYPES_H
+#endif //WSSERVER_DEFS_H
