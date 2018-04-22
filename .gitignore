@@ -1,6 +1,5 @@
 .DS_Store
 .idea/
-build/**
 bin/local.config.json
 cmake-build-*/
 *.a
@@ -12,3 +11,4 @@ cmake-build-*/
 remote-build.sh
 docs/html
 docs/latex
+build/**

@@ -43,45 +43,43 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
     settings = config;
 
     #ifdef USE_SECURE_SERVER
-    if (settings.server.secure.enabled) {
-        const std::string crtPath = settings.server.secure.crtPath;
-        const std::string keyPath = settings.server.secure.keyPath;
-        if (crtPath.empty() || keyPath.empty()) {
-            cerr << "Certificate and private key paths can'be empty";
-            valid = false;
-            return;
-        }
-
-        using toolboxpp::fs::exists;
-        if (!exists(crtPath)) {
-            cerr << "Certificate file not found at " << crtPath << endl;
-            valid = false;
-            return;
-        }
-        if (!exists(keyPath)) {
-            cerr << "Private Key file not found at " << keyPath << endl;
-            valid = false;
-            return;
-        }
-
-        std::stringstream endpointStream;
-        endpointStream << "^" << settings.server.endpoint << "?$";
-        const std::string res = endpointStream.str();
-
-        webSocket = std::make_shared<wss::ChatMessageServer>(
-            crtPath,
-            keyPath,
-            settings.server.address,
-            settings.server.port,
-            res
-        );
+    const std::string crtPath = settings.server.secure.crtPath;
+    const std::string keyPath = settings.server.secure.keyPath;
+    if (crtPath.empty() || keyPath.empty()) {
+        cerr << "Certificate and private key paths can'be empty";
+        valid = false;
+        return;
     }
+
+    using toolboxpp::fs::exists;
+    if (!exists(crtPath)) {
+        cerr << "Certificate file not found at " << crtPath << endl;
+        valid = false;
+        return;
+    }
+    if (!exists(keyPath)) {
+        cerr << "Private Key file not found at " << keyPath << endl;
+        valid = false;
+        return;
+    }
+
+    std::stringstream endpointStream;
+    endpointStream << "^" << settings.server.endpoint << "?$";
+    const std::string res = endpointStream.str();
+
+    webSocket = std::make_shared<wss::ChatServer>(
+        crtPath,
+        keyPath,
+        settings.server.address,
+        settings.server.port,
+        res
+    );
     #else
     // creating ws service
     std::stringstream endpointStream;
     endpointStream << "^" << settings.server.endpoint << "?$";
     const std::string res = endpointStream.str();
-    webSocket = std::make_shared<wss::ChatMessageServer>(settings.server.address, settings.server.port, res);
+    webSocket = std::make_shared<wss::ChatServer>(settings.server.address, settings.server.port, res);
     #endif
 
     // configuring ws service
@@ -114,7 +112,6 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
         restServer->setAddress(settings.restApi.address);
         restServer->setPort(settings.restApi.port);
         restServer->setAuth(settings.restApi.auth.data);
-
 
         runService(restServer);
     }

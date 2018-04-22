@@ -8,11 +8,11 @@
 
 #include "ChatRestServer.h"
 
-wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatMessageServer> &chatMessageServer) :
+wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServer) :
     RestServer("*", 8081),
     chatMessageServer(chatMessageServer) {
 }
-wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatMessageServer> &chatMessageServer,
+wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServer,
                                     const std::string &host,
                                     unsigned short port) :
     RestServer(host, port),

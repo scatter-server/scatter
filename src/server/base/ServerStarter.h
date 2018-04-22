@@ -22,7 +22,7 @@
 #include "cmdline.hpp"
 #include "../event/EventNotifier.h"
 #include "../restapi/ChatRestServer.h"
-#include "../chat/ChatMessageServer.h"
+#include "src/server/chat/ChatServer.h"
 #include "StandaloneService.h"
 #include "Settings.hpp"
 
@@ -39,7 +39,7 @@ class ServerStarter {
     std::vector<std::shared_ptr<wss::StandaloneService>> services;
 
  private: //services
-    std::shared_ptr<wss::ChatMessageServer> webSocket;
+    std::shared_ptr<wss::ChatServer> webSocket;
     std::shared_ptr<wss::ChatRestServer> restServer;
     std::shared_ptr<wss::event::EventNotifier> eventNotifier;
 

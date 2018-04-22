@@ -7,19 +7,19 @@
 # For more info about custom unit files, see
 # http://fedoraproject.org/wiki/Systemd#How_do_I_customize_a_unit_file.2F_add_a_custom_unit_file.3F
 [Unit]
-Description = WebSocket Message Server
+Description=WebSocket Message Server
 Documentation = https://github.com/edwardstock/wsserver
-After = network-online.target remote-fs.target nss-lookup.target
-Wants = network-online.target
+After=network-online.target remote-fs.target nss-lookup.target
+Wants=network-online.target
 
 [Service]
-Type = simple
-PIDFile = /run/wsserver.pid
-ExecStartPre = @CMAKE_INSTALL_PREFIX@/bin/wsserver --config /etc/wsserver/config.json --test=1
-ExecStart = ${CMAKE_INSTALL_PREFIX}/bin/wsserver --config /etc/wsserver/config.json
-ExecReload = /bin/kill -s HUP $MAINPID
-ExecStop = /bin/kill -s TERM $MAINPID
-Restart = always
+Type=simple
+PIDFile=/run/wsserver.pid
+ExecStartPre=${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME} --config /etc/${PROJECT_NAME}/config.json --test=1
+ExecStart=${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME} --config /etc/${PROJECT_NAME}/config.json
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s TERM $MAINPID
+Restart=always
 
 [Install]
-WantedBy = multi-user.target
+WantedBy=multi-user.target

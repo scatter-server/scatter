@@ -13,7 +13,7 @@
 #include "RedisTarget.h"
 #endif
 
-wss::event::EventNotifier::EventNotifier(std::shared_ptr<wss::ChatMessageServer> &ws) :
+wss::event::EventNotifier::EventNotifier(std::shared_ptr<wss::ChatServer> &ws) :
     running(true),
     ws(ws),
     enableRetry(wss::Settings::get().event.enableRetry),

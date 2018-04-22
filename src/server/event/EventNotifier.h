@@ -21,7 +21,7 @@
 #include <boost/thread.hpp>
 #include <cmath>
 #include <boost/asio/io_service.hpp>
-#include "../chat/ChatMessageServer.h"
+#include "src/server/chat/ChatServer.h"
 #include "../base/StandaloneService.h"
 #include "Target.hpp"
 #include "PostbackTarget.h"
@@ -51,7 +51,7 @@ class EventNotifier : public virtual wss::StandaloneService {
 
     /// \brief Constructs event notifier with shared_ptr of main chat server.
     /// \param ws
-    explicit EventNotifier(std::shared_ptr<wss::ChatMessageServer> &ws);
+    explicit EventNotifier(std::shared_ptr<wss::ChatServer> &ws);
     ~EventNotifier();
 
     /// \brief Set retry interval seconds.
@@ -104,7 +104,7 @@ class EventNotifier : public virtual wss::StandaloneService {
 
     std::atomic_bool running;
 
-    std::shared_ptr<wss::ChatMessageServer> ws;
+    std::shared_ptr<wss::ChatServer> ws;
     const bool enableRetry;
     const uint32_t maxParallelWorkers;
     int maxRetries;

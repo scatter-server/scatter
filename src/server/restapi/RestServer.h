@@ -19,7 +19,7 @@
 #include "server_http.hpp"
 #include "client_http.hpp"
 #include "../defs.h"
-#include "../chat/ChatMessageServer.h"
+#include "src/server/chat/ChatServer.h"
 #include "../base/StandaloneService.h"
 #include "../base/Auth.h"
 

@@ -22,8 +22,8 @@ using namespace std::placeholders;
 
 class ChatRestServer : public RestServer {
  public:
-    explicit ChatRestServer(std::shared_ptr<ChatMessageServer> &chatMessageServer);
-    ChatRestServer(std::shared_ptr<ChatMessageServer> &chatMessageServer, const std::string &host, unsigned short port);
+    explicit ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServer);
+    ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServer, const std::string &host, unsigned short port);
  protected:
     // actions
     /// \brief Statistics list method: GET /stats
@@ -52,7 +52,7 @@ class ChatRestServer : public RestServer {
     void createEndpoints() override;
 
  private:
-    std::shared_ptr<ChatMessageServer> chatMessageServer;
+    std::shared_ptr<ChatServer> chatMessageServer;
 };
 }
 

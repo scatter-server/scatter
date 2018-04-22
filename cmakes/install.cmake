@@ -27,22 +27,25 @@ include(FeatureSummary)
 
 option(DEBIAN_SYSTEMD_SERVICE "Enable systemd service for Debian system" OFF)
 if (IS_REDHAT)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/rhel/wsserver.service ${CMAKE_BINARY_DIR}/bin/rhel/wsserver.service)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/rhel/install.sh ${CMAKE_BINARY_DIR}/bin/rhel/install.sh)
+	set(SYSTEMD_SERVICE_PATH "/usr/lib/systemd/system")
+
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/wsserver.service ${CMAKE_BINARY_DIR}/bin/wsserver.service)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/install.sh ${CMAKE_BINARY_DIR}/bin/install.sh)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/uninstall.sh ${CMAKE_BINARY_DIR}/bin/uninstall.sh)
 
 	install(
-		FILES ${CMAKE_BINARY_DIR}/bin/rhel/wsserver.service
-		DESTINATION /usr/lib/systemd/system
+		FILES ${CMAKE_BINARY_DIR}/bin/wsserver.service
+		DESTINATION ${SYSTEMD_SERVICE_PATH}
 		PERMISSIONS OWNER_READ OWNER_WRITE #0644
 		GROUP_READ
 		WORLD_READ
 	)
 
-	install(CODE "execute_process(COMMAND ${CMAKE_BINARY_DIR}/bin/rhel/install.sh)")
+	install(CODE "execute_process(COMMAND ${CMAKE_BINARY_DIR}/bin/install.sh)")
 
 	add_custom_target(
 		uninstall
-		COMMAND /bin/bash ${CMAKE_CURRENT_SOURCE_DIR}/bin/rhel/uninstall.sh
+		COMMAND /bin/bash ${CMAKE_BINARY_DIR}/bin/uninstall.sh
 	)
 
 	set(CPACK_GENERATOR "RPM")
@@ -51,25 +54,25 @@ if (IS_REDHAT)
 	set(CPACK_RPM_PACKAGE_URL "https://github.com/edwardstock/wsserver")
 	set(CPACK_RPM_PACKAGE_GROUP "System Environment/Daemons")
 	set(CPACK_RPM_PACKAGE_REQUIRES "openssl >= 1.0.0, libcurl >= 7.29.0")
-	if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-		set(CPACK_RPM_PACKAGE_DEBUG ON)
-	endif ()
 
 elseif (IS_DEBIAN)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/wsserver.service ${CMAKE_BINARY_DIR}/bin/deb/wsserver.service)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/install.sh ${CMAKE_BINARY_DIR}/bin/deb/install.sh)
+	set(SYSTEMD_SERVICE_PATH "/lib/systemd/system")
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/wsserver.service ${CMAKE_BINARY_DIR}/bin/wsserver.service)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/install.sh ${CMAKE_BINARY_DIR}/bin/install.sh)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/uninstall.sh ${CMAKE_BINARY_DIR}/bin/uninstall.sh)
 	install(
-		FILES ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/wsserver.service DESTINATION /lib/systemd/system
+		FILES ${CMAKE_BINARY_DIR}/bin/wsserver.service
+		DESTINATION ${SYSTEMD_SERVICE_PATH}
 		PERMISSIONS OWNER_READ OWNER_WRITE #0644
 		GROUP_READ
 		WORLD_READ
 	)
 
-	install(CODE "execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/install)")
+	install(CODE "execute_process(COMMAND ${CMAKE_BINARY_DIR}/bin/install.sh)")
 
 	add_custom_target(
 		uninstall
-		COMMAND /bin/bash ${CMAKE_CURRENT_SOURCE_DIR}/bin/deb/uninstall.sh
+		COMMAND /bin/bash ${CMAKE_BINARY_DIR}/bin/uninstall.sh
 	)
 
 	set(CPACK_GENERATOR "DEB")

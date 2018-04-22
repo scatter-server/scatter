@@ -46,7 +46,7 @@ using MessageQueue = std::queue<MessagePayload>;
 namespace cal = boost::gregorian;
 namespace pt = boost::posix_time;
 
-class ChatMessageServer : public virtual StandaloneService {
+class ChatServer : public virtual StandaloneService {
  public:
     const int STATUS_OK = 1000;
     const int STATUS_GOING_AWAY = 1001;
@@ -132,7 +132,7 @@ class ChatMessageServer : public virtual StandaloneService {
 
  public:
     #ifdef USE_SECURE_SERVER
-    ChatMessageServer(
+    ChatServer(
         const std::string &crtPath, const std::string &keyPath,
         const std::string &host, unsigned short port, const std::string &regexPath);
     #else
@@ -140,11 +140,11 @@ class ChatMessageServer : public virtual StandaloneService {
     /// \param host hostname - ip address or hostname without protocol
     /// \param port port number
     /// \param regexPath endpoint regex: example ^/chat$
-    ChatMessageServer(const std::string &host, unsigned short port, const std::string &regexPath);
+    ChatServer(const std::string &host, unsigned short port, const std::string &regexPath);
     #endif
 
     /// \brief Stops io_service
-    ~ChatMessageServer();
+    ~ChatServer();
 
     void joinThreads() override;
     void detachThreads() override;
@@ -180,11 +180,11 @@ class ChatMessageServer : public virtual StandaloneService {
 
     /// \brief Adds event listener for message send event
     /// \param callback semantic: void(wss::MessagePayload &&, bool hasSent)
-    void addMessageListener(wss::ChatMessageServer::OnMessageSentListener callback);
+    void addMessageListener(wss::ChatServer::OnMessageSentListener callback);
 
     /// \brief Adds event listener for server stopping event
     /// \param callback semantic: void(void)
-    void addStopListener(wss::ChatMessageServer::OnServerStopListener callback);
+    void addStopListener(wss::ChatServer::OnServerStopListener callback);
 
     /// \brief Returns map of user connections/sends statistics. Key - user id, value - statistics
     /// \return
@@ -264,7 +264,7 @@ class ChatMessageServer : public virtual StandaloneService {
     bool enableMessageDeliveryStatus = false;
 
     // events
-    std::vector<wss::ChatMessageServer::OnMessageSentListener> messageListeners;
+    std::vector<wss::ChatServer::OnMessageSentListener> messageListeners;
     std::vector<OnServerStopListener> stopListeners;
 
     std::mutex frameBufferMutex;

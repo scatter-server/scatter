@@ -3,15 +3,17 @@
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/274ad89f657b4c0695568ec42f7f39bb)](https://www.codacy.com/app/edwardstock/wsserver?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=edwardstock/wsserver&amp;utm_campaign=Badge_Grade)
 
+## About
+Simple, standalone, websocket high-performance message server.
+
 ## Features
-* Multi-threaded (boost thread pool)
+* Native Multi-threading (boostthread pool)
 * Undelivered messages queue (with TTL in future)
 * Multiple recipients in one message
 * Transparent admin user (use sender=0)
-* ws/wss protocols (text, binary, continuation (fragmented)) 
+* ws/wss protocols (text, binary (but useless now)) 
 * Support fragmented frame buffer
-* Benchmark (almost stress-test) included
-* Custom payload via json
+* JSON payload
 * User-independent (negative side - user id can be only unsigned long number, strings not supported now)
 * Payload size limit
 * Multiple connections per user (hello **Whatsapp** 👽)
@@ -78,6 +80,10 @@ git clone --recursive https://github.com/edwardstock/wsserver.git
 ```
  
 ## Building
+### CMake options
+ * `-DBOOST_ROOT=/path/to/boost`
+ * `-DUSE_SSL=On|Off` - use secure server certificates required
+ * `-DENABLE_REDIS_TARGET=On|Off` - enable event notifier redis target
 
 ### Prepare Centos7
 * GCC-7 (if not installed (required 4.9+, recommended 5+))
@@ -110,11 +116,6 @@ apt-get install libboost1.62-all-dev libcurl4-openssl-dev libssl-dev
 ```
 
 ### Build
-
-#### CMake options
- * `-DBOOST_ROOT=/path/to/boost`
- * `-DUSE_SSL=On|Off` - use secure server certificates required
- * `-DENABLE_REDIS_TARGET=On|Off` - enable event notifier redis target
 ```bash
 # preparation
 

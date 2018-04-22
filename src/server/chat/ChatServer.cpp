@@ -7,12 +7,12 @@
  */
 
 #include <fmt/format.h>
-#include "ChatMessageServer.h"
+#include "ChatServer.h"
 #include "../helpers/helpers.h"
 #include "../base/Settings.hpp"
 
 #ifdef USE_SECURE_SERVER
-wss::ChatMessageServer::ChatMessageServer(
+wss::ChatServer::ChatServer(
     const std::string &crtPath, const std::string &keyPath,
     const std::string &host, unsigned short port, const std::string &regexPath) :
     useSSL(true),
@@ -24,17 +24,21 @@ wss::ChatMessageServer::ChatMessageServer(
     server->config.thread_pool_size = std::thread::hardware_concurrency();
     server->config.max_message_size = maxMessageSize;
 
-    if (host.length() > 1) {
+    if (host.length() == 15) {
         server->config.address = host;
     };
 
     endpoint = &server->endpoint[regexPath];
     endpoint->on_message = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
+      if (messagePtr->fin_rsv_opcode == FLAG_PONG) {
+          onPong(connectionPtr, messagePtr);
+          return;
+      }
       onMessage(connectionPtr, messagePtr);
     };
 
-    endpoint->on_open = std::bind(&wss::ChatMessageServer::onConnected, this, std::placeholders::_1);
-    endpoint->on_close = std::bind(&wss::ChatMessageServer::onDisconnected,
+    endpoint->on_open = std::bind(&wss::ChatServer::onConnected, this, std::placeholders::_1);
+    endpoint->on_close = std::bind(&wss::ChatServer::onDisconnected,
                                    this,
                                    std::placeholders::_1,
                                    std::placeholders::_2,
@@ -42,7 +46,7 @@ wss::ChatMessageServer::ChatMessageServer(
 
 }
 #else
-wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned short port, const std::string &regexPath) :
+wss::ChatServer::ChatServer(const std::string &host, unsigned short port, const std::string &regexPath) :
     useSSL(false),
     maxMessageSize(10 * 1024 * 1024),
     server(std::make_unique<WsServer>()),
@@ -64,8 +68,8 @@ wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned shor
       onMessage(connectionPtr, messagePtr);
     };
 
-    endpoint->on_open = std::bind(&wss::ChatMessageServer::onConnected, this, std::placeholders::_1);
-    endpoint->on_close = std::bind(&wss::ChatMessageServer::onDisconnected,
+    endpoint->on_open = std::bind(&wss::ChatServer::onConnected, this, std::placeholders::_1);
+    endpoint->on_close = std::bind(&wss::ChatServer::onDisconnected,
                                    this,
                                    std::placeholders::_1,
                                    std::placeholders::_2,
@@ -74,15 +78,15 @@ wss::ChatMessageServer::ChatMessageServer(const std::string &host, unsigned shor
 }
 #endif
 
-wss::ChatMessageServer::~ChatMessageServer() {
+wss::ChatServer::~ChatServer() {
     stopService();
     joinThreads();
 }
 
-void wss::ChatMessageServer::setThreadPoolSize(std::size_t size) {
+void wss::ChatServer::setThreadPoolSize(std::size_t size) {
     server->config.thread_pool_size = size;
 }
-void wss::ChatMessageServer::joinThreads() {
+void wss::ChatServer::joinThreads() {
     if (workerThread && workerThread->joinable()) {
         workerThread->join();
     }
@@ -91,7 +95,7 @@ void wss::ChatMessageServer::joinThreads() {
         watchdogThread->join();
     }
 }
-void wss::ChatMessageServer::detachThreads() {
+void wss::ChatServer::detachThreads() {
     if (workerThread) {
         workerThread->detach();
     }
@@ -99,7 +103,7 @@ void wss::ChatMessageServer::detachThreads() {
         watchdogThread->detach();
     }
 }
-void wss::ChatMessageServer::runService() {
+void wss::ChatServer::runService() {
     std::string hostname = "[any:address]";
     if (not server->config.address.empty()) {
         hostname = server->config.address;
@@ -115,17 +119,17 @@ void wss::ChatMessageServer::runService() {
         const long lifetime = wss::Settings::get().server.watchdog.connectionLifetimeSeconds;
         L_INFO_F("Watchdog", "Started with interval in 1 minute and lifetime=%lu", lifetime);
         watchdogThread =
-            std::make_unique<boost::thread>(boost::bind(&wss::ChatMessageServer::watchdogWorker, this, lifetime));
+            std::make_unique<boost::thread>(boost::bind(&wss::ChatServer::watchdogWorker, this, lifetime));
     }
 }
-void wss::ChatMessageServer::stopService() {
+void wss::ChatServer::stopService() {
     this->server->stop();
     if (watchdogThread) {
         watchdogThread->interrupt();
     }
 }
 
-void wss::ChatMessageServer::watchdogWorker(long lifetime) {
+void wss::ChatServer::watchdogWorker(long lifetime) {
     try {
         while (true) {
             boost::this_thread::sleep_for(boost::chrono::minutes(1));
@@ -169,11 +173,11 @@ void wss::ChatMessageServer::watchdogWorker(long lifetime) {
     }
 }
 
-void wss::ChatMessageServer::onPong(wss::WsConnectionPtr &connection, wss::WsMessagePtr) {
+void wss::ChatServer::onPong(wss::WsConnectionPtr &connection, wss::WsMessagePtr) {
     connectionStorage->markPongReceived(connection);
 }
 
-void wss::ChatMessageServer::onMessage(WsConnectionPtr &connection, WsMessagePtr message) {
+void wss::ChatServer::onMessage(WsConnectionPtr &connection, WsMessagePtr message) {
     MessagePayload payload;
     const short opcode = message->fin_rsv_opcode;
 
@@ -227,7 +231,7 @@ void wss::ChatMessageServer::onMessage(WsConnectionPtr &connection, WsMessagePtr
     send(payload);
 }
 
-void wss::ChatMessageServer::onMessageSent(wss::MessagePayload &&payload, std::size_t bytesTransferred, bool hasSent) {
+void wss::ChatServer::onMessageSent(wss::MessagePayload &&payload, std::size_t bytesTransferred, bool hasSent) {
     if (payload.isTypeOfSentStatus()) return;
 
     getStat(payload.getSender())
@@ -246,7 +250,7 @@ void wss::ChatMessageServer::onMessageSent(wss::MessagePayload &&payload, std::s
     }
 }
 
-void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
+void wss::ChatServer::onConnected(WsConnectionPtr connection) {
     wss::web::Request request;
     request.parseParamsString(connection->query_string);
     request.setHeaders(connection->header);
@@ -289,7 +293,7 @@ void wss::ChatMessageServer::onConnected(WsConnectionPtr connection) {
 
     redeliverMessagesTo(id);
 }
-void wss::ChatMessageServer::onDisconnected(WsConnectionPtr connection, int status, const std::string &reason) {
+void wss::ChatServer::onDisconnected(WsConnectionPtr connection, int status, const std::string &reason) {
     if (!connectionStorage->exists(connection->getId())) {
         return;
     }
@@ -305,11 +309,11 @@ void wss::ChatMessageServer::onDisconnected(WsConnectionPtr connection, int stat
     connectionStorage->remove(connection);
 }
 
-bool wss::ChatMessageServer::hasFrameBuffer(wss::user_id_t senderId) {
+bool wss::ChatServer::hasFrameBuffer(wss::user_id_t senderId) {
     return frameBuffer.find(senderId) != frameBuffer.end();
 }
 
-bool wss::ChatMessageServer::writeFrameBuffer(wss::user_id_t senderId, const std::string &input, bool clear) {
+bool wss::ChatServer::writeFrameBuffer(wss::user_id_t senderId, const std::string &input, bool clear) {
     std::lock_guard<std::mutex> fbLock(frameBufferMutex);
     if (!hasFrameBuffer(senderId)) {
         frameBuffer[senderId] = std::make_shared<std::stringstream>();
@@ -321,7 +325,7 @@ bool wss::ChatMessageServer::writeFrameBuffer(wss::user_id_t senderId, const std
     (*frameBuffer[senderId]) << input;
     return true;
 }
-const std::string wss::ChatMessageServer::readFrameBuffer(wss::user_id_t senderId, bool clear) {
+const std::string wss::ChatServer::readFrameBuffer(wss::user_id_t senderId, bool clear) {
     std::lock_guard<std::mutex> fbLock(frameBufferMutex);
     if (!hasFrameBuffer(senderId)) {
         return std::string();
@@ -334,7 +338,7 @@ const std::string wss::ChatMessageServer::readFrameBuffer(wss::user_id_t senderI
     return out;
 }
 
-int wss::ChatMessageServer::redeliverMessagesTo(const wss::MessagePayload &payload) {
+int wss::ChatServer::redeliverMessagesTo(const wss::MessagePayload &payload) {
     int cnt = 0;
     for (user_id_t id: payload.getRecipients()) {
         cnt += redeliverMessagesTo(id);
@@ -342,7 +346,7 @@ int wss::ChatMessageServer::redeliverMessagesTo(const wss::MessagePayload &paylo
 
     return cnt;
 }
-bool wss::ChatMessageServer::hasUndeliveredMessages(user_id_t recipientId) {
+bool wss::ChatServer::hasUndeliveredMessages(user_id_t recipientId) {
     std::lock_guard<std::mutex> locker(undeliveredMutex);
     L_DEBUG_F("Chat::Underlivered",
               "Check for undelivered messages for user %lu: %lu",
@@ -350,13 +354,13 @@ bool wss::ChatMessageServer::hasUndeliveredMessages(user_id_t recipientId) {
               undeliveredMessagesMap[recipientId].size());
     return !undeliveredMessagesMap[recipientId].empty();
 }
-wss::MessageQueue &wss::ChatMessageServer::getUndeliveredMessages(user_id_t recipientId) {
+wss::MessageQueue &wss::ChatServer::getUndeliveredMessages(user_id_t recipientId) {
     std::lock_guard<std::mutex> locker(undeliveredMutex);
     return undeliveredMessagesMap[recipientId];
 }
 
 std::vector<wss::MessageQueue *>
-wss::ChatMessageServer::getUndeliveredMessages(const MessagePayload &payload) {
+wss::ChatServer::getUndeliveredMessages(const MessagePayload &payload) {
     std::vector<wss::MessageQueue *> out;
     {
         std::lock_guard<std::mutex> locker(undeliveredMutex);
@@ -368,13 +372,13 @@ wss::ChatMessageServer::getUndeliveredMessages(const MessagePayload &payload) {
     return out;
 }
 
-void wss::ChatMessageServer::enqueueUndeliveredMessage(const wss::MessagePayload &payload) {
+void wss::ChatServer::enqueueUndeliveredMessage(const wss::MessagePayload &payload) {
     std::unique_lock<std::mutex> uniqueLock(undeliveredMutex);
     for (auto recipient: payload.getRecipients()) {
         undeliveredMessagesMap[recipient].push(payload);
     }
 }
-int wss::ChatMessageServer::redeliverMessagesTo(user_id_t recipientId) {
+int wss::ChatServer::redeliverMessagesTo(user_id_t recipientId) {
     if (not wss::Settings::get().chat.enableUndeliveredQueue) {
         return 0;
     }
@@ -396,7 +400,7 @@ int wss::ChatMessageServer::redeliverMessagesTo(user_id_t recipientId) {
     return cnt;
 }
 
-void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
+void wss::ChatServer::send(const wss::MessagePayload &payload) {
     // if recipient is a BOT, than we don't need to find conneciton, just trigger event notifier ilsteners
     if (payload.isForBot()) {
         callOnMessageListeners(payload);
@@ -416,7 +420,7 @@ void wss::ChatMessageServer::send(const wss::MessagePayload &payload) {
     }
 }
 
-void wss::ChatMessageServer::sendTo(user_id_t recipient, const wss::MessagePayload &payload) {
+void wss::ChatServer::sendTo(user_id_t recipient, const wss::MessagePayload &payload) {
     const std::string payloadString = payload.toJson();
     std::size_t payloadSize = payloadString.length();
     uint8_t fin_rsv_opcode = 129;//@TODO static_cast<uint8_t>(payload.isBinary() ? 130 : 129);
@@ -485,7 +489,7 @@ void wss::ChatMessageServer::sendTo(user_id_t recipient, const wss::MessagePaylo
     }
 }
 
-void wss::ChatMessageServer::handleUndeliverable(wss::user_id_t uid, const wss::MessagePayload &payload) {
+void wss::ChatServer::handleUndeliverable(wss::user_id_t uid, const wss::MessagePayload &payload) {
     if (!wss::Settings::get().chat.enableUndeliveredQueue) {
         L_DEBUG_F("Chat::Send", "User %lu is unavailable. Skipping message.", uid);
         return;
@@ -497,7 +501,7 @@ void wss::ChatMessageServer::handleUndeliverable(wss::user_id_t uid, const wss::
     L_DEBUG_F("Chat::Send", "User %lu is unavailable. Adding message to queue", uid);
 }
 
-std::size_t wss::ChatMessageServer::getThreadName() {
+std::size_t wss::ChatServer::getThreadName() {
     const std::thread::id id = std::this_thread::get_id();
     static std::size_t nextindex = 0;
     static std::mutex my_mutex;
@@ -508,25 +512,25 @@ std::size_t wss::ChatMessageServer::getThreadName() {
 
     return ids[id];
 }
-void wss::ChatMessageServer::setMessageSizeLimit(size_t bytes) {
+void wss::ChatServer::setMessageSizeLimit(size_t bytes) {
     maxMessageSize = bytes;
     server->config.max_message_size = maxMessageSize;
 }
-void wss::ChatMessageServer::setAuth(const nlohmann::json &config) {
+void wss::ChatServer::setAuth(const nlohmann::json &config) {
     auth = wss::auth::createFromConfig(config);
 }
 
-void wss::ChatMessageServer::setEnabledMessageDeliveryStatus(bool enabled) {
+void wss::ChatServer::setEnabledMessageDeliveryStatus(bool enabled) {
     enableMessageDeliveryStatus = enabled;
 }
 
-void wss::ChatMessageServer::addMessageListener(wss::ChatMessageServer::OnMessageSentListener callback) {
+void wss::ChatServer::addMessageListener(wss::ChatServer::OnMessageSentListener callback) {
     messageListeners.push_back(callback);
 }
-void wss::ChatMessageServer::addStopListener(wss::ChatMessageServer::OnServerStopListener callback) {
+void wss::ChatServer::addStopListener(wss::ChatServer::OnServerStopListener callback) {
     stopListeners.push_back(callback);
 }
-std::unique_ptr<wss::Statistics> &wss::ChatMessageServer::getStat(wss::user_id_t id) {
+std::unique_ptr<wss::Statistics> &wss::ChatServer::getStat(wss::user_id_t id) {
     if (statistics.find(id) == statistics.end()) {
         statistics[id] = std::make_unique<wss::Statistics>(id);
     }
@@ -534,10 +538,10 @@ std::unique_ptr<wss::Statistics> &wss::ChatMessageServer::getStat(wss::user_id_t
     return statistics[id];
 }
 
-const wss::UserMap<std::unique_ptr<wss::Statistics>> &wss::ChatMessageServer::getStats() {
+const wss::UserMap<std::unique_ptr<wss::Statistics>> &wss::ChatServer::getStats() {
     return statistics;
 }
-void wss::ChatMessageServer::callOnMessageListeners(wss::MessagePayload payload) {
+void wss::ChatServer::callOnMessageListeners(wss::MessagePayload payload) {
     for (auto &listener: messageListeners) {
         listener(std::move(payload));
     }
