@@ -62,10 +62,11 @@ struct Chat {
   struct Message {
     std::string maxSize = "10M";
     bool enableDeliveryStatus = false;
+    bool enableSendBack = false;
+    std::vector<std::string> ignoreTypesSendBack;
   };
   Message message = Message();
   bool enableUndeliveredQueue = false;
-  bool enableSendBack = false;
 };
 struct Event {
   bool enabled = false;
@@ -140,7 +141,14 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
 
             setConfigDef(in.chat.message.maxSize, chatMessage, "maxSize", "10M");
             setConfigDef(in.chat.enableUndeliveredQueue, chatMessage, "enableUndeliveredQueue", false);
-            setConfigDef(in.chat.enableSendBack, chatMessage, "enableSendBack", false);
+            setConfigDef(in.chat.message.enableSendBack, chatMessage, "enableSendBack", false);
+
+            if (chatMessage.find("ignoredTypesSendBack") != chatMessage.end()) {
+                in.chat.message.ignoreTypesSendBack =
+                    chatMessage.at("ignoredTypesSendBack").get<std::vector<std::string>>();
+            } else {
+                in.chat.message.ignoreTypesSendBack.resize(0);
+            }
         }
     }
 

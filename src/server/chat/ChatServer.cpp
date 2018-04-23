@@ -223,9 +223,17 @@ void wss::ChatServer::onMessage(WsConnectionPtr &connection, WsMessagePtr messag
         return;
     }
 
-    if (wss::Settings::get().chat.enableSendBack) {
-        sendTo(payload.getSender(), payload);
-
+    if (wss::Settings::get().chat.message.enableSendBack) {
+        bool isIgnoredType = false;
+        for (const auto &ignore: wss::Settings::get().chat.message.ignoreTypesSendBack) {
+            if (toolboxpp::strings::equalsIgnoreCase(payload.getType(), ignore)) {
+                isIgnoredType = true;
+                break;
+            }
+        }
+        if (!isIgnoredType) {
+            sendTo(payload.getSender(), payload);
+        }
     }
 
     send(payload);

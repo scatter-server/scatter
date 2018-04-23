@@ -206,21 +206,21 @@ void wss::event::EventNotifier::onMessage(wss::MessagePayload &&payload) {
         return;
     }
 
+    bool isIgnoredType = false;
     for (const auto &ignoredType: wss::Settings::get().event.ignoreTypes) {
         if (toolboxpp::strings::equalsIgnoreCase(ignoredType, payload.getType())) {
-            return;
+            isIgnoredType = true;
+            break;
         }
     }
 
-    ioService.post(boost::bind(&EventNotifier::addMessage, this, payload));
+    if (!isIgnoredType) {
+        ioService.post(boost::bind(&EventNotifier::addMessage, this, payload));
+    }
 }
 void wss::event::EventNotifier::addErrorListener(wss::event::EventNotifier::OnSendError listener) {
     sendErrorListeners.push_back(listener);
 }
-/*
- *  INFO ssh: Execute: mkdir -p /vagrant (sudo=true)
-DEBUG ssh: stderr: /var/tmp/sclxtHVCU: line 8: -E: command not found
- */
 
 
 
