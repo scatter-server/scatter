@@ -231,7 +231,7 @@ void wss::ChatServer::onMessage(WsConnectionPtr &connection, WsMessagePtr messag
                 break;
             }
         }
-        if (!isIgnoredType) {
+        if (!isIgnoredType && !payload.isForBot()) {
             sendTo(payload.getSender(), payload);
         }
     }
