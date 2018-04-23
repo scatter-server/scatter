@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 project(wsserver VERSION 1.0.2)
 
+add_definitions(-DWSSERVER_VERSION="${PROJECT_VERSION}")
+
 ## Build type
 if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Debug")

@@ -1,7 +1,7 @@
 ### Sources
 set(SERVER_SRC
-    src/server/chat/ChatMessageServer.h
-    src/server/chat/ChatMessageServer.cpp
+    src/server/chat/ChatServer.h
+    src/server/chat/ChatServer.cpp
     src/server/defs.h
     src/server/chat/Message.h
     src/server/chat/Message.cpp

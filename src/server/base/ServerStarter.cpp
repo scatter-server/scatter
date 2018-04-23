@@ -13,10 +13,17 @@ static wss::ServerStarter *self; // for signal instance
 wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
     args.add<std::string>("config", 'C', "Config file path /path/to/config.json", true);
     args.add<bool>("test", 'T', "Test config", false, false);
-    args.add<uint16_t>("verbosity", 'v', "Log level: 0 (error,critical), 1(0 + info), 2(all)", false, 2);
+    args.add<uint16_t>("verbosity", 'l', "Log level: 0 (error,critical), 1(0 + info), 2(all)", false, 2);
+
+    if (argc == 2 && strcmp(argv[argc - 1], "-v") == 0) {
+        std::cout << WSSERVER_VERSION << std::endl;
+        return;
+    }
+
+    bool parsed = args.parse(argc, reinterpret_cast<const char *const *>(argv));
 
     //@TODO boost::program_options
-    if (!args.parse(argc, reinterpret_cast<const char *const *>(argv))) {
+    if (!parsed) {
         std::cerr << args.error_full();
         std::cout << args.usage();
         valid = false;

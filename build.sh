@@ -38,13 +38,13 @@ then
 	fi
 fi
 
-git clone --recursive https://github.com/edwardstock/toolboxpp.git toolbox
-mkdir -p toolbox/build
-cd toolbox/build
-sudo ${CMAKE_BIN} .. -DCMAKE_BUILD_TYPE=Release
-${CMAKE_BIN} --build . --target toolboxpp
-sudo ${CMAKE_BIN} --build . --target install
-cd ../../
+#git clone --recursive https://github.com/edwardstock/toolboxpp.git toolbox
+#mkdir -p toolbox/build
+#cd toolbox/build
+#sudo ${CMAKE_BIN} .. -DCMAKE_BUILD_TYPE=Release
+#${CMAKE_BIN} --build . --target toolboxpp
+#sudo ${CMAKE_BIN} --build . --target install
+#cd ../../
 
 mkdir -p build && cd build
 sudo ${CMAKE_BIN} .. -DCMAKE_BUILD_TYPE=Release

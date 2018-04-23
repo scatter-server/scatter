@@ -33,7 +33,6 @@ struct AuthSettings {
 
 struct Server {
   struct Secure {
-    bool enabled = false;
     std::string crtPath;
     std::string keyPath;
   };
@@ -97,8 +96,7 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
     setConfigDef(in.server.port, server, "port", (uint16_t) 8085);
     setConfigDef(in.server.useUniversalTime, server, "universalTime", true);
 
-    if (server.find("secure") != server.end() && server["secure"].value("enabled", false)) {
-        in.server.secure.enabled = true;
+    if (server.find("secure") != server.end()) {
         setConfig(in.server.secure.crtPath, server["secure"], "crtPath");
         setConfig(in.server.secure.keyPath, server["secure"], "keyPath");
     }

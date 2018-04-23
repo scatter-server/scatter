@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DOXY_BIN=`which doxygen | tr '\n' ' '`
+DOXY_BIN=`which doxygen | tr -d '\n'`
 if [ "${DOXY_BIN}" == "" ]
 then
 	echo "Doxygen binary did not found!"
@@ -16,6 +16,5 @@ cd ../
 
 echo -e ""
 echo "Complete!"
-PWD=$(pwd)
 echo "Now just open ${PWD}/docs/html/index.html"
 
