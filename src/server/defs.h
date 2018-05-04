@@ -23,7 +23,7 @@
 namespace wss {
 
 using user_id_t = unsigned long;
-using ConnectionId = unsigned long;
+using conn_id_t = unsigned long;
 
 #ifdef USE_SECURE_SERVER
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WSS>;
@@ -41,7 +41,7 @@ template<typename T>
 using UserMap = std::unordered_map<user_id_t, T>;
 
 template<typename T>
-using ConnectionMap = std::unordered_map<ConnectionId, T>;
+using ConnectionMap = std::unordered_map<conn_id_t, T>;
 
 }
 

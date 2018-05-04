@@ -8,7 +8,9 @@ cmake-build-*/
 *.so
 *.cpp.o
 .mainframer
+*.bin
 remote-build.sh
 docs/html
 docs/latex
 build/**
+javascript_client_local.html

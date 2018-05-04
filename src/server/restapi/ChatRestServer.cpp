@@ -8,6 +8,22 @@
 
 #include "ChatRestServer.h"
 
+#ifdef USE_SECURE_SERVER
+wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServer,
+                                    const std::string &crtPath,
+                                    const std::string &keyPath) :
+    RestServer(crtPath, keyPath, "*", 8081),
+    chatMessageServer(chatMessageServer) {
+}
+
+wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServer,
+                                    const std::string &crtPath, const std::string &keyPath,
+                                    const std::string &host,
+                                    unsigned short port) :
+    RestServer(crtPath, keyPath, host, port),
+    chatMessageServer(chatMessageServer) {
+}
+#else
 wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServer) :
     RestServer("*", 8081),
     chatMessageServer(chatMessageServer) {
@@ -18,6 +34,7 @@ wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServ
     RestServer(host, port),
     chatMessageServer(chatMessageServer) {
 }
+#endif
 
 void wss::ChatRestServer::createEndpoints() {
     RestServer::createEndpoints();

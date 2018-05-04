@@ -81,12 +81,17 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
         settings.server.port,
         res
     );
+
+    // creating rest api service
+    restServer = std::make_shared<wss::ChatRestServer>(webSocket, crtPath, keyPath);
     #else
     // creating ws service
     std::stringstream endpointStream;
     endpointStream << "^" << settings.server.endpoint << "?$";
     const std::string res = endpointStream.str();
     webSocket = std::make_shared<wss::ChatServer>(settings.server.address, settings.server.port, res);
+
+    restServer = std::make_shared<wss::ChatRestServer>(webSocket);
     #endif
 
     // configuring ws service
@@ -96,8 +101,7 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
 
     // creating event notifier service
     eventNotifier = std::make_shared<wss::event::EventNotifier>(webSocket);
-    // creating rest api service
-    restServer = std::make_shared<wss::ChatRestServer>(webSocket);
+
 
     // adding commands to run websocket and to join it threads
     runService(webSocket);

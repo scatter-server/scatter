@@ -13,23 +13,22 @@
 
 #ifdef USE_SECURE_SERVER
 wss::ChatServer::ChatServer(
-    const std::string &crtPath, const std::string &keyPath,
+    const std::string &crtPath, const std::string &privKeyPath,
     const std::string &host, unsigned short port, const std::string &regexPath) :
     useSSL(true),
     maxMessageSize(10 * 1024 * 1024),
-    server(std::make_unique<WsServer>(crtPath, keyPath)),
-    connectionStorage(std::make_unique<wss::ConnectionStorage>())
-{
+    server(std::make_unique<WsServer>(crtPath, privKeyPath)),
+    connectionStorage(std::make_unique<wss::ConnectionStorage>()) {
     server->config.port = port;
-    server->config.thread_pool_size = std::thread::hardware_concurrency();
-    server->config.max_message_size = maxMessageSize;
+    server->config.threadPoolSize = std::thread::hardware_concurrency();
+    server->config.maxMessageSize = maxMessageSize;
 
-    if (host.length() == 15) {
+    if (host.length() >= 7) {
         server->config.address = host;
     };
 
     endpoint = &server->endpoint[regexPath];
-    endpoint->on_message = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
+    endpoint->onMessage = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
       if (messagePtr->fin_rsv_opcode == FLAG_PONG) {
           onPong(connectionPtr, messagePtr);
           return;
@@ -37,8 +36,14 @@ wss::ChatServer::ChatServer(
       onMessage(connectionPtr, messagePtr);
     };
 
-    endpoint->on_open = std::bind(&wss::ChatServer::onConnected, this, std::placeholders::_1);
-    endpoint->on_close = std::bind(&wss::ChatServer::onDisconnected,
+    endpoint->onOpen = std::bind(&wss::ChatServer::onConnected, this, std::placeholders::_1);
+    endpoint->onError = [](WsConnectionPtr, const boost::system::error_code &ec) {
+      L_WARN_F("Server::Connection::Error", "Connection error: %s %s",
+               ec.category().name(),
+               ec.message().c_str()
+      )
+    };
+    endpoint->onClose = std::bind(&wss::ChatServer::onDisconnected,
                                    this,
                                    std::placeholders::_1,
                                    std::placeholders::_2,
@@ -52,15 +57,15 @@ wss::ChatServer::ChatServer(const std::string &host, unsigned short port, const 
     server(std::make_unique<WsServer>()),
     connectionStorage(std::make_unique<wss::ConnectionStorage>()) {
     server->config.port = port;
-    server->config.thread_pool_size = std::thread::hardware_concurrency();
-    server->config.max_message_size = maxMessageSize;
+    server->config.threadPoolSize = std::thread::hardware_concurrency();
+    server->config.maxMessageSize = maxMessageSize;
 
     if (host.length() == 15) {
         server->config.address = host;
     };
 
     endpoint = &server->endpoint[regexPath];
-    endpoint->on_message = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
+    endpoint->onMessage = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
       if (messagePtr->fin_rsv_opcode == FLAG_PONG) {
           onPong(connectionPtr, messagePtr);
           return;
@@ -68,8 +73,14 @@ wss::ChatServer::ChatServer(const std::string &host, unsigned short port, const 
       onMessage(connectionPtr, messagePtr);
     };
 
-    endpoint->on_open = std::bind(&wss::ChatServer::onConnected, this, std::placeholders::_1);
-    endpoint->on_close = std::bind(&wss::ChatServer::onDisconnected,
+    endpoint->onOpen = std::bind(&wss::ChatServer::onConnected, this, std::placeholders::_1);
+    endpoint->onError = [](WsConnectionPtr, const boost::system::error_code &ec) {
+        L_WARN_F("Server::Connection::Error", "Connection error: %s %s",
+                 ec.category().name(),
+                 ec.message().c_str()
+        )
+    };
+    endpoint->onClose = std::bind(&wss::ChatServer::onDisconnected,
                                    this,
                                    std::placeholders::_1,
                                    std::placeholders::_2,
@@ -84,7 +95,7 @@ wss::ChatServer::~ChatServer() {
 }
 
 void wss::ChatServer::setThreadPoolSize(std::size_t size) {
-    server->config.thread_pool_size = size;
+    server->config.threadPoolSize = size;
 }
 void wss::ChatServer::joinThreads() {
     if (workerThread && workerThread->joinable()) {
@@ -133,7 +144,8 @@ void wss::ChatServer::watchdogWorker(long lifetime) {
     try {
         while (true) {
             boost::this_thread::sleep_for(boost::chrono::minutes(1));
-            for (auto &t: connectionStorage->get()) {
+            for (const std::pair<user_id_t, std::unordered_map<conn_id_t, WsConnectionPtr>> &t: connectionStorage
+                ->get()) {
                 const auto &ref = getStat(t.first);
                 for (const auto &conn: t.second) {
                     if (!conn.second) {
@@ -142,22 +154,23 @@ void wss::ChatServer::watchdogWorker(long lifetime) {
                     }
 
                     if (ref->getInactiveTime() >= lifetime) {
-                        conn.second->send_close(STATUS_INACTIVE_CONNECTION,
-                                                fmt::format("Inactive more than {0:d} seconds ({1:d})",
-                                                            lifetime,
-                                                            ref->getInactiveTime()));
+                        conn.second->sendClose(STATUS_INACTIVE_CONNECTION,
+                                               fmt::format("Inactive more than {0:d} seconds ({1:d})",
+                                                           lifetime,
+                                                           ref->getInactiveTime()));
                     } else {
                         auto pingStream = std::make_shared<WsMessageStream>();
                         *pingStream << ".";
-                        conn.second->send(pingStream, [conn, this](const SimpleWeb::error_code &err) {
-                          if (err) {
-                              // does not matter, what happens, anyway, this mean connection is bad, broken pipe, eof or something else
-                              connectionStorage->remove(conn.second);
-                          } else {
-                              // lazy ping pong
-                              connectionStorage->markPongWait(conn.second);
-                          }
-                        }, FLAG_PING);
+                        conn.second
+                            ->send(std::move(pingStream), [conn, this](const SimpleWeb::ErrorCode &err, std::size_t) {
+                              if (err) {
+                                  // does not matter, what happens, anyway, this mean connection is bad, broken pipe, eof or something else
+                                  connectionStorage->remove(conn.second);
+                              } else {
+                                  // lazy ping pong
+                                  connectionStorage->markPongWait(conn.second);
+                              }
+                            }, FLAG_PING);
                     }
                 }
             }
@@ -178,6 +191,8 @@ void wss::ChatServer::onPong(wss::WsConnectionPtr &connection, wss::WsMessagePtr
 }
 
 void wss::ChatServer::onMessage(WsConnectionPtr &connection, WsMessagePtr message) {
+    std::lock_guard<std::recursive_mutex> lock(connectionMutex);
+    L_DEBUG_F("Chat::Incoming", "On thread: %lu", getThreadName());
     MessagePayload payload;
     const short opcode = message->fin_rsv_opcode;
 
@@ -205,9 +220,9 @@ void wss::ChatServer::onMessage(WsConnectionPtr &connection, WsMessagePtr messag
              * @Deprecated
              */
             if (buffered.length() > maxMessageSize) {
-                connection->send_close(STATUS_MESSAGE_TOO_BIG,
-                                       "Message to big. Maximum size: "
-                                           + wss::helpers::humanReadableBytes(maxMessageSize));
+                connection->sendClose(STATUS_MESSAGE_TOO_BIG,
+                                      "Message to big. Maximum size: "
+                                          + wss::helpers::humanReadableBytes(maxMessageSize));
                 return;
             }
 
@@ -219,7 +234,7 @@ void wss::ChatServer::onMessage(WsConnectionPtr &connection, WsMessagePtr messag
     }
 
     if (!payload.isValid()) {
-        connection->send_close(STATUS_INVALID_MESSAGE_PAYLOAD, "Invalid payload. " + payload.getError());
+        connection->sendClose(STATUS_INVALID_MESSAGE_PAYLOAD, "Invalid payload. " + payload.getError());
         return;
     }
 
@@ -260,22 +275,22 @@ void wss::ChatServer::onMessageSent(wss::MessagePayload &&payload, std::size_t b
 
 void wss::ChatServer::onConnected(WsConnectionPtr connection) {
     wss::web::Request request;
-    request.parseParamsString(connection->query_string);
+    request.parseParamsString(connection->queryString);
     request.setHeaders(connection->header);
 
     if (!auth->validateAuth(request)) {
-        connection->send_close(STATUS_UNAUTHORIZED, "Unauthorized");
+        connection->sendClose(STATUS_UNAUTHORIZED, "Unauthorized");
         return;
     }
 
     if (request.getParams().empty()) {
-        L_WARN_F("Chat::Connect::Error", "Invalid request: %s", connection->query_string.c_str());
-        connection->send_close(STATUS_INVALID_QUERY_PARAMS, "Invalid request");
+        L_WARN_F("Chat::Connect::Error", "Invalid request: %s", connection->queryString.c_str());
+        connection->sendClose(STATUS_INVALID_QUERY_PARAMS, "Invalid request");
         return;
     } else if (!request.hasParam("id") || request.getParam("id").empty()) {
         L_WARN("Chat::Connect::Error", "Id required in query parameter: ?id={id}");
 
-        connection->send_close(STATUS_INVALID_QUERY_PARAMS, "Id required in query parameter: ?id={id}");
+        connection->sendClose(STATUS_INVALID_QUERY_PARAMS, "Id required in query parameter: ?id={id}");
         return;
     }
 
@@ -285,7 +300,7 @@ void wss::ChatServer::onConnected(WsConnectionPtr connection) {
     } catch (const std::invalid_argument &e) {
         const std::string errReason = "Passed invalid id: id=" + request.getParam("id") + ". " + e.what();
         L_WARN("Chat::Connect::Error", errReason);
-        connection->send_close(STATUS_INVALID_QUERY_PARAMS, errReason);
+        connection->sendClose(STATUS_INVALID_QUERY_PARAMS, errReason);
         return;
     }
 
@@ -294,8 +309,8 @@ void wss::ChatServer::onConnected(WsConnectionPtr connection) {
 
     L_DEBUG_F("Chat::Connect", "User %lu connected (%s:%d) on thread %lu",
               id,
-              connection->remote_endpoint_address().c_str(),
-              connection->remote_endpoint_port(),
+              connection->remoteEndpointAddress().c_str(),
+              connection->remoteEndpointPort(),
               getThreadName()
     );
 
@@ -446,8 +461,7 @@ void wss::ChatServer::sendTo(user_id_t recipient, const wss::MessagePayload &pay
     try {
         const auto &connections = connectionStorage->get(recipient);
         int i = 0;
-        for (auto &connection: connections) {
-
+        for (const auto &connection: connections) {
             if (!connection.second) {
                 connectionStorage->remove(recipient, connection.first);
                 continue;
@@ -458,19 +472,21 @@ void wss::ChatServer::sendTo(user_id_t recipient, const wss::MessagePayload &pay
             *sendStream << payloadString;
 
             L_DEBUG_F("Chat::Send",
-                      "Sending message to recipient %lu, connection[%d]=%lu",
+                      "Sending message [thread=%lu] to recipient %lu, connection[%d]=%lu",
+                      getThreadName(),
                       recipient,
                       i,
                       connection.second->getUniqueId());
 
             // connection->send is an asynchronous function
             connection.second
-                      ->send(sendStream,
-                             [this, recipient, payload, payloadSize,
-                                 cid = connection.first](const SimpleWeb::error_code &errorCode) {
+                      ->send(std::move(sendStream),
+                             [this, recipient, payload,
+                                 cid = connection.first](const SimpleWeb::ErrorCode &errorCode, std::size_t ts) {
                                if (errorCode) {
                                    // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
-                                   L_DEBUG_F("Chat::Send::Error", "Unable to send message. Cause: %s, message: %s",
+                                   L_DEBUG_F("Chat::Send::Error", "Unable to send message to %lu. Cause: %s error: %s",
+                                             recipient,
                                              errorCode.category().name(),
                                              errorCode.message().c_str()
                                    );
@@ -485,7 +501,7 @@ void wss::ChatServer::sendTo(user_id_t recipient, const wss::MessagePayload &pay
                                } else {
                                    MessagePayload sent = payload;
                                    sent.setRecipient(recipient);
-                                   onMessageSent(std::move(sent), payloadSize, true);
+                                   onMessageSent(std::move(sent), ts, true);
                                }
                              }, fin_rsv_opcode);
 
@@ -494,6 +510,10 @@ void wss::ChatServer::sendTo(user_id_t recipient, const wss::MessagePayload &pay
     } catch (const ConnectionNotFound &) {
         L_DEBUG("Chat::Send", "Connection not found exception. Adding payload to undelivered");
         handleUndeliverable(recipient, payload);
+    } catch (const std::exception &e) {
+        L_WARN_F("Chat::Send", "Unknown error: %s", e.what());
+    } catch (...) {
+        L_WARN("Chat::Send", "Unknown error");
     }
 }
 
@@ -522,7 +542,7 @@ std::size_t wss::ChatServer::getThreadName() {
 }
 void wss::ChatServer::setMessageSizeLimit(size_t bytes) {
     maxMessageSize = bytes;
-    server->config.max_message_size = maxMessageSize;
+    server->config.maxMessageSize = maxMessageSize;
 }
 void wss::ChatServer::setAuth(const nlohmann::json &config) {
     auth = wss::auth::createFromConfig(config);

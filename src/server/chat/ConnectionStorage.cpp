@@ -12,7 +12,7 @@ wss::ConnectionStorage::~ConnectionStorage() {
     for (auto &kv: idMap) {
         for (const auto &c: kv.second) {
             try {
-                c.second->send_close(1000, "Server Gone Away");
+                c.second->sendClose(1000, "Server Gone Away");
             } catch (...) {
 
             }
@@ -25,8 +25,7 @@ bool wss::ConnectionStorage::exists(wss::user_id_t id) const {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     return idMap.find(id) != idMap.end();
 }
-bool wss::ConnectionStorage::verify(wss::user_id_t userId, wss::ConnectionId connectionId) {
-
+bool wss::ConnectionStorage::verify(wss::user_id_t userId, wss::conn_id_t connectionId) {
     const auto &it = idMap.find(userId);
     if (it == idMap.end()) {
         return false;
@@ -67,7 +66,7 @@ void wss::ConnectionStorage::remove(wss::user_id_t id) {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     idMap.erase(id);
 }
-void wss::ConnectionStorage::remove(wss::user_id_t id, wss::ConnectionId connectionId) {
+void wss::ConnectionStorage::remove(wss::user_id_t id, wss::conn_id_t connectionId) {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     const auto &it = idMap.find(id);
     if (it != idMap.end()) {
@@ -79,7 +78,7 @@ void wss::ConnectionStorage::remove(wss::user_id_t id, wss::ConnectionId connect
 void wss::ConnectionStorage::remove(const wss::WsConnectionPtr &connection) {
     std::lock_guard<std::recursive_mutex> locker(connectionMutex);
     const user_id_t id = connection->getId();
-    const ConnectionId connId = connection->getUniqueId();
+    const conn_id_t connId = connection->getUniqueId();
 
     const auto &userMapIt = idMap.find(id);
     if (userMapIt != idMap.end()) {
@@ -124,7 +123,7 @@ std::size_t wss::ConnectionStorage::disconnectWithoutPong() {
         if (!it->second.second) {
             WsConnectionPtr &conn = idMap[it->second.first][it->first];
             if (conn) {
-                conn->send_close(4010/*@TODO remove harcode*/, "Dangling connection");
+                conn->sendClose(4010/*@TODO remove harcode*/, "Dangling connection");
             } else {
                 // by some reason, connection already nullptr
                 idMap[it->second.first].erase(it->first);

@@ -52,8 +52,9 @@ class ChatServer : public virtual StandaloneService {
     const int STATUS_GOING_AWAY = 1001;
     const int STATUS_PROTOCOL_ERROR = 1002;
     const int STATUS_UNSUPPORTED_DATA = 1003;
-    const int STATUS_NO_STATUS_RCVD = 1004;
-    const int STATUS_ABNORMAL_CLOSURE = 1005;
+    const int STATUS_RESERVED_1 = 1004;
+    const int STATUS_NO_STATUS_RCVD = 1005;
+    const int STATUS_ABNORMAL_CLOSURE = 1006;
     const int STATUS_INVALID_FRAME_PAYLOAD = 1007;
     const int STATUS_POLICY_VIOLATION = 1008;
     const int STATUS_MESSAGE_TOO_BIG = 1009;
@@ -133,7 +134,7 @@ class ChatServer : public virtual StandaloneService {
  public:
     #ifdef USE_SECURE_SERVER
     ChatServer(
-        const std::string &crtPath, const std::string &keyPath,
+        const std::string &crtPath, const std::string &privKeyPath,
         const std::string &host, unsigned short port, const std::string &regexPath);
     #else
     /// \brief Insecure message server ctr

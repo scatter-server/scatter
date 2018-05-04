@@ -16,8 +16,8 @@
 #include <memory>
 #include <algorithm>
 #include <fmt/format.h>
+#include "server_https.hpp"
 #include "server_http.hpp"
-#include "client_http.hpp"
 #include "../defs.h"
 #include "src/server/chat/ChatServer.h"
 #include "../base/StandaloneService.h"
@@ -28,14 +28,24 @@
 
 namespace wss {
 
-using HttpStatus = SimpleWeb::StatusCode;
+#ifdef USE_SECURE_SERVER
+using HttpServer = SimpleWeb::Server<SimpleWeb::HTTPS>;
+#else
 using HttpServer = SimpleWeb::Server<SimpleWeb::HTTP>;
+#endif
+
+using HttpStatus = SimpleWeb::StatusCode;
 using HttpResponse = std::shared_ptr<HttpServer::Response>;
 using HttpRequest = std::shared_ptr<HttpServer::Request>;
 
 class RestServer : public virtual StandaloneService {
  public:
+    #ifdef USE_SECURE_SERVER
+    RestServer(const std::string &crtPath, const std::string &keyPath,
+               const std::string &host, unsigned short port);
+    #else
     RestServer(const std::string &host, unsigned short port);
+    #endif
     virtual ~RestServer();
 
     void joinThreads() override;

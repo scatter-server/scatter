@@ -1,6 +1,6 @@
 /**
  * wsserver
- * MicroserviceController.cpp
+ * RestServer.cpp
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
@@ -8,12 +8,24 @@
 
 #include "RestServer.h"
 
+#ifdef USE_SECURE_SERVER
+wss::RestServer::RestServer(
+    const std::string &crtPath, const std::string &keyPath,
+    const std::string &host, unsigned short port) : server(crtPath, keyPath) {
+    server.config.port = port;
+    if (host.length() > 1) {
+        server.config.address = host;
+    }
+}
+#else
 wss::RestServer::RestServer(const std::string &host, unsigned short port) {
     server.config.port = port;
     if (host.length() > 1) {
         server.config.address = host;
     }
 }
+
+#endif
 
 wss::RestServer::~RestServer() {
     stopService();

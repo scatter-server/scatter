@@ -1,5 +1,8 @@
 message(STATUS "INSTALL: available")
 
+set(PREFIX "/usr" CACHE PATH "Prefix prepended to install directories")
+set(CMAKE_INSTALL_PREFIX "${PREFIX}" CACHE INTERNAL "Prefix prepended to install directories" FORCE)
+
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_VENDOR "Eduard Maximovich")
@@ -25,7 +28,6 @@ install(
 include(cmakes/FindLinuxPlatform.cmake)
 include(FeatureSummary)
 
-option(DEBIAN_SYSTEMD_SERVICE "Enable systemd service for Debian system" OFF)
 if (IS_REDHAT)
 	set(SYSTEMD_SERVICE_PATH "/usr/lib/systemd/system")
 

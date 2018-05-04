@@ -16,8 +16,14 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <toolboxpp.h>
 #include <curl/curl.h>
-#include <server_http.hpp>
 #include "../defs.h"
+
+#ifdef USE_SECURE_SERVER
+#include <server_https.hpp>
+#else
+#include <server_http.hpp>
+#endif
+
 
 namespace wss {
 namespace web {
@@ -29,8 +35,14 @@ typedef std::pair<std::string, std::string> KeyValue;
 typedef std::vector<KeyValue> KeyValueVector;
 
 // avoiding cross-references
-using WebHttpStatus = SimpleWeb::StatusCode;
+
+#ifdef USE_SECURE_SERVER
+using WebHttpServer = SimpleWeb::Server<SimpleWeb::HTTPS>;
+#else
 using WebHttpServer = SimpleWeb::Server<SimpleWeb::HTTP>;
+#endif
+
+using WebHttpStatus = SimpleWeb::StatusCode;
 using WebHttpResponse = std::shared_ptr<WebHttpServer::Response>;
 using WebHttpRequest = std::shared_ptr<WebHttpServer::Request>;
 

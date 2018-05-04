@@ -56,7 +56,7 @@ class ConnectionStorage {
     /// \brief Check connection is not nullptr, remove if null
     /// \param connection
     /// \return true if is valid connection, false othwerwise
-    bool verify(wss::user_id_t userId, wss::ConnectionId connectionId);
+    bool verify(wss::user_id_t userId, wss::conn_id_t connectionId);
 
     /// \brief Count total users in map
     /// \return Size of map user:connections
@@ -78,7 +78,7 @@ class ConnectionStorage {
 
     /// \brief Remove from map connections by user id and connection unique id
     /// \param id UserId
-    void remove(wss::user_id_t id, wss::ConnectionId connectionId);
+    void remove(wss::user_id_t id, wss::conn_id_t connectionId);
 
     /// \brief Remove from connection by unique connection id : std::stoul("ip address without dots" + "remote port num").
     /// \param connection SimpleWeb::Connection shared_ptr

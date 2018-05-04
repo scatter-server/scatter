@@ -7,8 +7,8 @@
     "tmpDir": "/tmp",
     "universalTime": false,
     "secure": {
-      "crtPath": "../certs/debug.crt",
-      "keyPath": "../certs/pdebug.key"
+      "crtPath": "<insert certificate path here>",
+      "keyPath": "<insert private key path here>"
     },
     "watchdog": {
       "enabled": false,
