@@ -127,17 +127,17 @@ std::vector<std::string> wss::web::IOContainer::getHeadersGlued() const {
 
 // REQUEST
 wss::web::Request::Request() : IOContainer(),
-                               url(),
-                               method(GET) { }
+                               m_url(),
+                               m_method(GET) { }
 wss::web::Request::Request(const std::string &url) : IOContainer(),
-                                                     url(url),
-                                                     method(GET) { }
+                                                     m_url(url),
+                                                     m_method(GET) { }
 wss::web::Request::Request(std::string &&url) : IOContainer(),
-                                                url(std::move(url)),
-                                                method(GET) { }
+                                                m_url(std::move(url)),
+                                                m_method(GET) { }
 wss::web::Request::Request(const wss::web::WebHttpRequest &sRequest) : IOContainer(),
-                                                                       url(sRequest->path),
-                                                                       method(methodFromString(sRequest->method)) {
+                                                                       m_url(sRequest->path),
+                                                                       m_method(methodFromString(sRequest->method)) {
     for (auto &h: sRequest->header) {
         addHeader(h.first, h.second);
     }
@@ -187,25 +187,25 @@ std::string wss::web::Request::methodToString(wss::web::Request::Method methodNa
     return out;
 }
 void wss::web::Request::setUrl(const std::string &url) {
-    this->url = url;
+    this->m_url = url;
 }
 void wss::web::Request::setUrl(std::string &&url) {
-    this->url = std::move(url);
+    this->m_url = std::move(url);
 }
 void wss::web::Request::setMethod(wss::web::Request::Method method) {
-    this->method = method;
+    this->m_method = method;
 }
 void wss::web::Request::addParam(wss::web::KeyValue &&keyValue) {
-    params.push_back(std::move(keyValue));
+    m_params.push_back(std::move(keyValue));
 }
 std::string wss::web::Request::getUrl() const {
-    return url;
+    return m_url;
 }
 wss::web::Request::Method wss::web::Request::getMethod() const {
-    return method;
+    return m_method;
 }
 bool wss::web::Request::hasParams() const {
-    return !params.empty();
+    return !m_params.empty();
 }
 bool wss::web::Request::hasParam(const std::string &key, bool icase) const {
     using toolboxpp::strings::equalsIgnoreCase;
@@ -217,7 +217,7 @@ bool wss::web::Request::hasParam(const std::string &key, bool icase) const {
       }
     };
 
-    for (const auto &param: params) {
+    for (const auto &param: m_params) {
         if (cmp(param.first, key)) {
             return true;
         }
@@ -234,7 +234,7 @@ std::string wss::web::Request::getParam(const std::string &key, bool icase) cons
           return lhs == rhs;
       }
     };
-    for (const auto &param: params) {
+    for (const auto &param: m_params) {
         if (cmp(param.first, key)) {
             return param.second;
         }
@@ -243,15 +243,15 @@ std::string wss::web::Request::getParam(const std::string &key, bool icase) cons
     return std::string();
 }
 std::string wss::web::Request::getUrlWithParams() const {
-    if (url.empty()) {
+    if (m_url.empty()) {
         return std::string();
     }
 
-    std::string combined = url;
-    if (!params.empty()) {
+    std::string combined = m_url;
+    if (!m_params.empty()) {
         std::stringstream ss;
         std::vector<std::string> enc;
-        for (auto &p: params) {
+        for (auto &p: m_params) {
             ss << p.first << "=" << p.second;
             enc.push_back(ss.str());
             ss.str("");
@@ -259,7 +259,7 @@ std::string wss::web::Request::getUrlWithParams() const {
         }
         std::string glued = toolboxpp::strings::glue("&", enc);
 
-        if (toolboxpp::strings::hasSubstring(url, "?")) {
+        if (toolboxpp::strings::hasSubstring(m_url, "?")) {
             combined += "&" + glued;
         } else {
             combined += "?" + glued;
@@ -269,7 +269,7 @@ std::string wss::web::Request::getUrlWithParams() const {
     return combined;
 }
 wss::web::KeyValueVector wss::web::Request::getParams() const {
-    return params;
+    return m_params;
 }
 
 
@@ -327,7 +327,7 @@ wss::web::HttpClient::~HttpClient() {
     curl_global_cleanup();
 }
 void wss::web::HttpClient::enableVerbose(bool enable) {
-    verbose = enable;
+    m_verbose = enable;
 }
 wss::web::Response wss::web::HttpClient::execute(const wss::web::Request &request) {
     CURL *curl;
@@ -364,7 +364,7 @@ wss::web::Response wss::web::HttpClient::execute(const wss::web::Request &reques
             }
         }
 
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, connectionTimeout);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, m_connectionTimeout);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &HttpClient::handleResponseData);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &resp);
         curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, &HttpClient::handleResponseHeaders);
@@ -373,7 +373,7 @@ wss::web::Response wss::web::HttpClient::execute(const wss::web::Request &reques
         if (request.hasHeaders()) {
             struct curl_slist *headers = nullptr;
             for (const auto &h: request.getHeadersGlued()) {
-                if (verbose) {
+                if (m_verbose) {
                     L_DEBUG_F("Http::Request", "Header -> %s", h.c_str());
                 }
 
@@ -383,7 +383,7 @@ wss::web::Response wss::web::HttpClient::execute(const wss::web::Request &reques
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         }
 
-        if (verbose) {
+        if (m_verbose) {
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
         }
 
@@ -434,5 +434,5 @@ wss::web::Response wss::web::HttpClient::execute(const wss::web::Request &reques
     return resp;
 }
 void wss::web::HttpClient::setConnectionTimeout(long timeoutSeconds) {
-    connectionTimeout = timeoutSeconds;
+    m_connectionTimeout = timeoutSeconds;
 }

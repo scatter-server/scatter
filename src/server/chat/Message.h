@@ -14,7 +14,7 @@
 #include <type_traits>
 #include <toolboxpp.h>
 #include "json.hpp"
-#include "../defs.h"
+#include "src/server/wsserver_core.h"
 #include "src/server/base/unid.h"
 
 namespace wss {
@@ -38,18 +38,18 @@ struct InvalidPayloadException : std::exception {
 /// \todo Protobuf support
 class MessagePayload {
  private:
-    unid_t id;
-    user_id_t sender;
-    std::vector<user_id_t> recipients;
-    std::string text;
-    std::string type;
-    std::string timestamp;
-    json data;
-    bool valid = true;
-    std::string errorCause;
+    unid_t m_id;
+    user_id_t m_sender;
+    std::vector<user_id_t> m_recipients;
+    std::string m_text;
+    std::string m_type;
+    std::string m_timestamp;
+    json m_data;
+    bool m_validState = true;
+    std::string m_errorCause;
 
-    mutable std::string cachedJson;
-    mutable bool isCached = false;
+    mutable std::string m_cachedJson;
+    mutable bool m_isCached = false;
 
     void fromJson(const json &json);
     void validate();

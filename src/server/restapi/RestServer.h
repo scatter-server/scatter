@@ -18,7 +18,7 @@
 #include <fmt/format.h>
 #include "server_https.hpp"
 #include "server_http.hpp"
-#include "../defs.h"
+#include "src/server/wsserver_core.h"
 #include "src/server/chat/ChatServer.h"
 #include "../base/StandaloneService.h"
 #include "../base/Auth.h"
@@ -62,13 +62,13 @@ class RestServer : public virtual StandaloneService {
     RestServer &addEndpoint(const std::string &path, const std::string &methodName, ResponseCallback &&callback) {
         const std::string endpoint = "^/" + path + "$";
         L_INFO_F("HttpServer", "Endpoint: %s /%s", methodName.c_str(), path.c_str());
-        server.resource[endpoint][toolboxpp::strings::toUpper(methodName)] =
+        m_server.resource[endpoint][toolboxpp::strings::toUpper(methodName)] =
             [this, callback](wss::HttpResponse response, wss::HttpRequest request) {
               const wss::web::Request verifyRequest(request);
               response->close_connection_after_response = true;
-              if (!auth->validateAuth(verifyRequest)) {
+              if (!m_auth->validateAuth(verifyRequest)) {
 
-                  if (auth->getType() == "basic") {
+                  if (m_auth->getType() == "basic") {
 
                       json errorOut;
                       errorOut["success"] = false;
@@ -117,9 +117,9 @@ class RestServer : public virtual StandaloneService {
     void setError(HttpResponse &response, HttpStatus status, int code, std::string &&message);
     std::string buildResponse(const std::vector<std::pair<std::string, std::string>> &parts);
  private:
-    std::unique_ptr<WebAuth> auth;
-    HttpServer server;
-    std::unique_ptr<std::thread> workerThread;
+    std::unique_ptr<WebAuth> m_auth;
+    HttpServer m_server;
+    std::unique_ptr<std::thread> m_workerThread;
 
     void cleanupEndpoints();
 };

@@ -66,8 +66,8 @@ struct stats_t {
   }
 
   void calculate() {
-      auto *minMax = new double[3];
-      calcMinMaxTime(minMax);
+      double minMax[3];
+      calcMinMaxTime(&minMax);
       double totalSendTimes = 0.0;
       for (auto t: sendTimes) {
           totalSendTimes += t;
@@ -91,8 +91,6 @@ struct stats_t {
           << "Benchmark time (total): " << totalSendTimes << "ms (" << times[1] << " minutes" << " " << times[2]
           << " seconds)" << endl
           << endl;
-
-      delete[] minMax;
   }
 
   void calcMinMaxTime(double *result) {

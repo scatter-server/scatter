@@ -16,7 +16,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <toolboxpp.h>
 #include <curl/curl.h>
-#include "../defs.h"
+#include "src/server/wsserver_core.h"
 
 #ifdef USE_SECURE_SERVER
 #include <server_https.hpp>
@@ -157,9 +157,9 @@ class Request : public IOContainer {
     };
  private:
     /// \brief like multimap but vector
-    KeyValueVector params;
-    std::string url;
-    Method method;
+    KeyValueVector m_params;
+    std::string m_url;
+    Method m_method;
 
  public:
     Request();
@@ -259,8 +259,8 @@ class Response : public IOContainer {
 /// \brief Simple Http Client based on libcurl
 class HttpClient {
  private:
-    bool verbose = false;
-    long connectionTimeout = 10L;
+    bool m_verbose = false;
+    long m_connectionTimeout = 10L;
 
     static size_t handleResponseData(void *buffer, size_t size, size_t nitems, void *userData) {
         ((Response *) userData)->data.append((char *) buffer, size * nitems);

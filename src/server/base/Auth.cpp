@@ -24,11 +24,11 @@ std::string wss::WebAuth::getValue() const {
 
 // BASIC
 wss::BasicAuth::BasicAuth(std::string &&username, std::string &&password) :
-    username(std::move(username)),
+    m_username(std::move(username)),
     password(std::move(password)) {
 }
 wss::BasicAuth::BasicAuth(const std::string &username, const std::string &password) :
-    username(username),
+    m_username(username),
     password(password) {
 }
 std::string wss::BasicAuth::getType() {
@@ -42,7 +42,7 @@ bool wss::BasicAuth::validateAuth(const wss::web::Request &request) const {
 }
 std::string wss::BasicAuth::getValue() const {
     std::stringstream ss;
-    ss << username << ":" << password;
+    ss << m_username << ":" << password;
     const std::string glued = ss.str();
     const std::string encoded = wss::helpers::base64_encode(
         reinterpret_cast<const unsigned char *>(glued.c_str()),
@@ -53,24 +53,24 @@ std::string wss::BasicAuth::getValue() const {
 
 // HEADER
 wss::HeaderAuth::HeaderAuth(std::string &&headerName, std::string &&value) :
-    name(std::move(headerName)),
-    value(std::move(value)) {
+    m_name(std::move(headerName)),
+    m_value(std::move(value)) {
 }
 wss::HeaderAuth::HeaderAuth(const std::string &headerName, const std::string &value) :
-    name(headerName),
-    value(value) {
+    m_name(headerName),
+    m_value(value) {
 }
 std::string wss::HeaderAuth::getType() {
     return "header";
 }
 void wss::HeaderAuth::performAuth(wss::web::Request &request) const {
-    request.setHeader({name, getValue()});
+    request.setHeader({m_name, getValue()});
 }
 bool wss::HeaderAuth::validateAuth(const wss::web::Request &response) const {
-    return response.compareHeaderValue(name, getValue());
+    return response.compareHeaderValue(m_name, getValue());
 }
 std::string wss::HeaderAuth::getValue() const {
-    return value;
+    return m_value;
 }
 
 // BEARER
@@ -157,12 +157,12 @@ std::unique_ptr<wss::WebAuth> wss::auth::createFromConfig(const nlohmann::json &
 
 /// COOKIE
 wss::CookieAuth::CookieAuth(const std::string &cookieName, const std::string &cookieValue) :
-    name(cookieName),
-    value(cookieValue) {
+    m_name(cookieName),
+    m_value(cookieValue) {
 }
 wss::CookieAuth::CookieAuth(std::string &&cookieName, std::string &&cookieValue) :
-    name(std::move(cookieName)),
-    value(std::move(cookieValue)) {
+    m_name(std::move(cookieName)),
+    m_value(std::move(cookieValue)) {
 
 }
 std::string wss::CookieAuth::getType() {
@@ -189,7 +189,7 @@ bool wss::CookieAuth::validateAuth(const wss::web::Request &request) const {
             const std::string n = match[1];
             const std::string v = match[2];
 
-            if (toolboxpp::strings::equalsIgnoreCase(name, n) && v.compare(value) == 0) {
+            if (toolboxpp::strings::equalsIgnoreCase(m_name, n) && v.compare(m_value) == 0) {
                 return true;
             }
         }
@@ -198,7 +198,7 @@ bool wss::CookieAuth::validateAuth(const wss::web::Request &request) const {
     return false;
 }
 std::string wss::CookieAuth::getValue() const {
-    return fmt::format("{0}={1}", name, value);
+    return fmt::format("{0}={1}", m_name, m_value);
 }
 
 // OneOfAuth

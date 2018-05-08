@@ -20,7 +20,7 @@ message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 include(cmakes/configure.cmake)
 
 # gnu
-set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wno-unused-parameter ${CMAKE_CXX_FLAGS} -Wno-vla -Wno-vla-extension -Wno-c++1z-extensions")
+set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -pedantic ${CMAKE_CXX_FLAGS} -Wno-c++17-extensions")
 
 # linux clang
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

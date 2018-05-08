@@ -2,7 +2,7 @@
 set(SERVER_SRC
     src/server/chat/ChatServer.h
     src/server/chat/ChatServer.cpp
-    src/server/defs.h
+    src/server/wsserver_core.h
     src/server/chat/Message.h
     src/server/chat/Message.cpp
     src/server/helpers/threadsafe.hpp

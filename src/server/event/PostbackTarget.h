@@ -40,12 +40,14 @@ class PostbackTarget : public Target {
     std::unique_ptr<wss::WebAuth> &getAuth();
 
  private:
-    wss::web::Request::Method httpMethod;
-    std::unique_ptr<wss::WebAuth> auth;
-    wss::web::HttpClient client;
-    std::string url;
     template<class T>
     void setAuth(T &&auth);
+
+    wss::web::Request::Method m_httpMethod;
+    std::unique_ptr<wss::WebAuth> m_auth;
+    wss::web::HttpClient m_client;
+    std::string m_url;
+
 
 };
 

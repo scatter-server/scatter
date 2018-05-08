@@ -12,7 +12,7 @@ endif ()
 
 
 # OpenSSL (libssl)
-if (APPLE)
+if (APPLE AND NOT OPENSSL_ROOT_DIR)
 	set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
 endif ()
 find_package(OpenSSL 1.0.0 REQUIRED)

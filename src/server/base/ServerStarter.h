@@ -32,16 +32,16 @@ using json = nlohmann::json;
 
 class ServerStarter {
  private:
-    bool valid = true;
-    bool isConfigTest = false;
-    cmdline::parser args;
+    bool m_valid = true;
+    bool m_isConfigTest = false;
+    cmdline::parser m_args;
 
-    std::vector<std::shared_ptr<wss::StandaloneService>> services;
+    std::vector<std::shared_ptr<wss::StandaloneService>> m_services;
 
- private: //services
-    std::shared_ptr<wss::ChatServer> webSocket;
-    std::shared_ptr<wss::ChatRestServer> restServer;
-    std::shared_ptr<wss::event::EventNotifier> eventNotifier;
+    //services
+    std::shared_ptr<wss::ChatServer> m_webSocket;
+    std::shared_ptr<wss::ChatRestServer> m_restServer;
+    std::shared_ptr<wss::event::EventNotifier> m_eventNotifier;
 
  public:
     ServerStarter(int argc, const char **argv);
@@ -68,8 +68,8 @@ class ServerStarter {
         static_assert(std::is_base_of<wss::StandaloneService, T>::value,
                       "Service must be instance of wss::StandaloneService");
 
-        if (isConfigTest || !valid) return;
-        services.push_back(s);
+        if (m_isConfigTest || !m_valid) return;
+        m_services.push_back(s);
     }
 
     /// \brief Check json object contains entire key

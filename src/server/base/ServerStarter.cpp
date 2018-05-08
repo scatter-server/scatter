@@ -10,37 +10,37 @@
 
 static wss::ServerStarter *self; // for signal instance
 
-wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
-    args.add<std::string>("config", 'C', "Config file path /path/to/config.json", true);
-    args.add<bool>("test", 'T', "Test config", false, false);
-    args.add<uint16_t>("verbosity", 'l', "Log level: 0 (error,critical), 1(0 + info), 2(all)", false, 2);
+wss::ServerStarter::ServerStarter(int argc, const char **argv) : m_args() {
+    m_args.add<std::string>("config", 'C', "Config file path /path/to/config.json", true);
+    m_args.add<bool>("test", 'T', "Test config", false, false);
+    m_args.add<uint16_t>("verbosity", 'l', "Log level: 0 (error,critical), 1(0 + info), 2(all)", false, 2);
 
     if (argc == 2 && strcmp(argv[argc - 1], "-v") == 0) {
         std::cout << WSSERVER_VERSION << std::endl;
         return;
     }
 
-    bool parsed = args.parse(argc, reinterpret_cast<const char *const *>(argv));
+    bool parsed = m_args.parse(argc, reinterpret_cast<const char *const *>(argv));
 
     //@TODO boost::program_options
     if (!parsed) {
-        std::cerr << args.error_full();
-        std::cout << args.usage();
-        valid = false;
+        std::cerr << m_args.error_full();
+        std::cout << m_args.usage();
+        m_valid = false;
         return;
     }
 
-    toolboxpp::Logger::get().setVerbosity(args.get<uint16_t>("verbosity"));
+    toolboxpp::Logger::get().setVerbosity(m_args.get<uint16_t>("verbosity"));
 
-    args.parse_check(argc, const_cast<char **>(argv));
-    const std::string configPath = args.get<std::string>("config");
-    isConfigTest = args.get<bool>("test");
+    m_args.parse_check(argc, const_cast<char **>(argv));
+    const std::string configPath = m_args.get<std::string>("config");
+    m_isConfigTest = m_args.get<bool>("test");
 
     // Getting config file
     std::ifstream configFileStream(configPath);
     if (configFileStream.fail()) {
         perror("Can't open file");
-        valid = false;
+        m_valid = false;
         return;
     }
 
@@ -54,19 +54,19 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
     const std::string keyPath = settings.server.secure.keyPath;
     if (crtPath.empty() || keyPath.empty()) {
         cerr << "Certificate and private key paths can'be empty";
-        valid = false;
+        m_valid = false;
         return;
     }
 
     using toolboxpp::fs::exists;
     if (!exists(crtPath)) {
         cerr << "Certificate file not found at " << crtPath << endl;
-        valid = false;
+        m_valid = false;
         return;
     }
     if (!exists(keyPath)) {
         cerr << "Private Key file not found at " << keyPath << endl;
-        valid = false;
+        m_valid = false;
         return;
     }
 
@@ -74,7 +74,7 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
     endpointStream << "^" << settings.server.endpoint << "?$";
     const std::string res = endpointStream.str();
 
-    webSocket = std::make_shared<wss::ChatServer>(
+    m_webSocket = std::make_shared<wss::ChatServer>(
         crtPath,
         keyPath,
         settings.server.address,
@@ -83,7 +83,7 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
     );
 
     // creating rest api service
-    restServer = std::make_shared<wss::ChatRestServer>(webSocket, crtPath, keyPath);
+    m_restServer = std::make_shared<wss::ChatRestServer>(m_webSocket, crtPath, keyPath);
     #else
     // creating ws service
     std::stringstream endpointStream;
@@ -100,34 +100,34 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : args() {
     configureChat(settings);
 
     // creating event notifier service
-    eventNotifier = std::make_shared<wss::event::EventNotifier>(webSocket);
+    m_eventNotifier = std::make_shared<wss::event::EventNotifier>(m_webSocket);
 
 
     // adding commands to run websocket and to join it threads
-    runService(webSocket);
+    runService(m_webSocket);
 
     // configuring event notifier
     if (settings.event.enabled) {
         bool validConfig = configureEventNotifier(settings);
         if (!validConfig) {
-            valid = false;
+            m_valid = false;
             return;
         } else {
             // adding commands to run event notifier and to join it threads
-            runService(eventNotifier);
+            runService(m_eventNotifier);
         }
     }
 
     // configuring rest api service
     if (settings.restApi.enabled) {
-        restServer->setAddress(settings.restApi.address);
-        restServer->setPort(settings.restApi.port);
-        restServer->setAuth(settings.restApi.auth.data);
+        m_restServer->setAddress(settings.restApi.address);
+        m_restServer->setPort(settings.restApi.port);
+        m_restServer->setAuth(settings.restApi.auth.data);
 
-        runService(restServer);
+        runService(m_restServer);
     }
 
-    if (isConfigTest) {
+    if (m_isConfigTest) {
         std::cout << "Configuration verified - everything is ok!" << std::endl;
         return;
     }
@@ -141,16 +141,16 @@ wss::ServerStarter::~ServerStarter() {
     delete self;
 }
 void wss::ServerStarter::stop() {
-    for (auto &service: services) {
+    for (auto &service: m_services) {
         service->stopService();
     }
 }
 void wss::ServerStarter::run() {
-    for (auto &service: services) {
+    for (auto &service: m_services) {
         service->runService();
     }
 
-    std::for_each(services.rbegin(), services.rend(), [](const std::shared_ptr<wss::StandaloneService> &s) {
+    std::for_each(m_services.rbegin(), m_services.rend(), [](const std::shared_ptr<wss::StandaloneService> &s) {
       s->joinThreads();
     });
 }
@@ -195,14 +195,14 @@ void wss::ServerStarter::configureChat(wss::Settings &settings) {
         // kilobytes
         maxBytes = sz * 1024;
     }
-    webSocket->setMessageSizeLimit(maxBytes);
-    webSocket->setEnabledMessageDeliveryStatus(settings.chat.message.enableDeliveryStatus);
+    m_webSocket->setMessageSizeLimit(maxBytes);
+    m_webSocket->setEnabledMessageDeliveryStatus(settings.chat.message.enableDeliveryStatus);
 }
 void wss::ServerStarter::configureServer(wss::Settings &settings) {
 
     // setting num of workers (threads in thread pool)
-    webSocket->setThreadPoolSize(settings.server.workers);
-    webSocket->setAuth(settings.server.auth.data);
+    m_webSocket->setThreadPoolSize(settings.server.workers);
+    m_webSocket->setAuth(settings.server.auth.data);
 }
 bool wss::ServerStarter::configureEventNotifier(wss::Settings &settings) {
     if (!settings.event.enabled) {
@@ -221,8 +221,8 @@ bool wss::ServerStarter::configureEventNotifier(wss::Settings &settings) {
         return false;
     }
 
-    eventNotifier->setMaxTries(settings.event.retryCount);
-    eventNotifier->setRetryIntervalSeconds(settings.event.retryIntervalSeconds);
+    m_eventNotifier->setMaxTries(settings.event.retryCount);
+    m_eventNotifier->setRetryIntervalSeconds(settings.event.retryIntervalSeconds);
 
     int i = 0;
     for (auto &target: settings.event.targets) {
@@ -232,7 +232,7 @@ bool wss::ServerStarter::configureEventNotifier(wss::Settings &settings) {
         }
 
         try {
-            eventNotifier->addTarget(target);
+            m_eventNotifier->addTarget(target);
         } catch (const std::runtime_error &e) {
             cerr << e.what() << endl;
             return false;
@@ -244,5 +244,5 @@ bool wss::ServerStarter::configureEventNotifier(wss::Settings &settings) {
     return true;
 }
 bool wss::ServerStarter::isValid() {
-    return valid;
+    return m_valid;
 }

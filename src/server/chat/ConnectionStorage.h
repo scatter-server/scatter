@@ -16,7 +16,7 @@
 #include <string>
 #include <atomic>
 #include <toolboxpp.h>
-#include "../defs.h"
+#include "src/server/wsserver_core.h"
 namespace wss {
 
 struct ConnectionNotFound : std::exception {
@@ -28,10 +28,10 @@ struct ConnectionNotFound : std::exception {
 /// \brief Container for handling and storing client connections
 class ConnectionStorage {
  private:
-    mutable std::recursive_mutex connectionMutex;
-    mutable std::mutex pongMutex;
-    wss::UserMap<wss::ConnectionMap<WsConnectionPtr>> idMap;
-    wss::ConnectionMap<std::pair<user_id_t, bool>> waitForPong;
+    mutable std::recursive_mutex m_connectionMutex;
+    mutable std::mutex m_pongMutex;
+    wss::UserMap<wss::ConnectionMap<WsConnectionPtr>> m_idMap;
+    wss::ConnectionMap<std::pair<user_id_t, bool>> m_waitForPong;
 
  public:
     /// \brief Default empty constructor

@@ -11,22 +11,22 @@
 
 #include <atomic>
 #include <ctime>
-#include "../defs.h"
+#include "src/server/wsserver_core.h"
 
 namespace wss {
 
 /// \brief User statistics storage
 class Statistics {
  private:
-    std::atomic<user_id_t> id;
-    std::atomic<time_t> lastConnectionTime;
-    std::atomic<time_t> lastDisconnectionTime;
-    std::atomic_size_t connectedTimes;
-    std::atomic_size_t disconnectedTimes;
-    std::atomic_size_t bytesTransferred;
-    std::atomic_size_t sentMessages;
-    std::atomic_size_t receivedMessages;
-    std::atomic<time_t> lastMessageTime;
+    std::atomic<user_id_t> m_id;
+    std::atomic<time_t> m_lastConnectionTime;
+    std::atomic<time_t> m_lastDisconnectionTime;
+    std::atomic_size_t m_connectedTimes;
+    std::atomic_size_t m_disconnectedTimes;
+    std::atomic_size_t m_bytesTransferred;
+    std::atomic_size_t m_sentMessages;
+    std::atomic_size_t m_receivedMessages;
+    std::atomic<time_t> m_lastMessageTime;
 
  public:
     explicit Statistics(user_id_t id);

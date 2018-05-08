@@ -15,20 +15,20 @@
 wss::ChatServer::ChatServer(
     const std::string &crtPath, const std::string &privKeyPath,
     const std::string &host, unsigned short port, const std::string &regexPath) :
-    useSSL(true),
-    maxMessageSize(10 * 1024 * 1024),
-    server(std::make_unique<WsServer>(crtPath, privKeyPath)),
-    connectionStorage(std::make_unique<wss::ConnectionStorage>()) {
-    server->config.port = port;
-    server->config.threadPoolSize = std::thread::hardware_concurrency();
-    server->config.maxMessageSize = maxMessageSize;
+    m_useSSL(true),
+    m_maxMessageSize(10 * 1024 * 1024),
+    m_server(std::make_unique<WsServer>(crtPath, privKeyPath)),
+    m_connectionStorage(std::make_unique<wss::ConnectionStorage>()) {
+    m_server->config.port = port;
+    m_server->config.threadPoolSize = std::thread::hardware_concurrency();
+    m_server->config.maxMessageSize = m_maxMessageSize;
 
     if (host.length() >= 7) {
-        server->config.address = host;
+        m_server->config.address = host;
     };
 
-    endpoint = &server->endpoint[regexPath];
-    endpoint->onMessage = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
+    m_endpoint = &m_server->endpoint[regexPath];
+    m_endpoint->onMessage = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
       if (messagePtr->fin_rsv_opcode == FLAG_PONG) {
           onPong(connectionPtr, messagePtr);
           return;
@@ -36,18 +36,18 @@ wss::ChatServer::ChatServer(
       onMessage(connectionPtr, messagePtr);
     };
 
-    endpoint->onOpen = std::bind(&wss::ChatServer::onConnected, this, std::placeholders::_1);
-    endpoint->onError = [](WsConnectionPtr, const boost::system::error_code &ec) {
+    m_endpoint->onOpen = std::bind(&wss::ChatServer::onConnected, this, std::placeholders::_1);
+    m_endpoint->onError = [](WsConnectionPtr, const boost::system::error_code &ec) {
       L_WARN_F("Server::Connection::Error", "Connection error: %s %s",
                ec.category().name(),
                ec.message().c_str()
       )
     };
-    endpoint->onClose = std::bind(&wss::ChatServer::onDisconnected,
-                                   this,
-                                   std::placeholders::_1,
-                                   std::placeholders::_2,
-                                   std::placeholders::_3);
+    m_endpoint->onClose = std::bind(&wss::ChatServer::onDisconnected,
+                                    this,
+                                    std::placeholders::_1,
+                                    std::placeholders::_2,
+                                    std::placeholders::_3);
 
 }
 #else
@@ -95,48 +95,48 @@ wss::ChatServer::~ChatServer() {
 }
 
 void wss::ChatServer::setThreadPoolSize(std::size_t size) {
-    server->config.threadPoolSize = size;
+    m_server->config.threadPoolSize = size;
 }
 void wss::ChatServer::joinThreads() {
-    if (workerThread && workerThread->joinable()) {
-        workerThread->join();
+    if (m_workerThread && m_workerThread->joinable()) {
+        m_workerThread->join();
     }
 
-    if (watchdogThread && watchdogThread->joinable()) {
-        watchdogThread->join();
+    if (m_watchdogThread && m_watchdogThread->joinable()) {
+        m_watchdogThread->join();
     }
 }
 void wss::ChatServer::detachThreads() {
-    if (workerThread) {
-        workerThread->detach();
+    if (m_workerThread) {
+        m_workerThread->detach();
     }
-    if (watchdogThread) {
-        watchdogThread->detach();
+    if (m_watchdogThread) {
+        m_watchdogThread->detach();
     }
 }
 void wss::ChatServer::runService() {
     std::string hostname = "[any:address]";
-    if (not server->config.address.empty()) {
-        hostname = server->config.address;
+    if (not m_server->config.address.empty()) {
+        hostname = m_server->config.address;
     }
-    const char *proto = useSSL ? "wss" : "ws";
-    L_INFO_F("WebSocket Server", "Started at %s://%s:%d", proto, hostname.c_str(), server->config.port);
-    workerThread = std::make_unique<boost::thread>([this] {
-      this->server->start();
+    const char *proto = m_useSSL ? "wss" : "ws";
+    L_INFO_F("WebSocket Server", "Started at %s://%s:%d", proto, hostname.c_str(), m_server->config.port);
+    m_workerThread = std::make_unique<boost::thread>([this] {
+      this->m_server->start();
     });
 
     if (wss::Settings::get().server.watchdog.enabled) {
 
         const long lifetime = wss::Settings::get().server.watchdog.connectionLifetimeSeconds;
         L_INFO_F("Watchdog", "Started with interval in 1 minute and lifetime=%lu", lifetime);
-        watchdogThread =
+        m_watchdogThread =
             std::make_unique<boost::thread>(boost::bind(&wss::ChatServer::watchdogWorker, this, lifetime));
     }
 }
 void wss::ChatServer::stopService() {
-    this->server->stop();
-    if (watchdogThread) {
-        watchdogThread->interrupt();
+    this->m_server->stop();
+    if (m_watchdogThread) {
+        m_watchdogThread->interrupt();
     }
 }
 
@@ -144,12 +144,12 @@ void wss::ChatServer::watchdogWorker(long lifetime) {
     try {
         while (true) {
             boost::this_thread::sleep_for(boost::chrono::minutes(1));
-            for (const std::pair<user_id_t, std::unordered_map<conn_id_t, WsConnectionPtr>> &t: connectionStorage
+            for (const std::pair<user_id_t, std::unordered_map<conn_id_t, WsConnectionPtr>> &t: m_connectionStorage
                 ->get()) {
                 const auto &ref = getStat(t.first);
                 for (const auto &conn: t.second) {
                     if (!conn.second) {
-                        connectionStorage->remove(t.first, conn.first);
+                        m_connectionStorage->remove(t.first, conn.first);
                         continue;
                     }
 
@@ -165,10 +165,10 @@ void wss::ChatServer::watchdogWorker(long lifetime) {
                             ->send(std::move(pingStream), [conn, this](const SimpleWeb::ErrorCode &err, std::size_t) {
                               if (err) {
                                   // does not matter, what happens, anyway, this mean connection is bad, broken pipe, eof or something else
-                                  connectionStorage->remove(conn.second);
+                                  m_connectionStorage->remove(conn.second);
                               } else {
                                   // lazy ping pong
-                                  connectionStorage->markPongWait(conn.second);
+                                  m_connectionStorage->markPongWait(conn.second);
                               }
                             }, FLAG_PING);
                     }
@@ -176,7 +176,7 @@ void wss::ChatServer::watchdogWorker(long lifetime) {
             }
 
             boost::this_thread::sleep_for(boost::chrono::seconds(2));
-            std::size_t disconnected = connectionStorage->disconnectWithoutPong();
+            std::size_t disconnected = m_connectionStorage->disconnectWithoutPong();
             if (disconnected > 0) {
                 L_DEBUG_F("Watchdog", "Disconnected %lu dangling connections", disconnected);
             }
@@ -187,11 +187,11 @@ void wss::ChatServer::watchdogWorker(long lifetime) {
 }
 
 void wss::ChatServer::onPong(wss::WsConnectionPtr &connection, wss::WsMessagePtr) {
-    connectionStorage->markPongReceived(connection);
+    m_connectionStorage->markPongReceived(connection);
 }
 
 void wss::ChatServer::onMessage(WsConnectionPtr &connection, WsMessagePtr message) {
-    std::lock_guard<std::recursive_mutex> lock(connectionMutex);
+    std::lock_guard<std::recursive_mutex> lock(m_connectionMutex);
     L_DEBUG_F("Chat::Incoming", "On thread: %lu", getThreadName());
     MessagePayload payload;
     const short opcode = message->fin_rsv_opcode;
@@ -219,10 +219,10 @@ void wss::ChatServer::onMessage(WsConnectionPtr &connection, WsMessagePtr messag
             /**
              * @Deprecated
              */
-            if (buffered.length() > maxMessageSize) {
+            if (buffered.length() > m_maxMessageSize) {
                 connection->sendClose(STATUS_MESSAGE_TOO_BIG,
                                       "Message to big. Maximum size: "
-                                          + wss::helpers::humanReadableBytes(maxMessageSize));
+                                          + wss::helpers::humanReadableBytes(m_maxMessageSize));
                 return;
             }
 
@@ -267,7 +267,7 @@ void wss::ChatServer::onMessageSent(wss::MessagePayload &&payload, std::size_t b
         }
     }
 
-    if (enableMessageDeliveryStatus && hasSent) {
+    if (m_enableMessageDeliveryStatus && hasSent) {
         wss::MessagePayload status = MessagePayload::createSendStatus(payload);
         send(status);
     }
@@ -278,7 +278,7 @@ void wss::ChatServer::onConnected(WsConnectionPtr connection) {
     request.parseParamsString(connection->queryString);
     request.setHeaders(connection->header);
 
-    if (!auth->validateAuth(request)) {
+    if (!m_auth->validateAuth(request)) {
         connection->sendClose(STATUS_UNAUTHORIZED, "Unauthorized");
         return;
     }
@@ -304,7 +304,7 @@ void wss::ChatServer::onConnected(WsConnectionPtr connection) {
         return;
     }
 
-    connectionStorage->add(id, connection);
+    m_connectionStorage->add(id, connection);
     getStat(id)->addConnection();
 
     L_DEBUG_F("Chat::Connect", "User %lu connected (%s:%d) on thread %lu",
@@ -317,7 +317,7 @@ void wss::ChatServer::onConnected(WsConnectionPtr connection) {
     redeliverMessagesTo(id);
 }
 void wss::ChatServer::onDisconnected(WsConnectionPtr connection, int status, const std::string &reason) {
-    if (!connectionStorage->exists(connection->getId())) {
+    if (!m_connectionStorage->exists(connection->getId())) {
         return;
     }
 
@@ -329,34 +329,34 @@ void wss::ChatServer::onDisconnected(WsConnectionPtr connection, int status, con
     );
 
     getStat(connection->getId())->addDisconnection();
-    connectionStorage->remove(connection);
+    m_connectionStorage->remove(connection);
 }
 
 bool wss::ChatServer::hasFrameBuffer(wss::user_id_t senderId) {
-    return frameBuffer.find(senderId) != frameBuffer.end();
+    return m_frameBuffer.find(senderId) != m_frameBuffer.end();
 }
 
 bool wss::ChatServer::writeFrameBuffer(wss::user_id_t senderId, const std::string &input, bool clear) {
-    std::lock_guard<std::mutex> fbLock(frameBufferMutex);
+    std::lock_guard<std::mutex> fbLock(m_frameBufferMutex);
     if (!hasFrameBuffer(senderId)) {
-        frameBuffer[senderId] = std::make_shared<std::stringstream>();
+        m_frameBuffer[senderId] = std::make_shared<std::stringstream>();
     } else if (clear) {
-        frameBuffer[senderId]->str("");
-        frameBuffer[senderId]->clear();
+        m_frameBuffer[senderId]->str("");
+        m_frameBuffer[senderId]->clear();
     }
 
-    (*frameBuffer[senderId]) << input;
+    (*m_frameBuffer[senderId]) << input;
     return true;
 }
 const std::string wss::ChatServer::readFrameBuffer(wss::user_id_t senderId, bool clear) {
-    std::lock_guard<std::mutex> fbLock(frameBufferMutex);
+    std::lock_guard<std::mutex> fbLock(m_frameBufferMutex);
     if (!hasFrameBuffer(senderId)) {
         return std::string();
     }
 
-    const std::string out = frameBuffer[senderId]->str();
+    const std::string out = m_frameBuffer[senderId]->str();
     if (clear) {
-        frameBuffer.erase(senderId);
+        m_frameBuffer.erase(senderId);
     }
     return out;
 }
@@ -370,25 +370,25 @@ int wss::ChatServer::redeliverMessagesTo(const wss::MessagePayload &payload) {
     return cnt;
 }
 bool wss::ChatServer::hasUndeliveredMessages(user_id_t recipientId) {
-    std::lock_guard<std::mutex> locker(undeliveredMutex);
+    std::lock_guard<std::mutex> locker(m_undeliveredMutex);
     L_DEBUG_F("Chat::Underlivered",
               "Check for undelivered messages for user %lu: %lu",
               recipientId,
-              undeliveredMessagesMap[recipientId].size());
-    return !undeliveredMessagesMap[recipientId].empty();
+              m_undeliveredMessagesMap[recipientId].size());
+    return !m_undeliveredMessagesMap[recipientId].empty();
 }
 wss::MessageQueue &wss::ChatServer::getUndeliveredMessages(user_id_t recipientId) {
-    std::lock_guard<std::mutex> locker(undeliveredMutex);
-    return undeliveredMessagesMap[recipientId];
+    std::lock_guard<std::mutex> locker(m_undeliveredMutex);
+    return m_undeliveredMessagesMap[recipientId];
 }
 
 std::vector<wss::MessageQueue *>
 wss::ChatServer::getUndeliveredMessages(const MessagePayload &payload) {
     std::vector<wss::MessageQueue *> out;
     {
-        std::lock_guard<std::mutex> locker(undeliveredMutex);
+        std::lock_guard<std::mutex> locker(m_undeliveredMutex);
         for (user_id_t id: payload.getRecipients()) {
-            out.push_back(&undeliveredMessagesMap[id]);
+            out.push_back(&m_undeliveredMessagesMap[id]);
         }
     }
 
@@ -396,9 +396,9 @@ wss::ChatServer::getUndeliveredMessages(const MessagePayload &payload) {
 }
 
 void wss::ChatServer::enqueueUndeliveredMessage(const wss::MessagePayload &payload) {
-    std::unique_lock<std::mutex> uniqueLock(undeliveredMutex);
+    std::unique_lock<std::mutex> uniqueLock(m_undeliveredMutex);
     for (auto recipient: payload.getRecipients()) {
-        undeliveredMessagesMap[recipient].push(payload);
+        m_undeliveredMessagesMap[recipient].push(payload);
     }
 }
 int wss::ChatServer::redeliverMessagesTo(user_id_t recipientId) {
@@ -448,9 +448,9 @@ void wss::ChatServer::sendTo(user_id_t recipient, const wss::MessagePayload &pay
     std::size_t payloadSize = payloadString.length();
     uint8_t fin_rsv_opcode = 129;//@TODO static_cast<uint8_t>(payload.isBinary() ? 130 : 129);
 
-    std::lock_guard<std::recursive_mutex> locker(connectionMutex);
+    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
 
-    if (!connectionStorage->size(recipient)) {
+    if (!m_connectionStorage->size(recipient)) {
         handleUndeliverable(recipient, payload);
         MessagePayload sent = payload; // copy to move, referenced payload will goes out of scope
         sent.setRecipient(recipient);
@@ -459,11 +459,11 @@ void wss::ChatServer::sendTo(user_id_t recipient, const wss::MessagePayload &pay
     }
 
     try {
-        const auto &connections = connectionStorage->get(recipient);
+        const auto &connections = m_connectionStorage->get(recipient);
         int i = 0;
         for (const auto &connection: connections) {
             if (!connection.second) {
-                connectionStorage->remove(recipient, connection.first);
+                m_connectionStorage->remove(recipient, connection.first);
                 continue;
             }
 
@@ -495,7 +495,7 @@ void wss::ChatServer::sendTo(user_id_t recipient, const wss::MessagePayload &pay
                                                  "Disconnecting Broken connection %lu (%lu)",
                                                  recipient,
                                                  cid);
-                                       connectionStorage->remove(recipient, cid);
+                                       m_connectionStorage->remove(recipient, cid);
                                    }
                                    handleUndeliverable(recipient, payload);
                                } else {
@@ -541,36 +541,36 @@ std::size_t wss::ChatServer::getThreadName() {
     return ids[id];
 }
 void wss::ChatServer::setMessageSizeLimit(size_t bytes) {
-    maxMessageSize = bytes;
-    server->config.maxMessageSize = maxMessageSize;
+    m_maxMessageSize = bytes;
+    m_server->config.maxMessageSize = m_maxMessageSize;
 }
 void wss::ChatServer::setAuth(const nlohmann::json &config) {
-    auth = wss::auth::createFromConfig(config);
+    m_auth = wss::auth::createFromConfig(config);
 }
 
 void wss::ChatServer::setEnabledMessageDeliveryStatus(bool enabled) {
-    enableMessageDeliveryStatus = enabled;
+    m_enableMessageDeliveryStatus = enabled;
 }
 
 void wss::ChatServer::addMessageListener(wss::ChatServer::OnMessageSentListener callback) {
-    messageListeners.push_back(callback);
+    m_messageListeners.push_back(callback);
 }
 void wss::ChatServer::addStopListener(wss::ChatServer::OnServerStopListener callback) {
-    stopListeners.push_back(callback);
+    m_stopListeners.push_back(callback);
 }
 std::unique_ptr<wss::Statistics> &wss::ChatServer::getStat(wss::user_id_t id) {
-    if (statistics.find(id) == statistics.end()) {
-        statistics[id] = std::make_unique<wss::Statistics>(id);
+    if (m_statistics.find(id) == m_statistics.end()) {
+        m_statistics[id] = std::make_unique<wss::Statistics>(id);
     }
 
-    return statistics[id];
+    return m_statistics[id];
 }
 
 const wss::UserMap<std::unique_ptr<wss::Statistics>> &wss::ChatServer::getStats() {
-    return statistics;
+    return m_statistics;
 }
 void wss::ChatServer::callOnMessageListeners(wss::MessagePayload payload) {
-    for (auto &listener: messageListeners) {
+    for (auto &listener: m_messageListeners) {
         listener(std::move(payload));
     }
 }

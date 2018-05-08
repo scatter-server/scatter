@@ -102,22 +102,6 @@ class EventNotifier : public virtual wss::StandaloneService {
       SendStatus &operator=(SendStatus &&another) = default;
     };
 
-    std::atomic_bool running;
-
-    std::shared_ptr<wss::ChatServer> ws;
-    const bool enableRetry;
-    const uint32_t maxParallelWorkers;
-    int maxRetries;
-    int intervalSeconds;
-    boost::asio::io_service ioService;
-    boost::thread_group threadGroup;
-    boost::asio::io_service::work work;
-
-    std::unordered_map<std::string, std::shared_ptr<Target>> targets;
-    std::unordered_map<std::string, std::shared_ptr<Target>> targetsUndelivered;
-    moodycamel::ConcurrentQueue<SendStatus> sendQueue;
-    std::vector<wss::event::EventNotifier::OnSendError> sendErrorListeners;
-
     /// \brief Calling on event
     /// Send post to io_service with payload
     /// \param payload
@@ -131,6 +115,21 @@ class EventNotifier : public virtual wss::StandaloneService {
 
     /// \brief Running in separate thread with sleep timer. Handling queued messages and trying to send them
     void handleMessageQueue();
+
+    std::atomic_bool m_keepGoing;
+
+    std::shared_ptr<wss::ChatServer> m_ws;
+    const bool m_enableRetry;
+    const uint32_t m_maxParallelWorkers;
+    int m_maxRetries;
+    int m_intervalSeconds;
+    boost::asio::io_service m_ioService;
+    boost::thread_group m_threadGroup;
+    boost::asio::io_service::work m_work;
+
+    std::unordered_map<std::string, std::shared_ptr<Target>> m_targets;
+    moodycamel::ConcurrentQueue<SendStatus> m_sendQueue;
+    std::vector<wss::event::EventNotifier::OnSendError> m_sendErrorListeners;
 };
 
 }

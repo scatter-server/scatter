@@ -11,10 +11,10 @@
 #ifdef USE_SECURE_SERVER
 wss::RestServer::RestServer(
     const std::string &crtPath, const std::string &keyPath,
-    const std::string &host, unsigned short port) : server(crtPath, keyPath) {
-    server.config.port = port;
+    const std::string &host, unsigned short port) : m_server(crtPath, keyPath) {
+    m_server.config.port = port;
     if (host.length() > 1) {
-        server.config.address = host;
+        m_server.config.address = host;
     }
 }
 #else
@@ -36,21 +36,21 @@ void wss::RestServer::createEndpoints() {
 }
 
 void wss::RestServer::cleanupEndpoints() {
-    server.resource.clear();
+    m_server.resource.clear();
 }
 
 void wss::RestServer::setAddress(const std::string &address) {
     if (address.length() > 1) {
-        server.config.address = address;
+        m_server.config.address = address;
     }
 }
 void wss::RestServer::setAddress(std::string &&address) {
     if (address.length() > 1) {
-        server.config.address = std::move(address);
+        m_server.config.address = std::move(address);
     }
 }
 void wss::RestServer::setPort(uint16_t portNumber) {
-    server.config.port = portNumber;
+    m_server.config.port = portNumber;
 }
 
 void wss::RestServer::setResponseStatus(wss::HttpResponse &response,
@@ -119,36 +119,36 @@ std::string wss::RestServer::buildResponse(const std::vector<std::pair<std::stri
     return ss.str();
 }
 void wss::RestServer::joinThreads() {
-    if (workerThread != nullptr && workerThread->joinable()) {
-        workerThread->join();
+    if (m_workerThread != nullptr && m_workerThread->joinable()) {
+        m_workerThread->join();
     }
 }
 void wss::RestServer::detachThreads() {
-    if (workerThread != nullptr) {
-        workerThread->detach();
+    if (m_workerThread != nullptr) {
+        m_workerThread->detach();
     }
 }
 void wss::RestServer::runService() {
     createEndpoints();
 
-    workerThread = std::make_unique<std::thread>([this]() {
+    m_workerThread = std::make_unique<std::thread>([this]() {
       // Start server
-      this->server.start();
+      this->m_server.start();
     });
-    const char *hostname = server.config.address.empty() ? "[any:address]" : server.config.address.c_str();
-    L_INFO_F("HttpServer", "Started at http://%s:%d", hostname, server.config.port);
+    const char *hostname = m_server.config.address.empty() ? "[any:address]" : m_server.config.address.c_str();
+    L_INFO_F("HttpServer", "Started at http://%s:%d", hostname, m_server.config.port);
 }
 void wss::RestServer::stopService() {
-    this->server.stop();
+    this->m_server.stop();
     cleanupEndpoints();
 }
 
 void wss::RestServer::setAuth(const nlohmann::json &config) {
-    auth = wss::auth::createFromConfig(config);
+    m_auth = wss::auth::createFromConfig(config);
 }
 
 std::unique_ptr<wss::WebAuth> &wss::RestServer::getAuth() {
-    return auth;
+    return m_auth;
 }
 
 

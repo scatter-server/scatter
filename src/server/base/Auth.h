@@ -136,7 +136,7 @@ class BasicAuth : public WebAuth {
  protected:
     std::string getValue() const override;
  private:
-    std::string username, password;
+    std::string m_username, password;
 };
 
 /// \brief Simple header authorization, using custom header value
@@ -166,7 +166,7 @@ class HeaderAuth : public WebAuth {
  protected:
     std::string getValue() const override;
  private:
-    std::string name, value;
+    std::string m_name, m_value;
 };
 
 /// \brief OAuth bearer authorization, using header "Authorization: Bearer {token}"
@@ -212,7 +212,7 @@ class CookieAuth : public WebAuth {
  protected:
     std::string getValue() const override;
  private:
-    std::string name, value;
+    std::string m_name, m_value;
 };
 
 namespace auth {

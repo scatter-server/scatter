@@ -14,23 +14,23 @@
 #endif
 
 wss::event::EventNotifier::EventNotifier(std::shared_ptr<wss::ChatServer> &ws) :
-    running(true),
-    ws(ws),
-    enableRetry(wss::Settings::get().event.enableRetry),
-    maxParallelWorkers(wss::Settings::get().event.maxParallelWorkers),
-    maxRetries(3),
-    intervalSeconds(10),
-    ioService(),
-    threadGroup(),
-    work(ioService) { }
+    m_keepGoing(true),
+    m_ws(ws),
+    m_enableRetry(wss::Settings::get().event.enableRetry),
+    m_maxParallelWorkers(wss::Settings::get().event.maxParallelWorkers),
+    m_maxRetries(3),
+    m_intervalSeconds(10),
+    m_ioService(),
+    m_threadGroup(),
+    m_work(m_ioService) { }
 
 wss::event::EventNotifier::~EventNotifier() {
-    running = false;
+    m_keepGoing = false;
     onStop();
 }
 
 void wss::event::EventNotifier::setRetryIntervalSeconds(int seconds) {
-    intervalSeconds = seconds;
+    m_intervalSeconds = seconds;
 }
 
 std::shared_ptr<wss::event::Target> wss::event::EventNotifier::createTargetByConfig(const nlohmann::json &json) {
@@ -66,7 +66,7 @@ std::shared_ptr<wss::event::Target> wss::event::EventNotifier::createTargetByCon
 }
 
 void wss::event::EventNotifier::setMaxTries(int tries) {
-    maxRetries = tries;
+    m_maxRetries = tries;
 }
 void wss::event::EventNotifier::addTarget(const nlohmann::json &targetConfig) {
     addTarget(createTargetByConfig(targetConfig));
@@ -75,35 +75,35 @@ void wss::event::EventNotifier::addTarget(const std::shared_ptr<wss::event::Targ
     if (!target->isValid()) {
         throw std::runtime_error(target->getErrorMessage());
     }
-    targets.insert({target->getType(), target});
+    m_targets.insert({target->getType(), target});
 }
 void wss::event::EventNotifier::addTarget(std::shared_ptr<wss::event::Target> &&target) {
     if (!target->isValid()) {
         throw std::runtime_error(target->getErrorMessage());
     }
-    targets.insert({target->getType(), std::move(target)});
+    m_targets.insert({target->getType(), std::move(target)});
 }
 
 void wss::event::EventNotifier::subscribe() {
     for (int i = 0; i < 4; i++) {
-        threadGroup.create_thread(
-            boost::bind(&boost::asio::io_service::run, &ioService)
+        m_threadGroup.create_thread(
+            boost::bind(&boost::asio::io_service::run, &m_ioService)
         );
     }
 
-    ws->addMessageListener(std::bind(&EventNotifier::onMessage, this, std::placeholders::_1));
-    ws->addStopListener(std::bind(&EventNotifier::onStop, this));
-    ioService.post(boost::bind(&EventNotifier::handleMessageQueue, this));
+    m_ws->addMessageListener(std::bind(&EventNotifier::onMessage, this, std::placeholders::_1));
+    m_ws->addStopListener(std::bind(&EventNotifier::onStop, this));
+    m_ioService.post(boost::bind(&EventNotifier::handleMessageQueue, this));
 }
 void wss::event::EventNotifier::joinThreads() {
-    threadGroup.join_all();
+    m_threadGroup.join_all();
 }
 void wss::event::EventNotifier::detachThreads() {
 
 }
 void wss::event::EventNotifier::runService() {
     L_INFO("EventNotifier", "Started with targets:");
-    for (auto &target: targets) {
+    for (auto &target: m_targets) {
         const char *name = target.first.c_str();
         L_INFO_F("EventNotifier", " - %s", name);
     }
@@ -113,20 +113,20 @@ void wss::event::EventNotifier::stopService() {
     onStop();
 }
 void wss::event::EventNotifier::onStop() {
-    ioService.stop();
-    running = false;
-    threadGroup.interrupt_all();
+    m_ioService.stop();
+    m_keepGoing = false;
+    m_threadGroup.interrupt_all();
 }
 
 void wss::event::EventNotifier::handleMessageQueue() {
     const auto &ready = [this](SendStatus status) {
-      if (!enableRetry) return true;
+      if (!m_enableRetry) return true;
 
       const long diff = abs(std::time(nullptr) - status.sendTime);
-      return diff >= intervalSeconds;
+      return diff >= m_intervalSeconds;
     };
 
-    while (running) {
+    while (m_keepGoing) {
         // @TODO play around this time, check performance and cpu consumption
         // probably we should use notifiers, calculate data additions or average send times, instead of just checking every .5 seconds
         boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
@@ -135,16 +135,16 @@ void wss::event::EventNotifier::handleMessageQueue() {
 
         try {
             size_t extract;
-            const size_t approxSize = sendQueue.size_approx();
-            if (approxSize > maxParallelWorkers) {
+            const size_t approxSize = m_sendQueue.size_approx();
+            if (approxSize > m_maxParallelWorkers) {
                 // maximum connections per cycle
-                extract = maxParallelWorkers;
+                extract = m_maxParallelWorkers;
             } else {
                 extract = approxSize;
             }
 
             bulk.resize(extract);
-            sendQueue.try_dequeue_bulk(bulk.begin(), bulk.size());
+            m_sendQueue.try_dequeue_bulk(bulk.begin(), bulk.size());
         } catch (const std::exception &e) {
             L_DEBUG_F("Event::Send", "Can't dequeue bulk: %s", e.what());
             continue;
@@ -153,27 +153,27 @@ void wss::event::EventNotifier::handleMessageQueue() {
         int i = 0;
         for (auto it: bulk) {
             if (!ready(it)) {
-                sendQueue.enqueue(std::move(it));
+                m_sendQueue.enqueue(std::move(it));
                 continue;
             }
 
             auto sender = boost::thread([this, s = std::move(it)]() {
               SendStatus status = s;
               status.hasSent = status.target->send(status.payload, status.sendResult);
-              if (enableRetry && !status.hasSent) {
+              if (m_enableRetry && !status.hasSent) {
                   std::stringstream ss;
                   ss << "Can't send message to target " << status.target->getType() << ": " << status.sendResult;
                   Logger::get().debug("Event-Send", ss.str());
 
                   // if tries < maxRetries
-                  if (status.sendTries < maxRetries) {
+                  if (status.sendTries < m_maxRetries) {
                       status.sendTries++;
                       status.sendTime = std::time(nullptr);
-                      sendQueue.enqueue(status);
+                      m_sendQueue.enqueue(status);
                   } else {
                       // can't send over maxTries times
                       // notify listeners
-                      for (auto &listener: sendErrorListeners) {
+                      for (auto &listener: m_sendErrorListeners) {
                           listener(std::move(status.payload));
                       }
                   }
@@ -195,8 +195,8 @@ void wss::event::EventNotifier::handleMessageQueue() {
     }
 }
 void wss::event::EventNotifier::addMessage(wss::MessagePayload payload) {
-    for (auto &target: targets) {
-        sendQueue.enqueue(SendStatus(target.second, payload, 0L, 1));
+    for (auto &target: m_targets) {
+        m_sendQueue.enqueue(SendStatus(target.second, payload, 0L, 1));
     }
 }
 
@@ -215,11 +215,11 @@ void wss::event::EventNotifier::onMessage(wss::MessagePayload &&payload) {
     }
 
     if (!isIgnoredType) {
-        ioService.post(boost::bind(&EventNotifier::addMessage, this, payload));
+        m_ioService.post(boost::bind(&EventNotifier::addMessage, this, payload));
     }
 }
 void wss::event::EventNotifier::addErrorListener(wss::event::EventNotifier::OnSendError listener) {
-    sendErrorListeners.push_back(listener);
+    m_sendErrorListeners.push_back(listener);
 }
 
 

@@ -28,7 +28,7 @@
 #include "server_ws.hpp"
 #include "json.hpp"
 #include "Message.h"
-#include "../defs.h"
+#include "src/server/wsserver_core.h"
 #include "../base/StandaloneService.h"
 #include "../helpers/threadsafe.hpp"
 #include "ConnectionStorage.h"
@@ -254,35 +254,35 @@ class ChatServer : public virtual StandaloneService {
 
  private:
     // secure
-    const bool useSSL;
+    const bool m_useSSL;
 
     /// \brief Current auth method
-    std::unique_ptr<wss::WebAuth> auth;
+    std::unique_ptr<wss::WebAuth> m_auth;
 
     // chat
     /// \brief Number in bytes
-    std::size_t maxMessageSize; // 10 megabytes by default
-    bool enableMessageDeliveryStatus = false;
+    std::size_t m_maxMessageSize; // 10 megabytes by default
+    bool m_enableMessageDeliveryStatus = false;
 
     // events
-    std::vector<wss::ChatServer::OnMessageSentListener> messageListeners;
-    std::vector<OnServerStopListener> stopListeners;
+    std::vector<wss::ChatServer::OnMessageSentListener> m_messageListeners;
+    std::vector<OnServerStopListener> m_stopListeners;
 
-    std::mutex frameBufferMutex;
-    std::recursive_mutex connectionMutex;
-    std::mutex undeliveredMutex;
+    std::mutex m_frameBufferMutex;
+    std::recursive_mutex m_connectionMutex;
+    std::mutex m_undeliveredMutex;
 
-    std::unique_ptr<boost::thread> workerThread;
-    std::unique_ptr<boost::thread> watchdogThread;
+    std::unique_ptr<boost::thread> m_workerThread;
+    std::unique_ptr<boost::thread> m_watchdogThread;
 
-    WsServer::Endpoint *endpoint;
-    std::unique_ptr<WsServer> server;
+    WsServer::Endpoint *m_endpoint;
+    std::unique_ptr<WsServer> m_server;
 
-    std::unique_ptr<wss::ConnectionStorage> connectionStorage;
-    UserMap<std::shared_ptr<std::stringstream>> frameBuffer;
-    UserMap<std::queue<wss::MessagePayload>> undeliveredMessagesMap;
-    UserMap<std::unique_ptr<Statistics>> statistics;
-    UserMap<bool> sentUniqueId;
+    std::unique_ptr<wss::ConnectionStorage> m_connectionStorage;
+    UserMap<std::shared_ptr<std::stringstream>> m_frameBuffer;
+    UserMap<std::queue<wss::MessagePayload>> m_undeliveredMessagesMap;
+    UserMap<std::unique_ptr<Statistics>> m_statistics;
+    UserMap<bool> m_sentUniqueId;
 
     /// \todo move out to server side
 

@@ -9,7 +9,7 @@
 #include "ConnectionStorage.h"
 
 wss::ConnectionStorage::~ConnectionStorage() {
-    for (auto &kv: idMap) {
+    for (auto &kv: m_idMap) {
         for (const auto &c: kv.second) {
             try {
                 c.second->sendClose(1000, "Server Gone Away");
@@ -18,16 +18,16 @@ wss::ConnectionStorage::~ConnectionStorage() {
             }
         }
     }
-    idMap.clear();
+    m_idMap.clear();
 }
 bool wss::ConnectionStorage::exists(wss::user_id_t id) const {
     // мы проверяем только наличие мапы, но есть ли такое содениение с уникальным айдишником - нет, тут баг
-    std::lock_guard<std::recursive_mutex> locker(connectionMutex);
-    return idMap.find(id) != idMap.end();
+    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
+    return m_idMap.find(id) != m_idMap.end();
 }
 bool wss::ConnectionStorage::verify(wss::user_id_t userId, wss::conn_id_t connectionId) {
-    const auto &it = idMap.find(userId);
-    if (it == idMap.end()) {
+    const auto &it = m_idMap.find(userId);
+    if (it == m_idMap.end()) {
         return false;
     }
 
@@ -44,44 +44,44 @@ bool wss::ConnectionStorage::verify(wss::user_id_t userId, wss::conn_id_t connec
     }
 }
 std::size_t wss::ConnectionStorage::size() const {
-    std::lock_guard<std::recursive_mutex> locker(connectionMutex);
-    return idMap.size();
+    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
+    return m_idMap.size();
 }
 std::size_t wss::ConnectionStorage::size(wss::user_id_t id) {
-    std::lock_guard<std::recursive_mutex> locker(connectionMutex);
+    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
 
-    if (idMap.find(id) == idMap.end()) {
+    if (m_idMap.find(id) == m_idMap.end()) {
         return 0;
     }
 
-    return idMap[id].size();
+    return m_idMap[id].size();
 }
 void wss::ConnectionStorage::add(wss::user_id_t id, const wss::WsConnectionPtr &connection) {
-    std::lock_guard<std::recursive_mutex> locker(connectionMutex);
+    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
     connection->setId(id);
-    idMap[id][connection->getUniqueId()] = connection;
-    L_DEBUG_F("Connection::Add", "Adding connection for %lu. Now size: %lu", connection->getId(), idMap[id].size());
+    m_idMap[id][connection->getUniqueId()] = connection;
+    L_DEBUG_F("Connection::Add", "Adding connection for %lu. Now size: %lu", connection->getId(), m_idMap[id].size());
 }
 void wss::ConnectionStorage::remove(wss::user_id_t id) {
-    std::lock_guard<std::recursive_mutex> locker(connectionMutex);
-    idMap.erase(id);
+    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
+    m_idMap.erase(id);
 }
 void wss::ConnectionStorage::remove(wss::user_id_t id, wss::conn_id_t connectionId) {
-    std::lock_guard<std::recursive_mutex> locker(connectionMutex);
-    const auto &it = idMap.find(id);
-    if (it != idMap.end()) {
+    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
+    const auto &it = m_idMap.find(id);
+    if (it != m_idMap.end()) {
         if (it->second.find(connectionId) != it->second.end()) {
             it->second.erase(connectionId);
         }
     }
 }
 void wss::ConnectionStorage::remove(const wss::WsConnectionPtr &connection) {
-    std::lock_guard<std::recursive_mutex> locker(connectionMutex);
+    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
     const user_id_t id = connection->getId();
     const conn_id_t connId = connection->getUniqueId();
 
-    const auto &userMapIt = idMap.find(id);
-    if (userMapIt != idMap.end()) {
+    const auto &userMapIt = m_idMap.find(id);
+    if (userMapIt != m_idMap.end()) {
         if (userMapIt->second.find(connId) != userMapIt->second.end()) {
             userMapIt->second.erase(connId);
         }
@@ -90,48 +90,48 @@ void wss::ConnectionStorage::remove(const wss::WsConnectionPtr &connection) {
     L_DEBUG_F("Connection::Remove", "User %lu (%lu). Left connections: %lu",
               connection->getId(),
               connection->getUniqueId(),
-              idMap[id].size());
+              m_idMap[id].size());
 }
 wss::ConnectionMap<wss::WsConnectionPtr> &wss::ConnectionStorage::get(wss::user_id_t id) {
-    std::lock_guard<std::recursive_mutex> locker(connectionMutex);
+    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
     if (!exists(id)) {
         throw ConnectionNotFound();
     }
-    return idMap[id];
+    return m_idMap[id];
 }
 const wss::UserMap<wss::ConnectionMap<wss::WsConnectionPtr>> &wss::ConnectionStorage::get() {
-    return idMap;
+    return m_idMap;
 }
 void wss::ConnectionStorage::handle(wss::user_id_t id, std::function<void(wss::WsConnectionPtr &)> &&handler) {
-    std::lock_guard<std::recursive_mutex> locker(connectionMutex);
+    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
     for (auto &conn: get(id)) {
         handler(conn.second);
     }
 }
 void wss::ConnectionStorage::markPongWait(const wss::WsConnectionPtr &connection) {
-    std::lock_guard<std::mutex> locker(pongMutex);
-    waitForPong[connection->getUniqueId()] = {connection->getId(), false};
+    std::lock_guard<std::mutex> locker(m_pongMutex);
+    m_waitForPong[connection->getUniqueId()] = {connection->getId(), false};
 }
 void wss::ConnectionStorage::markPongReceived(const wss::WsConnectionPtr &connection) {
-    std::lock_guard<std::mutex> locker(pongMutex);
-    waitForPong[connection->getUniqueId()].second = true;
+    std::lock_guard<std::mutex> locker(m_pongMutex);
+    m_waitForPong[connection->getUniqueId()].second = true;
 }
 std::size_t wss::ConnectionStorage::disconnectWithoutPong() {
-    std::lock_guard<std::recursive_mutex> locker(connectionMutex);
+    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
     std::size_t disconnected = 0;
-    for (auto it = waitForPong.begin(); it != waitForPong.end();) {
+    for (auto it = m_waitForPong.begin(); it != m_waitForPong.end();) {
         if (!it->second.second) {
-            WsConnectionPtr &conn = idMap[it->second.first][it->first];
+            WsConnectionPtr &conn = m_idMap[it->second.first][it->first];
             if (conn) {
                 conn->sendClose(4010/*@TODO remove harcode*/, "Dangling connection");
             } else {
                 // by some reason, connection already nullptr
-                idMap[it->second.first].erase(it->first);
+                m_idMap[it->second.first].erase(it->first);
             }
             disconnected++;
         }
 
-        waitForPong.erase(it++);
+        m_waitForPong.erase(it++);
     }
 
     return disconnected;

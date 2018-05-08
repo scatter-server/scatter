@@ -13,7 +13,7 @@ wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServ
                                     const std::string &crtPath,
                                     const std::string &keyPath) :
     RestServer(crtPath, keyPath, "*", 8081),
-    chatMessageServer(chatMessageServer) {
+    m_ws(chatMessageServer) {
 }
 
 wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServer,
@@ -21,7 +21,7 @@ wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServ
                                     const std::string &host,
                                     unsigned short port) :
     RestServer(crtPath, keyPath, host, port),
-    chatMessageServer(chatMessageServer) {
+    m_ws(chatMessageServer) {
 }
 #else
 wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServer) :
@@ -64,8 +64,8 @@ void wss::ChatRestServer::actionCheckOnline(wss::HttpResponse response, wss::Htt
 
     json statItem;
 
-    const auto begin = chatMessageServer->getStats().find(id);
-    statItem["isOnline"] = begin != chatMessageServer->getStats().end() && begin->second->isOnline();
+    const auto begin = m_ws->getStats().find(id);
+    statItem["isOnline"] = begin != m_ws->getStats().end() && begin->second->isOnline();
     content["data"] = statItem;
     const std::string out = content.dump();
     setResponseStatus(response, HttpStatus::success_ok, out.length());
@@ -90,7 +90,7 @@ void wss::ChatRestServer::actionStat(wss::HttpResponse response, wss::HttpReques
     json content;
     content["success"] = true;
 
-    if (chatMessageServer->getStats().find(id) == chatMessageServer->getStats().end()) {
+    if (m_ws->getStats().find(id) == m_ws->getStats().end()) {
         json statItem;
         statItem["id"] = id;
         statItem["isOnline"] = false;
@@ -114,7 +114,7 @@ void wss::ChatRestServer::actionStat(wss::HttpResponse response, wss::HttpReques
     }
 
     json statItem;
-    const auto idStat = chatMessageServer->getStats().find(id);
+    const auto idStat = m_ws->getStats().find(id);
     statItem["id"] = idStat->first;
     statItem["isOnline"] = idStat->second->isOnline();
     statItem["lastConnection"] = idStat->second->getConnectionTime();
@@ -140,10 +140,10 @@ void wss::ChatRestServer::actionStats(wss::HttpResponse response, wss::HttpReque
     json content;
     content["success"] = true;
 
-    std::vector<json> statItems(chatMessageServer->getStats().size());
-    L_DEBUG_F("Http::Server", "Statistics: available %lu records", chatMessageServer->getStats().size());
+    std::vector<json> statItems(m_ws->getStats().size());
+    L_DEBUG_F("Http::Server", "Statistics: available %lu records", m_ws->getStats().size());
     std::size_t i = 0;
-    for (auto &idStat: chatMessageServer->getStats()) {
+    for (auto &idStat: m_ws->getStats()) {
         json statItem;
         statItem["id"] = idStat.first;
         statItem["isOnline"] = idStat.second->isOnline();
@@ -190,7 +190,7 @@ void wss::ChatRestServer::actionSendMessage(wss::HttpResponse response, wss::Htt
         return;
     }
 
-    chatMessageServer->send(payload);
+    m_ws->send(payload);
     setResponseStatus(response, HttpStatus::success_accepted, 0u);
 
 }

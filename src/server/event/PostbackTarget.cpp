@@ -15,12 +15,12 @@ bool wss::event::PostbackTarget::send(const wss::MessagePayload &payload, std::s
         //L_DEBUG_F("Event-Send", "Request body: %s", out.c_str());
     }
 
-    wss::web::Request request(url);
+    wss::web::Request request(m_url);
     request.setBody(out);
-    request.setMethod(httpMethod);
+    request.setMethod(m_httpMethod);
     request.setHeader({"Content-Type", "application/json"});
 
-    auth->performAuth(request);
+    m_auth->performAuth(request);
     wss::web::Response response = getClient().execute(request);
     bool success = response.isSuccess();
     std::stringstream ss;
@@ -40,21 +40,21 @@ wss::event::PostbackTarget::PostbackTarget(const nlohmann::json &config) :
     Target(config) {
 
     try {
-        url = config.at("url");
+        m_url = config.at("url");
 
         if (config.find("auth") != config.end()) {
-            this->auth = wss::auth::createFromConfig(config);
+            this->m_auth = wss::auth::createFromConfig(config);
         } else {
-            this->auth = std::make_unique<wss::WebAuth>();
+            this->m_auth = std::make_unique<wss::WebAuth>();
         }
 
         if (config.find("method") != config.end()) {
             wss::web::Request req;
-            httpMethod = req.methodFromString(config.value(std::string("method"), "POST"));
+            m_httpMethod = req.methodFromString(config.value(std::string("method"), "POST"));
         }
 
-        client.enableVerbose(false);
-        client.setConnectionTimeout(config.value("connectionTimeoutSeconds", 10L));
+        m_client.enableVerbose(false);
+        m_client.setConnectionTimeout(config.value("connectionTimeoutSeconds", 10L));
     } catch (const std::exception &e) {
         setErrorMessage("Invalid postback target configuration. " + std::string(e.what()));
     }
@@ -62,13 +62,13 @@ wss::event::PostbackTarget::PostbackTarget(const nlohmann::json &config) :
 template<class T>
 void wss::event::PostbackTarget::setAuth(T &&auth) {
     static_assert(std::is_base_of<WebAuth, T>::value, "Only subclass of Base can be passed");
-    this->auth = std::make_unique<T>(auth);
+    this->m_auth = std::make_unique<T>(auth);
 }
 wss::web::HttpClient &wss::event::PostbackTarget::getClient() {
-    return client;
+    return m_client;
 }
 std::unique_ptr<wss::WebAuth> &wss::event::PostbackTarget::getAuth() {
-    return auth;
+    return m_auth;
 }
 
 

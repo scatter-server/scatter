@@ -11,7 +11,7 @@
 
 #include <functional>
 #include <memory>
-#include "../defs.h"
+#include "src/server/wsserver_core.h"
 #include "RestServer.h"
 #include "../base/Auth.h"
 #include "json.hpp"
@@ -63,7 +63,7 @@ class ChatRestServer : public RestServer {
     void createEndpoints() override;
 
  private:
-    std::shared_ptr<ChatServer> chatMessageServer;
+    std::shared_ptr<ChatServer> m_ws;
 };
 }
 
