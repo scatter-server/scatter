@@ -29,6 +29,11 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/toolboxpp/include)
 # cURL
 find_package(CURL 7.26.0 REQUIRED)
 
+
+# date lib
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libs/date)
+
+
 if (ENABLE_REDIS_TARGET)
 	add_definitions(-DENABLE_REDIS_TARGET)
 	# Redis client
@@ -78,6 +83,11 @@ function (linkdeps DEPS_PROJECT)
 	target_link_libraries(${DEPS_PROJECT} fmt::fmt)
 	target_include_directories(${DEPS_PROJECT} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libs/fmt)
 	message(STATUS "\t- fmt")
+
+	# Date lib
+	target_link_libraries(${DEPS_PROJECT} tz)
+	target_include_directories(${DEPS_PROJECT} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libs/date/include)
+	message(STATUS "\t- date & timezone lib")
 
 
 	if (ENABLE_REDIS_TARGET)

@@ -50,7 +50,7 @@ struct Server {
   std::string tmpDir = "/tmp";
   Watchdog watchdog;
   AuthSettings auth;
-  bool useUniversalTime = false;
+  std::string timezone;
 };
 struct RestApi {
   bool enabled = false;
@@ -95,7 +95,7 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
     setConfigDef(in.server.address, server, "address", "*");
     setConfigDef(in.server.endpoint, server, "endpoint", "/chat");
     setConfigDef(in.server.port, server, "port", (uint16_t) 8085);
-    setConfigDef(in.server.useUniversalTime, server, "universalTime", true);
+    setConfigDef(in.server.timezone, server, "timezone", "UTC");
 
     if (server.find("secure") != server.end()) {
         setConfig(in.server.secure.crtPath, server["secure"], "crtPath");

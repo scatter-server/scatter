@@ -44,8 +44,12 @@
             if (addr == null) {
                 addr = "localhost";
             }
+            var proto = url.searchParams.get("proto");
+            if (proto == null) {
+                proto = "ws";
+            }
 
-            ws = new WebSocket("ws://" + addr + ":8085/chat?id=" + sender);
+            ws = new WebSocket(proto + "://" + addr + ":8085/chat?id=" + sender);
             ws.onmessage = function (evt) {
                 var result = JSON.parse(evt.data);
                 var inSender = parseInt(result.sender);

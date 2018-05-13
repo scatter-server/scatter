@@ -5,7 +5,7 @@
     "port": 8085,
     "workers": 8,
     "tmpDir": "/tmp",
-    "universalTime": false,
+    "timezone": "Europe/Moscow",
     "secure": {
       "crtPath": "<insert certificate path here>",
       "keyPath": "<insert private key path here>"

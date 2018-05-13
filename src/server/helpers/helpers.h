@@ -39,6 +39,7 @@ using hires_clock = std::chrono::high_resolution_clock;
 /// \brief ISO 8601 date format without time zone at the end
 static const char DATE_TIME_ISO_8601[] = "%Y-%m-%d %H:%M:%S";
 static const char DATE_TIME_ISO_8601_FRACTIONAL[] = "%Y-%m-%d %H:%M:%s";
+static const char DATE_TIME_ISO_8601_FRACTIONAL_WITH_TZ[] = "%Y-%m-%d %H:%M:%S %z";
 
 /// \brief Parse string date to boost ptime
 /// \param t input string date
@@ -59,10 +60,6 @@ pt::ptime parseISODateTime(const std::string &t);
 /// \return
 std::string formatBoostPTime(const pt::ptime &t, const char *format);
 
-/// \brief Returns Current date time
-/// \return string formatted in ISO-8601 format
-std::string getNowISODateTimeConfigAware();
-
 /// \brief Returns current date time, with resolution to mircoseconds
 /// \return Example output: 2017-12-08 19:11:28.003785
 std::string getNowISODateTimeFractionalConfigAware();
@@ -75,13 +72,26 @@ std::string getNowLocalISODateTime();
 /// \return Example output: 2017-12-08 19:11:28.003785
 std::string getNowLocalISODateTimeFractional();
 
+/// \brief Returns current date time, with resolution to mircoseconds and timezone UTC offset
+/// \return Example output: 2017-12-08 19:11:28.003785 +0300
+std::string getNowLocalISODateTimeFractionalTZ();
+
 /// \brief Returns Current date time
 /// \return string formatted in ISO-8601 format
 std::string getNowUTCISODateTime();
 
+/// \brief Returns current date time with for passed timezone
+/// \param timezone tz name, like: UTC, or Europe/Berlin
+/// \return formatted in ISO-8601 format
+std::string getNowISODateTime(const std::string &timezone);
+
 /// \brief Returns current date time, with resolution to mircoseconds
 /// \return Example output: 2017-12-08 19:11:28.003785
 std::string getNowUTCISODateTimeFractional();
+
+/// \brief Returns current date time, with resolution to mircoseconds and timezone UTC offset
+/// \return Example output: 2017-12-08 19:11:28.003785 +0300
+std::string getNowUTCISODateTimeFractionalTZ();
 
 /// \brief Format bytes to human readable string
 /// \param bytes Bytes count

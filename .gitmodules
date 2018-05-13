@@ -22,3 +22,6 @@
 [submodule "libs/cpp_redis"]
 	path = libs/cpp_redis
 	url = https://github.com/Cylix/cpp_redis.git
+[submodule "libs/date"]
+	path = libs/date
+	url = https://github.com/HowardHinnant/date.git

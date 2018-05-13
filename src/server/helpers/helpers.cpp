@@ -8,6 +8,8 @@
 
 #include <src/server/base/Settings.hpp>
 #include "helpers.h"
+#include <date/date.h>
+#include <date/tz.h>
 
 boost::posix_time::ptime wss::helpers::parseDate(const std::string &t, const char *format) {
     pt::time_input_facet *timeFacet(new pt::time_input_facet(format));
@@ -33,20 +35,17 @@ std::string wss::helpers::formatBoostPTime(const boost::posix_time::ptime &t, co
     ss.imbue(ioFormat);
     ss << t;
 
+    delete timeFacet;
+
     return ss.str();
-}
-std::string wss::helpers::getNowISODateTimeConfigAware() {
-    if (wss::Settings::get().server.useUniversalTime) {
-        return getNowUTCISODateTime();
-    }
-    return getNowLocalISODateTime();
 }
 
 std::string wss::helpers::getNowISODateTimeFractionalConfigAware() {
-    if (wss::Settings::get().server.useUniversalTime) {
-        return getNowUTCISODateTimeFractional();
+    if (wss::Settings::get().server.timezone.empty()) {
+        return getNowISODateTime("UTC");
     }
-    return getNowLocalISODateTimeFractional();
+
+    return getNowISODateTime(wss::Settings::get().server.timezone);
 }
 
 std::string wss::helpers::getNowLocalISODateTime() {
@@ -57,12 +56,28 @@ std::string wss::helpers::getNowLocalISODateTimeFractional() {
     return formatBoostPTime(pt::microsec_clock::local_time(), DATE_TIME_ISO_8601_FRACTIONAL);
 }
 
+std::string wss::helpers::getNowLocalISODateTimeFractionalTZ() {
+    auto t = date::make_zoned(date::current_zone(), std::chrono::system_clock::now());
+
+    return date::format(wss::helpers::DATE_TIME_ISO_8601_FRACTIONAL_WITH_TZ, t);
+}
+
 std::string wss::helpers::getNowUTCISODateTime() {
     return formatBoostPTime(pt::second_clock::universal_time(), DATE_TIME_ISO_8601);
 }
 
+std::string wss::helpers::getNowISODateTime(const std::string &timezone) {
+    auto t = date::make_zoned(timezone, std::chrono::system_clock::now());
+    return date::format(wss::helpers::DATE_TIME_ISO_8601_FRACTIONAL_WITH_TZ, t);
+}
+
 std::string wss::helpers::getNowUTCISODateTimeFractional() {
     return formatBoostPTime(pt::microsec_clock::universal_time(), DATE_TIME_ISO_8601_FRACTIONAL);
+}
+
+std::string wss::helpers::getNowUTCISODateTimeFractionalTZ() {
+    auto t = date::make_zoned("UTC", std::chrono::system_clock::now());
+    return date::format(wss::helpers::DATE_TIME_ISO_8601_FRACTIONAL_WITH_TZ, t);
 }
 
 std::string wss::helpers::humanReadableBytes(unsigned long bytes, bool si) {
