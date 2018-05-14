@@ -14,8 +14,8 @@
 #include <type_traits>
 #include <toolboxpp.h>
 #include "json.hpp"
-#include "src/server/wsserver_core.h"
-#include "src/server/base/unid.h"
+#include "../wsserver_core.h"
+#include "../base/unid.h"
 
 namespace wss {
 

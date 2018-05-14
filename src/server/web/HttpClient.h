@@ -16,7 +16,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <toolboxpp.h>
 #include <curl/curl.h>
-#include "src/server/wsserver_core.h"
+#include "..//wsserver_core.h"
 
 #ifdef USE_SECURE_SERVER
 #include <server_https.hpp>

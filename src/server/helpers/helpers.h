@@ -39,7 +39,7 @@ using hires_clock = std::chrono::high_resolution_clock;
 /// \brief ISO 8601 date format without time zone at the end
 static const char DATE_TIME_ISO_8601[] = "%Y-%m-%d %H:%M:%S";
 static const char DATE_TIME_ISO_8601_FRACTIONAL[] = "%Y-%m-%d %H:%M:%s";
-static const char DATE_TIME_ISO_8601_FRACTIONAL_WITH_TZ[] = "%Y-%m-%d %H:%M:%S %z";
+static const char DATE_TIME_ISO_8601_FRACTIONAL_WITH_TZ[] = "%Y-%m-%d %H:%M:%S%z";
 
 /// \brief Parse string date to boost ptime
 /// \param t input string date
@@ -112,10 +112,8 @@ template<typename T>
 const std::string toString(T n) {
     static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value,
                   "Value can be only integral type or floating point");
-    fmt::MemoryWriter w;
-    w << n;
 
-    return w.str();
+    return fmt::to_string(n);
 }
 
 }

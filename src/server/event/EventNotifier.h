@@ -21,7 +21,7 @@
 #include <boost/thread.hpp>
 #include <cmath>
 #include <boost/asio/io_service.hpp>
-#include "src/server/chat/ChatServer.h"
+#include "../chat/ChatServer.h"
 #include "../base/StandaloneService.h"
 #include "Target.hpp"
 #include "PostbackTarget.h"

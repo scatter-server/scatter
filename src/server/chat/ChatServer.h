@@ -28,7 +28,7 @@
 #include "server_ws.hpp"
 #include "json.hpp"
 #include "Message.h"
-#include "src/server/wsserver_core.h"
+#include "../wsserver_core.h"
 #include "../base/StandaloneService.h"
 #include "../helpers/threadsafe.hpp"
 #include "ConnectionStorage.h"

@@ -6,7 +6,7 @@
  * @link https://github.com/edwardstock
  */
 
-#include <src/server/base/Settings.hpp>
+#include "../base/Settings.hpp"
 #include "helpers.h"
 #include <date/date.h>
 #include <date/tz.h>

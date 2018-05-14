@@ -13,7 +13,7 @@
 #include "json.hpp"
 #include "Target.hpp"
 #include "../web/HttpClient.h"
-#include "src/server/chat/ChatServer.h"
+#include "..//chat/ChatServer.h"
 #include "../base/Auth.h"
 
 namespace wss {

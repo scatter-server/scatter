@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 project(wsserver VERSION 1.0.2)
+set(CMAKE_CXX_STANDARD 14)
 
 add_definitions(-DWSSERVER_VERSION="${PROJECT_VERSION}")
 
@@ -105,7 +106,7 @@ set(SERVER_EXEC_SRCS
     ${HTTP_SERVER_SRC} ${HTTP_CLIENT_SRC} ${HTTP_COMMON_SRC}
     )
 
-add_subdirectory(libs/fmt/fmt)
+add_subdirectory(libs/fmt)
 add_executable(${PROJECT_NAME} src/server/main.cpp ${SERVER_EXEC_SRCS})
 
 linkdeps(${PROJECT_NAME})

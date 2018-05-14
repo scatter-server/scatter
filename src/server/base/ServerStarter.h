@@ -22,7 +22,7 @@
 #include "cmdline.hpp"
 #include "../event/EventNotifier.h"
 #include "../restapi/ChatRestServer.h"
-#include "src/server/chat/ChatServer.h"
+#include "..//chat/ChatServer.h"
 #include "StandaloneService.h"
 #include "Settings.hpp"
 

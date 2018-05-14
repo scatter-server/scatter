@@ -11,7 +11,7 @@
 
 #include <functional>
 #include <memory>
-#include "src/server/wsserver_core.h"
+#include "..//wsserver_core.h"
 #include "RestServer.h"
 #include "../base/Auth.h"
 #include "json.hpp"

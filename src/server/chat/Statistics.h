@@ -11,7 +11,7 @@
 
 #include <atomic>
 #include <ctime>
-#include "src/server/wsserver_core.h"
+#include "../wsserver_core.h"
 
 namespace wss {
 

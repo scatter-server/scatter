@@ -18,10 +18,11 @@
 #include <fmt/format.h>
 #include "server_https.hpp"
 #include "server_http.hpp"
-#include "src/server/wsserver_core.h"
-#include "src/server/chat/ChatServer.h"
+#include "../wsserver_core.h"
+#include "../chat/ChatServer.h"
 #include "../base/StandaloneService.h"
 #include "../base/Auth.h"
+#include "../helpers/helpers.h"
 
 #define ACTION_DEFINE(name) void name(HttpResponse response, HttpRequest request)
 #define ACTION_BIND(cName, mName) std::bind(&cName::mName, this, std::placeholders::_1, std::placeholders::_2)
@@ -76,13 +77,12 @@ class RestServer : public virtual StandaloneService {
                       errorOut["message"] = "Unauthorized";
                       const std::string out = errorOut.dump();
 
-                      fmt::MemoryWriter mw;
-                      mw << out.length();
+
                       *response << buildResponse({
                                                      {"HTTP/1.1",         "401 Unauthorized"},
                                                      {"Server",           "WS Rest Server"},
                                                      {"Connection",       "keep-alive"},
-                                                     {"Content-Length",   mw.str()},
+                                                     {"Content-Length",   wss::helpers::toString(out.length())},
                                                      {"WWW-Authenticate", "Basic realm=\"Come to the dark side, we have cookies!\""},
                                                  });
 

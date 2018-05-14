@@ -16,7 +16,7 @@
 #include <string>
 #include <atomic>
 #include <toolboxpp.h>
-#include "src/server/wsserver_core.h"
+#include "../wsserver_core.h"
 namespace wss {
 
 struct ConnectionNotFound : std::exception {
