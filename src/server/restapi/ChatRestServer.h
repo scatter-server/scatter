@@ -59,6 +59,11 @@ class ChatRestServer : public RestServer {
     /// \param request Http request
     ACTION_DEFINE(actionSendMessage);
 
+    /// \brief Check server is online
+    /// \param response
+    /// \param request
+    ACTION_DEFINE(actionStatus);
+
  protected:
     void createEndpoints() override;
 

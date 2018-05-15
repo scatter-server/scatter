@@ -127,8 +127,7 @@ void wss::ChatServer::runService() {
     });
 
     if (wss::Settings::get().server.watchdog.enabled) {
-
-        const long lifetime = wss::Settings::get().server.watchdog.connectionLifetimeSeconds;
+        long lifetime = wss::Settings::get().server.watchdog.connectionLifetimeSeconds;
         L_INFO_F("Watchdog", "Started with interval in 1 minute and lifetime=%lu", lifetime);
         m_watchdogThread =
             std::make_unique<boost::thread>(boost::bind(&wss::ChatServer::watchdogWorker, this, lifetime));

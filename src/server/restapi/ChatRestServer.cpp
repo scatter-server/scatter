@@ -42,6 +42,7 @@ void wss::ChatRestServer::createEndpoints() {
     addEndpoint("stat", "GET", ACTION_BIND(ChatRestServer, actionStat));
     addEndpoint("check-online", "GET", ACTION_BIND(ChatRestServer, actionCheckOnline));
     addEndpoint("send-message", "POST", ACTION_BIND(ChatRestServer, actionSendMessage));
+    addEndpoint("status", "HEAD", ACTION_BIND(ChatRestServer, actionStatus));
 }
 
 void wss::ChatRestServer::actionCheckOnline(wss::HttpResponse response, wss::HttpRequest request) {
@@ -193,6 +194,10 @@ void wss::ChatRestServer::actionSendMessage(wss::HttpResponse response, wss::Htt
     m_ws->send(payload);
     setResponseStatus(response, HttpStatus::success_accepted, 0u);
 
+}
+
+void wss::ChatRestServer::actionStatus(wss::HttpResponse response, wss::HttpRequest) {
+    setResponseStatus(response, HttpStatus::success_ok, 0u);
 }
 
 

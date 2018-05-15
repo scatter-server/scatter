@@ -165,6 +165,8 @@ wss::web::Request::Method wss::web::Request::methodFromString(const std::string 
         return Method::PUT;
     } else if (equalsIgnoreCase(methodName, "DELETE")) {
         return Method::DELETE;
+    } else if (equalsIgnoreCase(methodName, "HEAD")) {
+        return Method::HEAD;
     }
 
     return Method::GET;

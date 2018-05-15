@@ -240,7 +240,7 @@ void wss::from_json(const wss::json &j, wss::MessagePayload &in) {
         throw InvalidPayloadException("$.recipients[] must contains at least 1 value");
     }
 
-    if (j.at("data") != j.end()) {
+    if (j.find("data") != j.end()) {
         in.m_data = j.value("data", json());
     } else {
         in.m_data = json();

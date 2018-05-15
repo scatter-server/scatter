@@ -43,7 +43,7 @@ class RestServer : public virtual StandaloneService {
  public:
     #ifdef USE_SECURE_SERVER
     RestServer(const std::string &crtPath, const std::string &keyPath,
-               const std::string &host, unsigned short port);
+               const std::string &host, uint16_t port);
     #else
     RestServer(const std::string &host, unsigned short port);
     #endif

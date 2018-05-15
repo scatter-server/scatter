@@ -11,7 +11,7 @@
 #ifdef USE_SECURE_SERVER
 wss::RestServer::RestServer(
     const std::string &crtPath, const std::string &keyPath,
-    const std::string &host, unsigned short port) : m_server(crtPath, keyPath) {
+    const std::string &host, uint16_t port) : m_server(crtPath, keyPath) {
     m_server.config.port = port;
     if (host.length() > 1) {
         m_server.config.address = host;

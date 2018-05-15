@@ -153,7 +153,7 @@ class Request : public IOContainer {
  public:
     /// \brief Http methods
     enum Method {
-      GET, POST, PUT, DELETE
+      GET, POST, PUT, DELETE, HEAD
     };
  private:
     /// \brief like multimap but vector
