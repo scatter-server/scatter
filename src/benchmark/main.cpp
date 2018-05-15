@@ -120,6 +120,11 @@ stats_t _statistics;
 std::mutex statLock;
 
 void handleOne(int sen, int rec, WsConnectionPtr &conn) {
+    if (conn == nullptr) {
+        L_ERR_F("HandleOne", "Connection is NULL sen=%d, rec=%d", sen, rec);
+        return;
+    }
+
     std::string msg;
     nlohmann::json obj;
     std::vector<int> recps = {rec};

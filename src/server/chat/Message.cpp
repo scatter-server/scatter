@@ -209,6 +209,7 @@ void wss::to_json(wss::json &j, const wss::MessagePayload &in) {
         {"data",       in.m_data}
     };
 }
+
 void wss::from_json(const wss::json &j, wss::MessagePayload &in) {
     if (j.find("type") == j.end() || j.at("type").is_null()) {
         throw InvalidPayloadException("$.type must be a string");
@@ -239,8 +240,17 @@ void wss::from_json(const wss::json &j, wss::MessagePayload &in) {
         throw InvalidPayloadException("$.recipients[] must contains at least 1 value");
     }
 
-    in.m_data = j.value("data", json());
-    in.m_timestamp = wss::helpers::getNowISODateTimeFractionalConfigAware();
+    if (j.at("data") != j.end()) {
+        in.m_data = j.value("data", json());
+    } else {
+        in.m_data = json();
+    }
+
+    if (j.find("timestamp") != j.end() && j.at("timestamp").is_string()) {
+        in.m_timestamp = j.at("timestamp").get<std::string>();
+    } else {
+        in.m_timestamp = wss::helpers::getNowISODateTimeFractionalConfigAware();
+    }
 }
 
 wss::MessagePayload MessagePayload::createSendStatus(user_id_t to) {
