@@ -19,19 +19,19 @@ find_package(OpenSSL 1.0.0 REQUIRED)
 
 
 # ToolBox++
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libs/toolboxpp)
+add_subdirectory(${PROJECT_LIBS_DIR}/toolboxpp)
 set_target_properties(
 	toolboxpp PROPERTIES
 	ENABLE_STATIC ON
 )
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/toolboxpp/include)
+include_directories(${PROJECT_LIBS_DIR}/libs/toolboxpp/include)
 
 # cURL
 find_package(CURL 7.26.0 REQUIRED)
 
 
 # date lib
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libs/date)
+add_subdirectory(${PROJECT_LIBS_DIR}/date)
 
 
 if (ENABLE_REDIS_TARGET)

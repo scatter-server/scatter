@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 project(wsserver VERSION 1.0.2)
 set(CMAKE_CXX_STANDARD 14)
+set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+set(PROJECT_LIBS_DIR ${PROJECT_ROOT}/libs)
 
 add_definitions(-DWSSERVER_VERSION="${PROJECT_VERSION}")
 
@@ -111,7 +113,12 @@ add_executable(${PROJECT_NAME} src/server/main.cpp ${SERVER_EXEC_SRCS})
 
 linkdeps(${PROJECT_NAME})
 if (WITH_BENCHMARK)
-	add_subdirectory(src/benchmark)
+	add_executable(wssbench
+	               src/benchmark/main.cpp
+	               ${COMMON_LIBS_SRC}
+	               ${WS_COMMON_SRC} ${WS_CLIENT_SRC})
+
+	linkdeps(wssbench)
 endif ()
 
 if (WITH_TEST)

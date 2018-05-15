@@ -7,13 +7,14 @@
 #include <unordered_set>
 #include <csignal>
 #include <toolboxpp.h>
+#include <client_wss.hpp>
 
 #include "client_ws.hpp"
 #include "json.hpp"
 
 using namespace std::placeholders;
 using namespace boost;
-using WsClient = SimpleWeb::SocketClient<SimpleWeb::WS>;
+using WsClient = SimpleWeb::SocketClient<SimpleWeb::WSS>;
 using WsConnectionPtr = std::shared_ptr<WsClient::Connection>;
 using logger = toolboxpp::Logger;
 using std::cout;
@@ -25,27 +26,26 @@ int lastRecipient;
 std::atomic_int connected;
 std::recursive_mutex lock;
 
-
 // CONFIG
 const int RUN_TIMES = 5;
 const int CONCURRENCY = 50;
 const int MESSAGES = 100;
-const boost::int_least64_t SLEEP_MS = 150;
+const boost::int_least64_t SLEEP_MS = 500;
 //std::string endpoint = "localhost:8085";
-std::string endpoint = "188.120.232.25:8085";
+std::string endpoint = "localhost:8085";
 
 std::unordered_map<int, WsConnectionPtr> conns(CONCURRENCY);
 
 const static std::string DUMMY_TEXT =
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus egestas, dui euismod aliquet ultrices, magna ex tincidunt ante, non tincidunt enim quam at ipsum. Etiam vel ligula pulvinar, pharetra magna at, finibus eros. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Nullam nibh nibh, tincidunt sit amet posuere eget, lobortis eu quam. Sed tincidunt, nulla ac fringilla cursus, velit nibh condimentum nisl, eget suscipit orci ex at nibh. Nam malesuada, purus nec cursus feugiat, elit erat porta quam, in maximus dui nisi ut tortor. Duis felis magna, maximus quis tristique ac, pellentesque at elit. Pellentesque augue felis, vehicula ut egestas luctus, aliquet ut justo. Quisque iaculis ligula sit amet sollicitudin facilisis. Vivamus congue suscipit metus, vitae eleifend neque ornare nec. Nulla facilisi. Phasellus augue leo, laoreet non dapibus malesuada, auctor et purus. Etiam tempor tempus sagittis. Duis porta iaculis velit quis pretium. Donec at arcu luctus, vulputate magna id, tincidunt arcu.\n"
-        "\n"
-        "Integer fermentum vulputate lorem, eget aliquam lectus interdum at. In lobortis, lectus id pellentesque porttitor, magna nunc vestibulum urna, eu auctor nisl eros eget nibh. Fusce augue diam, tempus nec nisi ac, pharetra tempor erat. Aliquam ullamcorper urna vitae elit sagittis ornare. Quisque aliquam diam lorem, eget suscipit tellus venenatis ultrices. Proin at elit quis lectus accumsan mattis. Ut vel commodo justo. Vivamus gravida euismod lacus eu mattis. Duis vitae porttitor ligula, non pellentesque turpis. Donec sollicitudin lectus a sem egestas, eget lacinia libero blandit. Ut consequat nisl felis, id sodales tortor ultrices sed.\n"
-        "\n"
-        "Donec dictum gravida est. In hac habitasse platea dictumst. Sed in tristique est, in volutpat odio. Sed finibus felis mi, eget scelerisque orci interdum et. Proin ac orci non libero facilisis fringilla. Duis eget eleifend elit. Praesent consequat diam elit, lobortis porta tellus blandit at. Proin a felis nisl. Cras fermentum sollicitudin urna, non blandit erat scelerisque quis. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.\n"
-        "\n"
-        "Maecenas elementum placerat pulvinar. Praesent porttitor maximus lorem, quis convallis magna laoreet maximus. Proin iaculis dapibus bibendum. Pellentesque ac velit feugiat, varius nulla nec, lobortis nibh. Nunc condimentum nisi ac malesuada tempor. Nunc et magna sed lectus viverra mollis id nec orci. Nunc aliquam euismod dui, eu scelerisque purus ornare quis. Suspendisse magna ipsum, porttitor ornare risus ac, aliquam lacinia quam. Donec venenatis faucibus consectetur. Integer ultrices, libero et imperdiet ullamcorper, magna elit laoreet velit, a auctor sem justo eu massa. Morbi ornare accumsan orci, a blandit massa vestibulum vitae. Vestibulum tortor velit, convallis eu tortor et, maximus rhoncus urna. Suspendisse vitae pulvinar sapien.\n"
-        "\n"
-        "Duis condimentum justo vitae malesuada laoreet. Pellentesque vitae lorem risus. Fusce at nulla vitae ex vestibulum viverra id ac risus. Ut non leo lectus. Phasellus venenatis erat non odio maximus sagittis. Duis id laoreet nulla. Cras lacinia eros sit amet sodales rhoncus. Fusce convallis convallis facilisis. Phasellus cursus tincidunt libero, sed placerat quam tempus quis. Nullam pellentesque, quam ut auctor tristique, diam justo tristique felis, a bibendum urna ipsum eget odio. Etiam congue euismod convallis.";
+    "\n"
+    "Integer fermentum vulputate lorem, eget aliquam lectus interdum at. In lobortis, lectus id pellentesque porttitor, magna nunc vestibulum urna, eu auctor nisl eros eget nibh. Fusce augue diam, tempus nec nisi ac, pharetra tempor erat. Aliquam ullamcorper urna vitae elit sagittis ornare. Quisque aliquam diam lorem, eget suscipit tellus venenatis ultrices. Proin at elit quis lectus accumsan mattis. Ut vel commodo justo. Vivamus gravida euismod lacus eu mattis. Duis vitae porttitor ligula, non pellentesque turpis. Donec sollicitudin lectus a sem egestas, eget lacinia libero blandit. Ut consequat nisl felis, id sodales tortor ultrices sed.\n"
+    "\n"
+    "Donec dictum gravida est. In hac habitasse platea dictumst. Sed in tristique est, in volutpat odio. Sed finibus felis mi, eget scelerisque orci interdum et. Proin ac orci non libero facilisis fringilla. Duis eget eleifend elit. Praesent consequat diam elit, lobortis porta tellus blandit at. Proin a felis nisl. Cras fermentum sollicitudin urna, non blandit erat scelerisque quis. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.\n"
+    "\n"
+    "Maecenas elementum placerat pulvinar. Praesent porttitor maximus lorem, quis convallis magna laoreet maximus. Proin iaculis dapibus bibendum. Pellentesque ac velit feugiat, varius nulla nec, lobortis nibh. Nunc condimentum nisi ac malesuada tempor. Nunc et magna sed lectus viverra mollis id nec orci. Nunc aliquam euismod dui, eu scelerisque purus ornare quis. Suspendisse magna ipsum, porttitor ornare risus ac, aliquam lacinia quam. Donec venenatis faucibus consectetur. Integer ultrices, libero et imperdiet ullamcorper, magna elit laoreet velit, a auctor sem justo eu massa. Morbi ornare accumsan orci, a blandit massa vestibulum vitae. Vestibulum tortor velit, convallis eu tortor et, maximus rhoncus urna. Suspendisse vitae pulvinar sapien.\n"
+    "\n"
+    "Duis condimentum justo vitae malesuada laoreet. Pellentesque vitae lorem risus. Fusce at nulla vitae ex vestibulum viverra id ac risus. Ut non leo lectus. Phasellus venenatis erat non odio maximus sagittis. Duis id laoreet nulla. Cras lacinia eros sit amet sodales rhoncus. Fusce convallis convallis facilisis. Phasellus cursus tincidunt libero, sed placerat quam tempus quis. Nullam pellentesque, quam ut auctor tristique, diam justo tristique felis, a bibendum urna ipsum eget odio. Etiam congue euismod convallis.";
 
 struct stats_t {
   std::vector<double> sendTimes;
@@ -67,7 +67,7 @@ struct stats_t {
 
   void calculate() {
       double minMax[3];
-      calcMinMaxTime(&minMax);
+      calcMinMaxTime(minMax);
       double totalSendTimes = 0.0;
       for (auto t: sendTimes) {
           totalSendTimes += t;
@@ -179,7 +179,10 @@ void connect(int sen, int rec) {
 
     L_DEBUG_F("Client", "[%d] Connecting...", sen);
 
-    WsClient client(std::string(endpoint + "/chat?id=") + std::to_string(sen));
+    WsClient client(
+        std::string(endpoint + "/chat?id=" + std::to_string(sen)),
+        false
+    );
     client.on_message = [sen](WsConnectionPtr, std::shared_ptr<WsClient::Message> msg) {
 //        cout << "Client: [" << sen << "] Message received: "<< endl;
     };
