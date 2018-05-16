@@ -30,7 +30,7 @@ std::recursive_mutex lock;
 const int RUN_TIMES = 5;
 const int CONCURRENCY = 50;
 const int MESSAGES = 100;
-const boost::int_least64_t SLEEP_MS = 500;
+const boost::int_least64_t SLEEP_MS = 50;
 //std::string endpoint = "localhost:8085";
 std::string endpoint = "localhost:8085";
 
@@ -77,18 +77,19 @@ struct stats_t {
       const std::vector<int> times = calcTime(static_cast<long>(totalSendTimes));
       cout
           << endl
-          << "         MIN send time: " << (minMax[0]) << "ms" << endl
-          << "         MAX send time: " << (minMax[1]) << "ms" << endl
-          << "         AVG send time: " << (minMax[2]) << "ms" << endl
-          << "            Total sent: " << sendTimes.size() << endl
-          << "         Sent messages: " << sentMessages << endl
-          << "        Error messages: " << errorMessages << endl
-          << "     Total connections: " << totalConnections << endl
-          << "   Transferred payload: " << payloadTransferredBytes << " bytes (" << (payloadTransferredBytes / 1000)
+          << "         MIN send time:      " << (minMax[0]) << "ms" << endl
+          << "         MAX send time:      " << (minMax[1]) << "ms" << endl
+          << "         AVG send time:      " << (minMax[2]) << "ms" << endl
+          << "            Total sent:      " << sendTimes.size() << endl
+          << "         Sent messages:      " << sentMessages << endl
+          << "        Error messages:      " << errorMessages << endl
+          << "     Total connections:      " << totalConnections << endl
+          << "   Transferred payload:      " << payloadTransferredBytes << " bytes ("
+          << (payloadTransferredBytes / 1000)
           << " Kb)" << endl
-          << "Average transfer speed: " << transferSpeedKbps << " Kb/s (" << (transferSpeedKbps / 1000) << " Mb/s)"
+          << "Average transfer throughput: " << transferSpeedKbps << " Kb/s (" << (transferSpeedKbps / 1000) << " Mb/s)"
           << endl
-          << "Benchmark time (total): " << totalSendTimes << "ms (" << times[1] << " minutes" << " " << times[2]
+          << "Benchmark time (total):      " << totalSendTimes << "ms (" << times[1] << " minutes" << " " << times[2]
           << " seconds)" << endl
           << endl;
   }
@@ -170,7 +171,11 @@ void handleOne(int sen, int rec, WsConnectionPtr &conn) {
         }
 
         _statistics.payloadTransferredBytes += msg.length();
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(SLEEP_MS));
+
+        if (SLEEP_MS > 0) {
+            boost::this_thread::sleep_for(boost::chrono::milliseconds(SLEEP_MS));
+        }
+
     }
 
     L_DEBUG_F("Client", "[%d] sent message to client [%d]", sen, rec);
