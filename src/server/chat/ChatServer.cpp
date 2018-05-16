@@ -53,20 +53,20 @@ wss::ChatServer::ChatServer(
 }
 #else
 wss::ChatServer::ChatServer(const std::string &host, unsigned short port, const std::string &regexPath) :
-    useSSL(false),
-    maxMessageSize(10 * 1024 * 1024),
-    server(std::make_unique<WsServer>()),
-    connectionStorage(std::make_unique<wss::ConnectionStorage>()) {
-    server->config.port = port;
-    server->config.threadPoolSize = std::thread::hardware_concurrency();
-    server->config.maxMessageSize = maxMessageSize;
+    m_useSSL(false),
+    m_maxMessageSize(10 * 1024 * 1024),
+    m_server(std::make_unique<WsServer>()),
+    m_connectionStorage(std::make_unique<wss::ConnectionStorage>()) {
+    m_server->config.port = port;
+    m_server->config.threadPoolSize = std::thread::hardware_concurrency();
+    m_server->config.maxMessageSize = m_maxMessageSize;
 
     if (host.length() == 15) {
-        server->config.address = host;
+        m_server->config.address = host;
     };
 
-    endpoint = &server->endpoint[regexPath];
-    endpoint->onMessage = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
+    m_endpoint = &m_server->endpoint[regexPath];
+    m_endpoint->onMessage = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
       if (messagePtr->fin_rsv_opcode == FLAG_PONG) {
           onPong(connectionPtr, messagePtr);
           return;
@@ -74,18 +74,18 @@ wss::ChatServer::ChatServer(const std::string &host, unsigned short port, const 
       onMessage(connectionPtr, messagePtr);
     };
 
-    endpoint->onOpen = std::bind(&wss::ChatServer::onConnected, this, std::placeholders::_1);
-    endpoint->onError = [](WsConnectionPtr, const boost::system::error_code &ec) {
+    m_endpoint->onOpen = std::bind(&wss::ChatServer::onConnected, this, std::placeholders::_1);
+    m_endpoint->onError = [](WsConnectionPtr, const boost::system::error_code &ec) {
         L_WARN_F("Server::Connection::Error", "Connection error: %s %s",
                  ec.category().name(),
                  ec.message().c_str()
         )
     };
-    endpoint->onClose = std::bind(&wss::ChatServer::onDisconnected,
-                                   this,
-                                   std::placeholders::_1,
-                                   std::placeholders::_2,
-                                   std::placeholders::_3);
+    m_endpoint->onClose = std::bind(&wss::ChatServer::onDisconnected,
+                                    this,
+                                    std::placeholders::_1,
+                                    std::placeholders::_2,
+                                    std::placeholders::_3);
 
 }
 #endif

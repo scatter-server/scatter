@@ -26,13 +26,13 @@ wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServ
 #else
 wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServer) :
     RestServer("*", 8081),
-    chatMessageServer(chatMessageServer) {
+    m_ws(chatMessageServer) {
 }
 wss::ChatRestServer::ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServer,
                                     const std::string &host,
                                     unsigned short port) :
     RestServer(host, port),
-    chatMessageServer(chatMessageServer) {
+    m_ws(chatMessageServer) {
 }
 #endif
 

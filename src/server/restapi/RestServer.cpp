@@ -19,9 +19,9 @@ wss::RestServer::RestServer(
 }
 #else
 wss::RestServer::RestServer(const std::string &host, unsigned short port) {
-    server.config.port = port;
+    m_server.config.port = port;
     if (host.length() > 1) {
-        server.config.address = host;
+        m_server.config.address = host;
     }
 }
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-VA_ROOT=$1
-PREFIX=$2
-OUTPUT=$3
+VA_ROOT=$1 # vagrant root dir
+PREFIX=$2 # projet root
+OUTPUT=$3 # output dir in vagrant
 
 VARIANT="Debug"
 
@@ -29,7 +29,7 @@ function build() {
 	vagrant ssh -c "sudo mkdir -p ${buildDir}"
 
 	declare -A variants
-	variants=([ssl]="-DCMAKE_BUILD_TYPE=${VARIANT} -DUSE_SSL=Off" [nossl]"-DCMAKE_BUILD_TYPE=${VARIANT} -DUSE_SSL=On")
+	variants=([ssl]="-DCMAKE_BUILD_TYPE=${VARIANT} -DUSE_SSL=Off" [nossl]="-DCMAKE_BUILD_TYPE=${VARIANT} -DUSE_SSL=On")
 
 	if [ "${suffix}" == "el7" ]; then
 		ext="rpm"
@@ -40,12 +40,12 @@ function build() {
 	for var in "${variants[@]}"; do
 		echo -e "> Build variant ${boxName} -> ${var}"
 
-		vagrant ssh -c "cd ${buildDir} && cmake ../../ -DCMAKE_BUILD_TYPE=Debug -DUSE_SSL=${var}"
+		vagrant ssh -c "cd ${buildDir} && cmake ../../ ${var}"
 		vagrant ssh -c "cd ${buildDir} && make -j2 && sudo make install && make package"
 
 		vers=$(vagrant ssh -c "${buildDir}/wsserver -v | tr -d '\n'")
 		outFile="${OUTPUT}/wsserver-${vers}-linux-${arch}.${suffix}.${ext}"
-		vagrant ssh -c "cp ${buildDir}/wsserver-${vers}* ${OUTPUT}/${outFile}"
+		vagrant ssh -c "cp ${buildDir}/wsserver-${vers}* ${outFile}"
 
 		echo -e "> Copy package ${outFile}"
 	done

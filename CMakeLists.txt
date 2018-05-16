@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(wsserver VERSION 1.0.2)
+project(wsserver VERSION 1.1.0)
 set(CMAKE_CXX_STANDARD 14)
 set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(PROJECT_LIBS_DIR ${PROJECT_ROOT}/libs)
@@ -23,7 +23,7 @@ message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 include(cmakes/configure.cmake)
 
 # gnu
-set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -pedantic ${CMAKE_CXX_FLAGS} -Wno-c++17-extensions")
+set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -pedantic ${CMAKE_CXX_FLAGS}")
 
 # linux clang
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

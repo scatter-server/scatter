@@ -89,9 +89,9 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : m_args() {
     std::stringstream endpointStream;
     endpointStream << "^" << settings.server.endpoint << "?$";
     const std::string res = endpointStream.str();
-    webSocket = std::make_shared<wss::ChatServer>(settings.server.address, settings.server.port, res);
+    m_webSocket = std::make_shared<wss::ChatServer>(settings.server.address, settings.server.port, res);
 
-    restServer = std::make_shared<wss::ChatRestServer>(webSocket);
+    m_restServer = std::make_shared<wss::ChatRestServer>(m_webSocket);
     #endif
 
     // configuring ws service
