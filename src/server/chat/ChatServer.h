@@ -33,7 +33,7 @@
 #include "../helpers/threadsafe.hpp"
 #include "ConnectionStorage.h"
 #include "Statistics.h"
-#include "../base/Auth.h"
+#include "../base/auth/Auth.h"
 
 namespace wss {
 
@@ -257,7 +257,7 @@ class ChatServer : public virtual StandaloneService {
     const bool m_useSSL;
 
     /// \brief Current auth method
-    std::unique_ptr<wss::WebAuth> m_auth;
+    std::unique_ptr<wss::Auth> m_auth;
 
     // chat
     /// \brief Number in bytes

@@ -21,7 +21,7 @@
 #include "../wsserver_core.h"
 #include "../chat/ChatServer.h"
 #include "../base/StandaloneService.h"
-#include "../base/Auth.h"
+#include "../base/auth/Auth.h"
 #include "../helpers/helpers.h"
 
 #define ACTION_DEFINE(name) void name(HttpResponse response, HttpRequest request)
@@ -102,7 +102,7 @@ class RestServer : public virtual StandaloneService {
  protected:
     virtual void createEndpoints();
 
-    std::unique_ptr<wss::WebAuth> &getAuth();
+    std::unique_ptr<wss::Auth> &getAuth();
 
     void setResponseStatus(HttpResponse &response, HttpStatus status, std::size_t contentLength = 0u);
     void setContent(HttpResponse &response,
@@ -117,7 +117,7 @@ class RestServer : public virtual StandaloneService {
     void setError(HttpResponse &response, HttpStatus status, int code, std::string &&message);
     std::string buildResponse(const std::vector<std::pair<std::string, std::string>> &parts);
  private:
-    std::unique_ptr<WebAuth> m_auth;
+    std::unique_ptr<Auth> m_auth;
     HttpServer m_server;
     std::unique_ptr<std::thread> m_workerThread;
 

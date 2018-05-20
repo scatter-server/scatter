@@ -24,7 +24,10 @@ set_target_properties(
 	toolboxpp PROPERTIES
 	ENABLE_STATIC ON
 )
-include_directories(${PROJECT_LIBS_DIR}/libs/toolboxpp/include)
+
+
+add_subdirectory(${PROJECT_LIBS_DIR}/json)
+
 
 # cURL
 find_package(CURL 7.26.0 REQUIRED)
@@ -72,7 +75,12 @@ function (linkdeps DEPS_PROJECT)
 
 	# Toolbox++
 	target_link_libraries(${DEPS_PROJECT} toolboxpp)
+	target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/toolboxpp/include)
 	message(STATUS "\t- toolbox++")
+
+
+	target_link_libraries(${DEPS_PROJECT} nlohmann_json)
+	target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/json/src)
 
 	# CURL
 	target_link_libraries(${DEPS_PROJECT} ${CURL_LIBRARIES})

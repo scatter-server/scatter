@@ -34,8 +34,6 @@ typedef std::pair<std::string, std::string> KeyValue;
 /// \brief Simple vector of pairs wss::web::KeyValue
 typedef std::vector<KeyValue> KeyValueVector;
 
-// avoiding cross-references
-
 #ifdef USE_SECURE_SERVER
 using WebHttpServer = SimpleWeb::Server<SimpleWeb::HTTPS>;
 #else
@@ -56,7 +54,7 @@ class IOContainer {
 
     /// \brief Set request body data
     /// \param body string data for request/response
-    void setBody(std::string body);
+    void setBody(const std::string &body);
 
     /// \brief Move request body data
     /// \param body string data for request/response
@@ -107,7 +105,7 @@ class IOContainer {
     /// \param value any string
     void addHeader(const std::string &key, const std::string &value);
 
-    /// \brief Add header with pair of key and value. If header exists, value will be ovewrited.
+    /// \brief Add header with pair of key and value. If header exists, value will be ovewrited by new value.
     /// \see wss::web::KeyValue
     /// \param keyValue
     void addHeader(const KeyValue &keyValue);
@@ -116,6 +114,11 @@ class IOContainer {
     /// \param keyValue
     /// \see wss::web::KeyValue
     void addHeader(KeyValue &&keyValue);
+
+    /// \brief Add headers collection of key and value. If some header exists, value wil be overwrited by new value
+    /// \@see KeyValueVector
+    /// \param values
+    void addHeaders(const KeyValueVector &values);
 
     /// \brief Get copy of request/response body
     /// \return Copy of body
@@ -164,6 +167,7 @@ class Request : public IOContainer {
  public:
     Request();
     explicit Request(const std::string &url);
+    Request(const std::string &url, Method method);
     explicit Request(std::string &&url);
     explicit Request(const WebHttpRequest &sRequest);
 
@@ -177,12 +181,12 @@ class Request : public IOContainer {
     /// \brief Convert string method name to wss::web::Request::Method
     /// \param methodName case insensitive string
     /// \return if method string will not be recognized, method will return wss::web::Request::Method::GET
-    Method methodFromString(const std::string &methodName) const;
+    static Method methodFromString(const std::string &methodName);
 
     /// \brief Convert method to uppercase string
     /// \param methodName
     /// \return http method name
-    std::string methodToString(Method methodName) const;
+    static std::string methodToString(Method methodName);
 
     /// \brief Set request url. Required to send request.
     /// \param url Fully qualified url with host and protocol
@@ -288,6 +292,11 @@ class HttpClient {
     /// \param request wss::web::Request
     /// \return wss::web::Response
     Response execute(const Request &request);
+
+    /// \brief Async request call
+    /// \param request
+    template<typename Callback = std::function<wss::web::Response>()>
+    void executeAsync(const Request &request, const Callback &cb = nullptr);
 };
 
 }

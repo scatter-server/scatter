@@ -13,8 +13,8 @@
 #include "json.hpp"
 #include "Target.hpp"
 #include "../web/HttpClient.h"
-#include "..//chat/ChatServer.h"
-#include "../base/Auth.h"
+#include "../chat/ChatServer.h"
+#include "../base/auth/Auth.h"
 
 namespace wss {
 namespace event {
@@ -37,14 +37,14 @@ class PostbackTarget : public Target {
     /// \brief Return auth object for authentication while sending event
     /// \see wss::WebAuth
     /// \return
-    std::unique_ptr<wss::WebAuth> &getAuth();
+    std::unique_ptr<wss::Auth> &getAuth();
 
  private:
     template<class T>
     void setAuth(T &&auth);
 
     wss::web::Request::Method m_httpMethod;
-    std::unique_ptr<wss::WebAuth> m_auth;
+    std::unique_ptr<wss::Auth> m_auth;
     wss::web::HttpClient m_client;
     std::string m_url;
 

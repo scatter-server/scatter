@@ -278,17 +278,12 @@ void wss::ChatServer::onConnected(WsConnectionPtr connection) {
     request.parseParamsString(connection->queryString);
     request.setHeaders(connection->header);
 
-    if (!m_auth->validateAuth(request)) {
-        connection->sendClose(STATUS_UNAUTHORIZED, "Unauthorized");
-        return;
-    }
-
     if (request.getParams().empty()) {
-        L_WARN_F("Chat::Connect::Error", "Invalid request: %s", connection->queryString.c_str());
+        L_DEBUG_F("Chat::Connect::Error", "Invalid request: %s", connection->queryString.c_str());
         connection->sendClose(STATUS_INVALID_QUERY_PARAMS, "Invalid request");
         return;
     } else if (!request.hasParam("id") || request.getParam("id").empty()) {
-        L_WARN("Chat::Connect::Error", "Id required in query parameter: ?id={id}");
+        L_DEBUG("Chat::Connect::Error", "Id required in query parameter: ?id={id}");
 
         connection->sendClose(STATUS_INVALID_QUERY_PARAMS, "Id required in query parameter: ?id={id}");
         return;
@@ -299,7 +294,7 @@ void wss::ChatServer::onConnected(WsConnectionPtr connection) {
         id = std::stoul(request.getParam("id"));
     } catch (const std::invalid_argument &e) {
         const std::string errReason = "Passed invalid id: id=" + request.getParam("id") + ". " + e.what();
-        L_WARN("Chat::Connect::Error", errReason);
+        L_DEBUG("Chat::Connect::Error", errReason);
         connection->sendClose(STATUS_INVALID_QUERY_PARAMS, errReason);
         return;
     }
@@ -315,6 +310,17 @@ void wss::ChatServer::onConnected(WsConnectionPtr connection) {
     );
 
     redeliverMessagesTo(id);
+
+    boost::thread authThread([this, connection, request] {
+      bool authorized = m_auth->validateAuth(request);
+
+      if (!authorized) {
+          connection->sendClose(STATUS_UNAUTHORIZED, "Unauthorized");
+          m_connectionStorage->remove(connection);
+          return;
+      }
+    });
+    authThread.detach();
 }
 void wss::ChatServer::onDisconnected(WsConnectionPtr connection, int status, const std::string &reason) {
     if (!m_connectionStorage->exists(connection->getId())) {
@@ -545,7 +551,7 @@ void wss::ChatServer::setMessageSizeLimit(size_t bytes) {
     m_server->config.maxMessageSize = m_maxMessageSize;
 }
 void wss::ChatServer::setAuth(const nlohmann::json &config) {
-    m_auth = wss::auth::createFromConfig(config);
+    m_auth = wss::auth::registry::createFromConfig(config);
 }
 
 void wss::ChatServer::setEnabledMessageDeliveryStatus(bool enabled) {

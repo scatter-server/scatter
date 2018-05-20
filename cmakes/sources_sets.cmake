@@ -25,8 +25,15 @@ set(SERVER_SRC
     src/server/base/ServerStarter.cpp
     src/server/base/ServerStarter.h
     src/server/base/Settings.hpp
-    src/server/base/Auth.h
-    src/server/base/Auth.cpp
+    src/server/base/auth/Auth.h
+    src/server/base/auth/Auth.cpp
+    src/server/base/auth/OneOfAuth.cpp src/server/base/auth/OneOfAuth.h
+    src/server/base/auth/AllOfAuth.cpp src/server/base/auth/AllOfAuth.h
+    src/server/base/auth/BasicAuth.cpp src/server/base/auth/BasicAuth.h
+    src/server/base/auth/HeaderAuth.cpp src/server/base/auth/HeaderAuth.h
+    src/server/base/auth/BearerAuth.cpp src/server/base/auth/BearerAuth.h
+    src/server/base/auth/CookieAuth.cpp src/server/base/auth/CookieAuth.h
+    src/server/base/auth/RemoteAuth.cpp src/server/base/auth/RemoteAuth.h
     src/server/chat/ConnectionStorage.cpp
     src/server/chat/ConnectionStorage.h
     src/server/chat/Statistics.cpp
@@ -44,7 +51,7 @@ endif ()
 
 
 set(COMMON_LIBS_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/json/src/json.hpp
+    #    ${CMAKE_CURRENT_SOURCE_DIR}/libs/json/src/json.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/args/cmdline.hpp
     )
 set(WS_COMMON_SRC

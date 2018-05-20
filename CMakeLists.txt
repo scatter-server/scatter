@@ -105,8 +105,7 @@ set(SERVER_EXEC_SRCS
     ${SERVER_SRC}
     ${COMMON_LIBS_SRC}
     ${WS_SERVER_SRC} ${WS_COMMON_SRC}
-    ${HTTP_SERVER_SRC} ${HTTP_CLIENT_SRC} ${HTTP_COMMON_SRC}
-    )
+    ${HTTP_SERVER_SRC} ${HTTP_CLIENT_SRC} ${HTTP_COMMON_SRC})
 
 add_subdirectory(libs/fmt)
 add_executable(${PROJECT_NAME} src/server/main.cpp ${SERVER_EXEC_SRCS})

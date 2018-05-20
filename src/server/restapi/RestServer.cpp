@@ -144,10 +144,10 @@ void wss::RestServer::stopService() {
 }
 
 void wss::RestServer::setAuth(const nlohmann::json &config) {
-    m_auth = wss::auth::createFromConfig(config);
+    m_auth = wss::auth::registry::createFromConfig(config);
 }
 
-std::unique_ptr<wss::WebAuth> &wss::RestServer::getAuth() {
+std::unique_ptr<wss::Auth> &wss::RestServer::getAuth() {
     return m_auth;
 }
 

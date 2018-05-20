@@ -193,6 +193,8 @@ void connect(int sen, int rec) {
         std::string(endpoint + "/chat?id=" + std::to_string(sen)),
         false
     );
+    client.config.header.emplace("X-Auth-Token", "");
+
     client.on_message = [sen](WsConnectionPtr, std::shared_ptr<WsClient::Message> msg) {
 //        cout << "Client: [" << sen << "] Message received: "<< endl;
     };

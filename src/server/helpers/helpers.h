@@ -19,6 +19,9 @@
 #include <chrono>
 #include <unordered_map>
 #include <cmath>
+#include <array>
+#include <memory>
+#include <stdexcept>
 #include <fmt/format.h>
 #include <toolboxpp.h>
 

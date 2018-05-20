@@ -6,13 +6,14 @@
  * @link https://github.com/edwardstock
  */
 
+#include <thread>
 #include "HttpClient.h"
 #include "../helpers/helpers.h"
 
 // BASE IO
 wss::web::IOContainer::IOContainer() :
     body() { }
-void wss::web::IOContainer::setBody(std::string body) {
+void wss::web::IOContainer::setBody(const std::string &body) {
     this->body = body;
     setHeader({"Content-Length", wss::helpers::toString(this->body.length())});
 }
@@ -77,6 +78,9 @@ void wss::web::IOContainer::addHeader(const wss::web::KeyValue &keyValue) {
 void wss::web::IOContainer::addHeader(wss::web::KeyValue &&keyValue) {
     headers.push_back(std::move(keyValue));
 }
+void wss::web::IOContainer::addHeaders(const wss::web::KeyValueVector &values) {
+    headers.insert(headers.end(), values.begin(), values.end());
+}
 void wss::web::IOContainer::setHeaders(const std::unordered_map<std::string, std::string> &map) {
     for (auto &h: map) {
         addHeader(h.first, h.second);
@@ -132,6 +136,13 @@ wss::web::Request::Request() : IOContainer(),
 wss::web::Request::Request(const std::string &url) : IOContainer(),
                                                      m_url(url),
                                                      m_method(GET) { }
+
+wss::web::Request::Request(const std::string &url, wss::web::Request::Method method) :
+    IOContainer(),
+    m_url(url),
+    m_method(method) {
+
+}
 wss::web::Request::Request(std::string &&url) : IOContainer(),
                                                 m_url(std::move(url)),
                                                 m_method(GET) { }
@@ -156,7 +167,7 @@ void wss::web::Request::parseParamsString(const std::string &queryString) {
         addParam(toolboxpp::strings::splitPair(param, "="));
     }
 }
-wss::web::Request::Method wss::web::Request::methodFromString(const std::string &methodName) const {
+wss::web::Request::Method wss::web::Request::methodFromString(const std::string &methodName) {
     using toolboxpp::strings::equalsIgnoreCase;
 
     if (equalsIgnoreCase(methodName, "POST")) {
@@ -171,7 +182,7 @@ wss::web::Request::Method wss::web::Request::methodFromString(const std::string 
 
     return Method::GET;
 }
-std::string wss::web::Request::methodToString(wss::web::Request::Method methodName) const {
+std::string wss::web::Request::methodToString(wss::web::Request::Method methodName) {
     std::string out;
 
     switch (methodName) {
@@ -180,6 +191,8 @@ std::string wss::web::Request::methodToString(wss::web::Request::Method methodNa
         case Method::PUT:out = "PUT";
             break;
         case Method::DELETE:out = "DELETE";
+            break;
+        case Method::HEAD: out = "HEAD";
             break;
 
         default:out = "GET";
@@ -330,6 +343,16 @@ wss::web::HttpClient::~HttpClient() {
 }
 void wss::web::HttpClient::enableVerbose(bool enable) {
     m_verbose = enable;
+}
+
+template<typename Callback>
+void wss::web::HttpClient::executeAsync(const wss::web::Request &request, const Callback &cb) {
+    std::async(std::launch::async, [this, request, cb] {
+      auto response = execute(request);
+      if (cb) {
+          cb(response);
+      }
+    });
 }
 wss::web::Response wss::web::HttpClient::execute(const wss::web::Request &request) {
     CURL *curl;

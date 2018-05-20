@@ -43,9 +43,9 @@ wss::event::PostbackTarget::PostbackTarget(const nlohmann::json &config) :
         m_url = config.at("url");
 
         if (config.find("auth") != config.end()) {
-            this->m_auth = wss::auth::createFromConfig(config);
+            this->m_auth = wss::auth::registry::createFromConfig(config);
         } else {
-            this->m_auth = std::make_unique<wss::WebAuth>();
+            this->m_auth = std::make_unique<wss::Auth>();
         }
 
         if (config.find("method") != config.end()) {
@@ -61,13 +61,13 @@ wss::event::PostbackTarget::PostbackTarget(const nlohmann::json &config) :
 }
 template<class T>
 void wss::event::PostbackTarget::setAuth(T &&auth) {
-    static_assert(std::is_base_of<WebAuth, T>::value, "Only subclass of Base can be passed");
+    static_assert(std::is_base_of<Auth, T>::value, "Only subclass of Base can be passed");
     this->m_auth = std::make_unique<T>(auth);
 }
 wss::web::HttpClient &wss::event::PostbackTarget::getClient() {
     return m_client;
 }
-std::unique_ptr<wss::WebAuth> &wss::event::PostbackTarget::getAuth() {
+std::unique_ptr<wss::Auth> &wss::event::PostbackTarget::getAuth() {
     return m_auth;
 }
 
