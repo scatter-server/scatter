@@ -116,14 +116,14 @@ void wss::ConnectionStorage::markPongReceived(const wss::WsConnectionPtr &connec
     std::lock_guard<std::mutex> locker(m_pongMutex);
     m_waitForPong[connection->getUniqueId()].second = true;
 }
-std::size_t wss::ConnectionStorage::disconnectWithoutPong() {
+std::size_t wss::ConnectionStorage::disconnectWithoutPong(int statusCode, const std::string &reason) {
     std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
     std::size_t disconnected = 0;
     for (auto it = m_waitForPong.begin(); it != m_waitForPong.end();) {
         if (!it->second.second) {
             WsConnectionPtr &conn = m_idMap[it->second.first][it->first];
             if (conn) {
-                conn->sendClose(4010/*@TODO remove harcode*/, "Dangling connection");
+                conn->sendClose(statusCode, reason);
             } else {
                 // by some reason, connection already nullptr
                 m_idMap[it->second.first].erase(it->first);

@@ -108,7 +108,7 @@ class ConnectionStorage {
 
     /// \brief Disconnect all queued connections, that waits for pong response but not received
     /// \return count of disconnected connections
-    std::size_t disconnectWithoutPong();
+    std::size_t disconnectWithoutPong(int statusCode, const std::string &reason);
 };
 
 }

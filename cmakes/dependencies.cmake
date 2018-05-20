@@ -10,6 +10,9 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VER
 	find_package(Boost 1.54.0 COMPONENTS regex REQUIRED)
 endif ()
 
+# fmt
+add_subdirectory(${PROJECT_LIBS_DIR}/fmt)
+
 
 # OpenSSL (libssl)
 if (APPLE AND NOT OPENSSL_ROOT_DIR)
@@ -25,8 +28,12 @@ set_target_properties(
 	ENABLE_STATIC ON
 )
 
-
+# Json nlohmann
+set(JSON_BuildTests OFF CACHE BOOL "Build json test" FORCE)
 add_subdirectory(${PROJECT_LIBS_DIR}/json)
+
+# Thread
+find_package(Threads REQUIRED)
 
 
 # cURL
@@ -78,9 +85,10 @@ function (linkdeps DEPS_PROJECT)
 	target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/toolboxpp/include)
 	message(STATUS "\t- toolbox++")
 
-
+	# JSON
 	target_link_libraries(${DEPS_PROJECT} nlohmann_json)
 	target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/json/src)
+	message(STATUS "\t- JSON")
 
 	# CURL
 	target_link_libraries(${DEPS_PROJECT} ${CURL_LIBRARIES})
@@ -97,6 +105,9 @@ function (linkdeps DEPS_PROJECT)
 	target_include_directories(${DEPS_PROJECT} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libs/date/include)
 	message(STATUS "\t- date & timezone lib")
 
+	# Threads
+	target_link_libraries(${DEPS_PROJECT} ${CMAKE_THREAD_LIBS_INIT})
+	message(STATUS "\t- threads")
 
 	if (ENABLE_REDIS_TARGET)
 		# Redis (cpp_redis)

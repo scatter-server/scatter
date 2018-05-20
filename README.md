@@ -74,19 +74,19 @@ rpm -i wsserver.rpm
 * ToolBox++ (https://github.com/edwardstock/toolboxpp) 
  
  
-## Cloning (with submodules)
+## Clone (with submodules)
 ```bash
 git clone --recursive https://github.com/edwardstock/wsserver.git
 ```
  
-## Building
+## Prepare to build
 ### CMake options
  * `-DBOOST_ROOT=/path/to/boost`
- * `-DUSE_SSL=On|Off` - use secure server certificates required
+ * `-DENABLE_SSL=On|Off` - use secure server certificates required
  * `-DENABLE_REDIS_TARGET=On|Off` - enable event notifier redis target
 
 ### Prepare Centos7
-* GCC-7 (if not installed (required 4.9+, recommended 5+))
+* GCC-7 (if not installed (required 4.9+, recommended 6+))
 ```bash
 yum install centos-release-scl
 yum install devtoolset-7-gcc*

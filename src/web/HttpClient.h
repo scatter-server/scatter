@@ -24,7 +24,6 @@
 #include <server_http.hpp>
 #endif
 
-
 namespace wss {
 namespace web {
 

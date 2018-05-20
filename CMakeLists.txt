@@ -4,26 +4,22 @@ set(CMAKE_CXX_STANDARD 14)
 set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(PROJECT_LIBS_DIR ${PROJECT_ROOT}/libs)
 
-add_definitions(-DWSSERVER_VERSION="${PROJECT_VERSION}")
-
 ## Build type
 if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Debug")
 endif ()
 
 ### Configuration
-set(CMAKE_ROOT_MODULE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-
 if (NOT CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_PREFIX /usr)
 endif ()
-
 message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
+include(cmakes/opts.cmake)
 include(cmakes/configure.cmake)
 
 # gnu
-set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -pedantic ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -pedantic ${CMAKE_CXX_FLAGS}")
 
 # linux clang
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -39,7 +35,7 @@ else () #gnu only
 endif ()
 
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -Wextra -pedantic -O0") #-Werror
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -g -O0") #-Werror
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS} -O3")
 
 # ARCH
@@ -80,12 +76,9 @@ else ()
 endif ()
 message(STATUS "Build arch: ${PROJECT_ARCH}")
 
-
-option(USE_SSL "Certifacates required" OFF)
-
+add_definitions(-DWSSERVER_VERSION="${PROJECT_VERSION}")
 add_definitions(-DWS_BIN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/bin")
-
-if (USE_SSL)
+if (ENABLE_SSL)
 	add_definitions(-DUSE_SECURE_SERVER=1)
 endif ()
 
@@ -94,21 +87,8 @@ endif ()
 include(cmakes/sources_sets.cmake)
 include(cmakes/dependencies.cmake)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/ws)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/json/src)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/http)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/ini-parser/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/args)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/concurrentqueue)
 
-set(SERVER_EXEC_SRCS
-    ${SERVER_SRC}
-    ${COMMON_LIBS_SRC}
-    ${WS_SERVER_SRC} ${WS_COMMON_SRC}
-    ${HTTP_SERVER_SRC} ${HTTP_CLIENT_SRC} ${HTTP_COMMON_SRC})
-
-add_subdirectory(libs/fmt)
-add_executable(${PROJECT_NAME} src/server/main.cpp ${SERVER_EXEC_SRCS})
+add_executable(${PROJECT_NAME} src/main.cpp ${SERVER_EXEC_SRCS})
 
 linkdeps(${PROJECT_NAME})
 if (WITH_BENCHMARK)

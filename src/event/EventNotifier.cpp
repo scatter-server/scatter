@@ -50,12 +50,18 @@ std::shared_ptr<wss::event::Target> wss::event::EventNotifier::createTargetByCon
     } else
         //@TODO shared modules and target map in config, instead of hardcode
         #ifdef ENABLE_REDIS_TARGET
-        if(eq(type, "redis")) {
-            out = std::make_shared<wss::event::RedisTarget>(json);
-        } else
+    if (eq(type, "redis")) {
+        out = std::make_shared<wss::event::RedisTarget>(json);
+    } else
         #endif
     {
         throw std::runtime_error("Unsupported target type: " + type);
+    }
+
+    if (json.find("fallback") != json.end()) {
+        for (auto &obj: json.at("fallback").get<std::vector<nlohmann::json>>()) {
+            out->addFallback(createTargetByConfig(obj));
+        }
     }
 
     if (!out->isValid()) {
@@ -75,12 +81,14 @@ void wss::event::EventNotifier::addTarget(const std::shared_ptr<wss::event::Targ
     if (!target->isValid()) {
         throw std::runtime_error(target->getErrorMessage());
     }
+
     m_targets.insert({target->getType(), target});
 }
 void wss::event::EventNotifier::addTarget(std::shared_ptr<wss::event::Target> &&target) {
     if (!target->isValid()) {
         throw std::runtime_error(target->getErrorMessage());
     }
+
     m_targets.insert({target->getType(), std::move(target)});
 }
 
@@ -93,6 +101,7 @@ void wss::event::EventNotifier::subscribe() {
 
     m_ws->addMessageListener(std::bind(&EventNotifier::onMessage, this, std::placeholders::_1));
     m_ws->addStopListener(std::bind(&EventNotifier::onStop, this));
+    addErrorListener(std::bind(&EventNotifier::onErrorSending, this, std::placeholders::_1));
     m_ioService.post(boost::bind(&EventNotifier::handleMessageQueue, this));
 }
 void wss::event::EventNotifier::joinThreads() {
@@ -103,9 +112,11 @@ void wss::event::EventNotifier::detachThreads() {
 }
 void wss::event::EventNotifier::runService() {
     L_INFO("EventNotifier", "Started with targets:");
-    for (auto &target: m_targets) {
-        const char *name = target.first.c_str();
-        L_INFO_F("EventNotifier", " - %s", name);
+    for (const auto &target: m_targets) {
+        Logger::get().info(__FILE__, __LINE__, "EventNotifier", fmt::format(" - {0}", target.second->getType()));
+        for (const auto &fb: target.second->getFallbacks()) {
+            Logger::get().info(__FILE__, __LINE__, "EventNotifier", fmt::format("   - fallback: {0}", fb->getType()));
+        }
     }
     subscribe();
 }
@@ -161,9 +172,12 @@ void wss::event::EventNotifier::handleMessageQueue() {
               SendStatus status = s;
               status.hasSent = status.target->send(status.payload, status.sendResult);
               if (m_enableRetry && !status.hasSent) {
-                  std::stringstream ss;
-                  ss << "Can't send message to target " << status.target->getType() << ": " << status.sendResult;
-                  Logger::get().debug("Event-Send", ss.str());
+                  Logger::get().debug(__FILE__,
+                                      __LINE__,
+                                      "Event::Send",
+                                      fmt::format("Can't send message to target {0}: {1}",
+                                                  status.target->getType(),
+                                                  status.sendResult));
 
                   // if tries < maxRetries
                   if (status.sendTries < m_maxRetries) {
@@ -174,12 +188,14 @@ void wss::event::EventNotifier::handleMessageQueue() {
                       // can't send over maxTries times
                       // notify listeners
                       for (auto &listener: m_sendErrorListeners) {
-                          listener(std::move(status.payload));
+                          listener(std::move(status));
                       }
                   }
               } else {
-                  const char *typeName = status.target->getType().c_str();
-                  L_DEBUG_F("Event::Send", "Message has sent to target: %s", typeName);
+                  Logger::get().debug(__FILE__,
+                                      __LINE__,
+                                      "Event::Send",
+                                      fmt::format("Message has sent to target: {0}", status.target->getType()));
               }
             });
             // we don't need to join this thread back, we just need to send, and if not, re-enqueue payload
@@ -218,6 +234,20 @@ void wss::event::EventNotifier::onMessage(wss::MessagePayload &&payload) {
         m_ioService.post(boost::bind(&EventNotifier::addMessage, this, payload));
     }
 }
+
+void wss::event::EventNotifier::onErrorSending(wss::event::EventNotifier::SendStatus &&status) {
+    if (status.fallbackQueue.empty()) {
+        return;
+    }
+
+    // getting new target from fallback
+    status.target = status.fallbackQueue.front();
+    status.fallbackQueue.pop();
+    status.sendTries = 0;
+    // and re-re-enqueue this message (and reset tries)
+    m_sendQueue.enqueue(std::move(status));
+}
+
 void wss::event::EventNotifier::addErrorListener(wss::event::EventNotifier::OnSendError listener) {
     m_sendErrorListeners.push_back(listener);
 }

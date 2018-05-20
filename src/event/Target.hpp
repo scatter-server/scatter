@@ -14,6 +14,8 @@
 #include "../helpers/base64.h"
 #include "../chat/Message.h"
 #include "../web/HttpClient.h"
+#include "../base/Settings.hpp"
+//#include "EventNotifier.h"
 
 namespace wss {
 namespace event {
@@ -28,7 +30,8 @@ class Target {
     explicit Target(const nlohmann::json &config) :
         m_config(config),
         m_validState(true),
-        m_errorMessage("") { }
+        m_errorMessage("") {
+    }
 
     /// \brief Send event to entire target
     /// \param payload Payload to send
@@ -47,6 +50,14 @@ class Target {
     /// \return error message
     std::string getErrorMessage() const {
         return m_errorMessage;
+    }
+
+    void addFallback(std::shared_ptr<wss::event::Target> &&fallbackTarget) {
+        fallbackTargets.push_back(fallbackTarget);
+    }
+
+    const std::vector<std::shared_ptr<wss::event::Target>> getFallbacks() const {
+        return fallbackTargets;
     }
 
  protected:
@@ -91,6 +102,7 @@ class Target {
     nlohmann::json m_config;
     bool m_validState;
     std::string m_errorMessage;
+    std::vector<std::shared_ptr<wss::event::Target>> fallbackTargets;
 };
 
 }

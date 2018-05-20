@@ -61,14 +61,14 @@
     "targets": [
       {
         "type": "redis",
-        "address": "127.0.0.1",
+        "address": "127.0.0.1 << use this instead of unixSocket",
         "port": 6379,
         "database": 0,
-        "unixSocket": "/path/to/redis/redis.sock",
+        "unixSocket": "/path/to/redis/redis.sock  << use this instead of address",
         "password": "redis_password",
         "mode": {
           "type": "queue or channel (select one)",
-          "name": "my_redis_queue_where_i_will_get_messages"
+          "name": "my_redis_queue_where_clients_will_take_messages"
         }
       }
     ]

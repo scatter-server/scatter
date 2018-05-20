@@ -127,10 +127,9 @@ void wss::ChatServer::runService() {
     });
 
     if (wss::Settings::get().server.watchdog.enabled) {
-        long lifetime = wss::Settings::get().server.watchdog.connectionLifetimeSeconds;
-        L_INFO_F("Watchdog", "Started with interval in 1 minute and lifetime=%lu", lifetime);
+        L_INFO("Watchdog", "Started with interval in 1 minute");
         m_watchdogThread =
-            std::make_unique<boost::thread>(boost::bind(&wss::ChatServer::watchdogWorker, this, lifetime));
+            std::make_unique<boost::thread>(boost::bind(&wss::ChatServer::watchdogWorker, this));
     }
 }
 void wss::ChatServer::stopService() {
@@ -140,45 +139,41 @@ void wss::ChatServer::stopService() {
     }
 }
 
-void wss::ChatServer::watchdogWorker(long lifetime) {
+void wss::ChatServer::watchdogWorker() {
     try {
         while (true) {
             boost::this_thread::sleep_for(boost::chrono::minutes(1));
+
+            // remote connections without pong response
+            std::size_t disconnected = m_connectionStorage->disconnectWithoutPong(
+                wss::ChatServer::STATUS_INACTIVE_CONNECTION,
+                "Dangling connection"
+            );
+            if (disconnected > 0) {
+                L_DEBUG_F("Watchdog", "Disconnected %lu dangling connections", disconnected);
+            }
+
             for (const std::pair<user_id_t, std::unordered_map<conn_id_t, WsConnectionPtr>> &t: m_connectionStorage
                 ->get()) {
-                const auto &ref = getStat(t.first);
                 for (const auto &conn: t.second) {
                     if (!conn.second) {
                         m_connectionStorage->remove(t.first, conn.first);
                         continue;
                     }
 
-                    if (ref->getInactiveTime() >= lifetime) {
-                        conn.second->sendClose(STATUS_INACTIVE_CONNECTION,
-                                               fmt::format("Inactive more than {0:d} seconds ({1:d})",
-                                                           lifetime,
-                                                           ref->getInactiveTime()));
-                    } else {
-                        auto pingStream = std::make_shared<WsMessageStream>();
-                        *pingStream << ".";
-                        conn.second
-                            ->send(std::move(pingStream), [conn, this](const SimpleWeb::ErrorCode &err, std::size_t) {
-                              if (err) {
-                                  // does not matter, what happens, anyway, this mean connection is bad, broken pipe, eof or something else
-                                  m_connectionStorage->remove(conn.second);
-                              } else {
-                                  // lazy ping pong
-                                  m_connectionStorage->markPongWait(conn.second);
-                              }
-                            }, FLAG_PING);
-                    }
+                    auto pingStream = std::make_shared<WsMessageStream>();
+                    *pingStream << ".";
+                    conn.second
+                        ->send(std::move(pingStream), [conn, this](const SimpleWeb::ErrorCode &err, std::size_t) {
+                          if (err) {
+                              // does not matter, what happens, anyway, this mean connection is bad, broken pipe, eof or something else
+                              m_connectionStorage->remove(conn.second);
+                          } else {
+                              // lazy ping pong
+                              m_connectionStorage->markPongWait(conn.second);
+                          }
+                        }, FLAG_PING);
                 }
-            }
-
-            boost::this_thread::sleep_for(boost::chrono::seconds(2));
-            std::size_t disconnected = m_connectionStorage->disconnectWithoutPong();
-            if (disconnected > 0) {
-                L_DEBUG_F("Watchdog", "Disconnected %lu dangling connections", disconnected);
             }
         }
     } catch (const boost::thread_interrupted &) {

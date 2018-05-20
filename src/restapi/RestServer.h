@@ -77,7 +77,6 @@ class RestServer : public virtual StandaloneService {
                       errorOut["message"] = "Unauthorized";
                       const std::string out = errorOut.dump();
 
-
                       *response << buildResponse({
                                                      {"HTTP/1.1",         "401 Unauthorized"},
                                                      {"Server",           "WS Rest Server"},

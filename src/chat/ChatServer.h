@@ -30,10 +30,9 @@
 #include "Message.h"
 #include "../wsserver_core.h"
 #include "../base/StandaloneService.h"
-#include "../helpers/threadsafe.hpp"
 #include "ConnectionStorage.h"
-#include "Statistics.h"
 #include "../base/auth/Auth.h"
+#include "Statistics.h"
 
 namespace wss {
 
@@ -217,7 +216,7 @@ class ChatServer : public virtual StandaloneService {
     /// \param status Disconnection status code
     /// \param reason Disconnection string reason. May be empty.
     void onDisconnected(WsConnectionPtr connection, int status, const std::string &reason);
-    void watchdogWorker(long lifetime);
+    void watchdogWorker();
 
     /// \brief Check for entire user has undelivered message
     /// \param recipientId recipient id

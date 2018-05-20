@@ -48,7 +48,6 @@ class PostbackTarget : public Target {
     wss::web::HttpClient m_client;
     std::string m_url;
 
-
 };
 
 }

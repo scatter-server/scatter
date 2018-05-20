@@ -7,6 +7,7 @@
  */
 
 #include <thread>
+#include <future>
 #include "HttpClient.h"
 #include "../helpers/helpers.h"
 

@@ -71,12 +71,13 @@ struct Chat {
 struct Event {
   bool enabled = false;
   bool enableRetry = false;
-    bool sendBotMessages = false;
+  bool sendBotMessages = false;
   int retryIntervalSeconds = 10;
   int retryCount = 3;
   uint32_t maxParallelWorkers = 8;
   std::vector<std::string> ignoreTypes;
   nlohmann::json targets;
+  nlohmann::json targetsUndelivered;
 };
 
 struct Settings {
@@ -175,6 +176,10 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
                 in.event.ignoreTypes = event.at("ignoreTypes").get<std::vector<std::string>>();
             } else {
                 in.event.ignoreTypes.resize(0);
+            }
+
+            if (event.find("targetsUndelivered") != event.end()) {
+                in.event.targetsUndelivered = event.at("targetsUndelivered");
             }
         }
     }

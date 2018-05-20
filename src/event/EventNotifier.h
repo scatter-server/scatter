@@ -37,7 +37,7 @@ class EventNotifier : public virtual wss::StandaloneService {
     /// \brief Creates event target instance from global server config file.
     /// \param json Part of config.
     /// \return shared pointer of target
-    std::shared_ptr<Target> createTargetByConfig(const nlohmann::json &json);
+    static std::shared_ptr<Target> createTargetByConfig(const nlohmann::json &json);
     void onStop();
 
     /// \brief Start the service. Producer: onMessage(), consumer: handleMessageQueue(), but consumer can be a producer at the same time, cause re-enqueues undelivered messages
@@ -47,7 +47,37 @@ class EventNotifier : public virtual wss::StandaloneService {
     void subscribe();
 
  public:
-    typedef std::function<void(wss::MessagePayload &&)> OnSendError;
+    struct SendStatus {
+      std::shared_ptr<wss::event::Target> target;
+      wss::MessagePayload payload;
+      std::time_t sendTime;
+      int sendTries;
+      int sendRetryIndex;
+      bool hasSent = false;
+      std::string sendResult;
+      std::queue<std::shared_ptr<wss::event::Target>> fallbackQueue;
+
+      SendStatus(std::shared_ptr<wss::event::Target> target,
+                 wss::MessagePayload payload,
+                 std::time_t sendTime,
+                 int tries) :
+          target(target),
+          payload(payload),
+          sendTime(sendTime),
+          sendTries(tries) {
+          for (const auto &t: target->getFallbacks()) {
+              fallbackQueue.push(t);
+          }
+      }
+      SendStatus() = default;
+      ~SendStatus() = default;
+      SendStatus(const SendStatus &another) = default;
+      SendStatus(SendStatus &&another) = default;
+      SendStatus &operator=(const SendStatus &another) = default;
+      SendStatus &operator=(SendStatus &&another) = default;
+    };
+
+    typedef std::function<void(wss::event::EventNotifier::SendStatus &&errorTarget)> OnSendError;
 
     /// \brief Constructs event notifier with shared_ptr of main chat server.
     /// \param ws
@@ -78,35 +108,14 @@ class EventNotifier : public virtual wss::StandaloneService {
     void stopService() override;
 
  private:
-    struct SendStatus {
-      std::shared_ptr<wss::event::Target> target;
-      wss::MessagePayload payload;
-      std::time_t sendTime;
-      int sendTries;
-      bool hasSent = false;
-      std::string sendResult;
-
-      SendStatus(std::shared_ptr<wss::event::Target> target,
-                 wss::MessagePayload payload,
-                 std::time_t sendTime,
-                 int tries) :
-          target(target),
-          payload(payload),
-          sendTime(sendTime),
-          sendTries(tries) { }
-      SendStatus() = default;
-      ~SendStatus() = default;
-      SendStatus(const SendStatus &another) = default;
-      SendStatus(SendStatus &&another) = default;
-      SendStatus &operator=(const SendStatus &another) = default;
-      SendStatus &operator=(SendStatus &&another) = default;
-    };
-
     /// \brief Calling on event
     /// Send post to io_service with payload
     /// \param payload
     /// \param hasSent is recipient online and recieved websocket frame
     void onMessage(wss::MessagePayload &&payload);
+
+    /// \brief Calling when can't send message to main target
+    void onErrorSending(wss::event::EventNotifier::SendStatus &&status);
 
     /// \brief Calling after event in separate thread (io_service.post)
     /// Adds message to send queue
@@ -127,7 +136,7 @@ class EventNotifier : public virtual wss::StandaloneService {
     boost::thread_group m_threadGroup;
     boost::asio::io_service::work m_work;
 
-    std::unordered_map<std::string, std::shared_ptr<Target>> m_targets;
+    std::unordered_map<std::string, std::shared_ptr<Target>> m_targets, m_targetsUndelivered;
     moodycamel::ConcurrentQueue<SendStatus> m_sendQueue;
     std::vector<wss::event::EventNotifier::OnSendError> m_sendErrorListeners;
 };
