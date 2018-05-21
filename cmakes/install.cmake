@@ -18,7 +18,12 @@ install(
 	WORLD_READ WORLD_EXECUTE
 )
 
-install(SCRIPT install_config.cmake)
+install(
+	FILES ${CMAKE_CURRENT_SOURCE_DIR}/bin/config.json DESTINATION /etc/wsserver/
+	PERMISSIONS OWNER_READ OWNER_WRITE #0644
+	GROUP_READ
+	WORLD_READ
+)
 
 include(cmakes/FindLinuxPlatform.cmake)
 include(FeatureSummary)
