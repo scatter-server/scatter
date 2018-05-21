@@ -39,7 +39,6 @@ struct Server {
 
   struct Watchdog {
     bool enabled = false;
-    long connectionLifetimeSeconds = 600;
   };
 
   Secure secure;
@@ -77,7 +76,6 @@ struct Event {
   uint32_t maxParallelWorkers = 8;
   std::vector<std::string> ignoreTypes;
   nlohmann::json targets;
-  nlohmann::json targetsUndelivered;
 };
 
 struct Settings {
@@ -115,9 +113,6 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
     setConfigDef(in.server.tmpDir, server, "tmpDir", "/tmp");
     if (server.find("watchdog") != server.end()) {
         setConfig(in.server.watchdog.enabled, server["watchdog"], "enabled");
-        if (in.server.watchdog.enabled) {
-            setConfig(in.server.watchdog.connectionLifetimeSeconds, server["watchdog"], "connectionLifetimeSeconds");
-        }
     }
 
     if (j.find("restApi") != j.end() && j["restApi"].value("enabled", in.restApi.enabled)) {
@@ -176,10 +171,6 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
                 in.event.ignoreTypes = event.at("ignoreTypes").get<std::vector<std::string>>();
             } else {
                 in.event.ignoreTypes.resize(0);
-            }
-
-            if (event.find("targetsUndelivered") != event.end()) {
-                in.event.targetsUndelivered = event.at("targetsUndelivered");
             }
         }
     }
