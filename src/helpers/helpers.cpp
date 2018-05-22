@@ -67,8 +67,23 @@ std::string wss::helpers::getNowUTCISODateTime() {
 }
 
 std::string wss::helpers::getNowISODateTime(const std::string &timezone) {
+    // @TODO hack!
     auto t = date::make_zoned(timezone, std::chrono::system_clock::now());
-    return date::format(wss::helpers::DATE_TIME_ISO_8601_FRACTIONAL_WITH_TZ, t);
+    const std::string f1 = "%Y-%m-%d %H:%M:";
+    const std::string
+        f2 = "%S"; // we need to reduce nanoseconds precision, debian stretch give 9 numbers after point instead of 6
+    const std::string f3 = "%z";
+
+    std::string out = date::format(f1, t);
+    std::string s = date::format(f2, t);
+    if (s.length() > 9) {
+        s = s.substr(0, 9);
+    }
+    std::string tz = date::format(f3, t);
+    out += s;
+    out += tz;
+
+    return out;
 }
 
 std::string wss::helpers::getNowUTCISODateTimeFractional() {
