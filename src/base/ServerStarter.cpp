@@ -138,7 +138,6 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : m_args() {
     signal(SIGTERM, &ServerStarter::signalHandler);
 }
 wss::ServerStarter::~ServerStarter() {
-    delete self;
 }
 void wss::ServerStarter::stop() {
     for (auto &service: m_services) {
