@@ -3,7 +3,6 @@
 
 #ifdef ENABLE_BACKTRACE
 #include <execinfo.h>
-#include <cxxabi.h>
 
 /** Print a demangled stack backtrace of the caller function to FILE* out. */
 static inline void print_stacktrace(FILE *out = stderr, unsigned int max_frames = 63) {
@@ -14,7 +13,7 @@ static inline void print_stacktrace(FILE *out = stderr, unsigned int max_frames 
     std::vector<void *> addrlist(max_frames_res);
 
     // retrieve current stack addresses
-    int addrlen = backtrace(&addrlist[0], sizeof(&addrlist[0]) / sizeof(void *));
+    int addrlen = backtrace(&addrlist[0], (int) max_frames_res);
 
     if (addrlen == 0) {
         fprintf(out, "  <empty, possibly corrupt>\n");

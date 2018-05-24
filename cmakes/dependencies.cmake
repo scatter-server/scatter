@@ -5,10 +5,11 @@ find_package(Threads REQUIRED)
 set(Boost_DEBUG OFF)
 set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
-find_package(Boost 1.54.0 COMPONENTS system thread coroutine context random REQUIRED)
+find_package(Boost 1.54.0 COMPONENTS system thread random REQUIRED)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
 	find_package(Boost 1.54.0 COMPONENTS regex REQUIRED)
 endif ()
+
 
 # fmt
 add_subdirectory(${PROJECT_LIBS_DIR}/fmt)

@@ -91,7 +91,7 @@ class ConnectionStorage {
 
     /// \brief Return whole map by const reference
     /// \return unordered_map< UserId, vector<WsConnectionPtr> >
-    const wss::UserMap<wss::ConnectionMap<wss::WsConnectionPtr>> &get();
+    const wss::UserMap<wss::ConnectionMap<wss::WsConnectionPtr>> &get() const;
 
     /// \brief Callback function to handle connections for entire UserId
     /// \param id UserId

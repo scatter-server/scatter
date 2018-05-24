@@ -70,12 +70,12 @@ std::string wss::helpers::getNowISODateTime(const std::string &timezone) {
     // @TODO hack!
     auto t = date::make_zoned(timezone, std::chrono::system_clock::now());
     const std::string f1 = "%Y-%m-%d %H:%M:";
-    const std::string
-        f2 = "%S"; // we need to reduce nanoseconds precision, debian stretch give 9 numbers after point instead of 6
-    const std::string f3 = "%z";
+    const std::string f2 = "%S";
+    const std::string f3 = "%Oz";
 
     std::string out = date::format(f1, t);
     std::string s = date::format(f2, t);
+    // we need to reduce nanoseconds precision, debian stretch give 9 numbers after point instead of 6
     if (s.length() > 9) {
         s = s.substr(0, 9);
     }

@@ -59,7 +59,10 @@ std::size_t wss::ConnectionStorage::size(wss::user_id_t id) {
 void wss::ConnectionStorage::add(wss::user_id_t id, const wss::WsConnectionPtr &connection) {
     std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
     connection->setId(id);
-    m_idMap[id][connection->getUniqueId()] = connection;
+    m_idMap[
+        id][
+        connection->getUniqueId()] =
+        connection;
     L_DEBUG_F("Connection::Add", "Adding connection for %lu. Now size: %lu", connection->getId(), m_idMap[id].size());
 }
 void wss::ConnectionStorage::remove(wss::user_id_t id) {
@@ -99,7 +102,7 @@ wss::ConnectionMap<wss::WsConnectionPtr> &wss::ConnectionStorage::get(wss::user_
     }
     return m_idMap[id];
 }
-const wss::UserMap<wss::ConnectionMap<wss::WsConnectionPtr>> &wss::ConnectionStorage::get() {
+const wss::UserMap<wss::ConnectionMap<wss::WsConnectionPtr>> &wss::ConnectionStorage::get() const {
     return m_idMap;
 }
 void wss::ConnectionStorage::handle(wss::user_id_t id, std::function<void(wss::WsConnectionPtr &)> &&handler) {
@@ -117,17 +120,21 @@ void wss::ConnectionStorage::markPongReceived(const wss::WsConnectionPtr &connec
     m_waitForPong[connection->getUniqueId()].second = true;
 }
 std::size_t wss::ConnectionStorage::disconnectWithoutPong(int statusCode, const std::string &reason) {
-    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
+    std::lock_guard<std::mutex> locker(m_pongMutex);
     std::size_t disconnected = 0;
     for (auto it = m_waitForPong.begin(); it != m_waitForPong.end();) {
         if (!it->second.second) {
-            WsConnectionPtr &conn = m_idMap[it->second.first][it->first];
-            if (conn) {
-                conn->sendClose(statusCode, reason);
-            } else {
-                // by some reason, connection already nullptr
-                m_idMap[it->second.first].erase(it->first);
+            {
+                std::lock_guard<std::recursive_mutex> sublock(m_connectionMutex);
+                WsConnectionPtr &conn = m_idMap[it->second.first][it->first];
+                if (conn) {
+                    conn->sendClose(statusCode, reason);
+                } else {
+                    // by some reason, connection already nullptr
+                    m_idMap[it->second.first].erase(it->first);
+                }
             }
+
             disconnected++;
         }
 

@@ -19,7 +19,7 @@ include(cmakes/opts.cmake)
 include(cmakes/configure.cmake)
 
 # gnu
-set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -pedantic ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -Wno-parentheses ${CMAKE_CXX_FLAGS}")
 
 # linux clang
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -35,9 +35,11 @@ else () #gnu only
 endif ()
 
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -g -O0") #-Werror
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -g3 -O0") #-Werror -fsanitize=thread -fno-omit-frame-pointer
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS} -O3")
 
+#PATH=$PATH:/opt/gcc81/bin CXX_FLAGS="$CXX_FLAGS -fsanitize=thread -g3 -O0" CXX=/opt/gcc81/bin/g++-81 CC=/opt/gcc81/bin/gcc-81 ./bootstrap.sh --prefix=/opt/boost1670/debug
+#LDFLAGS="$LDFLAGS -Wl,-no_compact_unwind" CXX_FLAGS="$CXX_FLAGS -fsanitize=thread -g3 -O0" ./b2 install --prefix=/opt/boost1670/debug --with=all threading=multi link=static variant=debug toolset="gcc-8.1"
 # ARCH
 if (WITH_ARCH)
 	set(PROJECT_ARCH ${WITH_ARCH})
