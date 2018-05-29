@@ -59,10 +59,7 @@ std::size_t wss::ConnectionStorage::size(wss::user_id_t id) {
 void wss::ConnectionStorage::add(wss::user_id_t id, const wss::WsConnectionPtr &connection) {
     std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
     connection->setId(id);
-    m_idMap[
-        id][
-        connection->getUniqueId()] =
-        connection;
+    m_idMap[id][connection->getUniqueId()] = connection;
     L_DEBUG_F("Connection::Add", "Adding connection for %lu. Now size: %lu", connection->getId(), m_idMap[id].size());
 }
 void wss::ConnectionStorage::remove(wss::user_id_t id) {

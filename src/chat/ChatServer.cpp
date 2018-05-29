@@ -445,6 +445,7 @@ void wss::ChatServer::send(const wss::MessagePayload &payload) {
 }
 
 void wss::ChatServer::sendTo(user_id_t recipient, const wss::MessagePayload &payload) {
+    using toolboxpp::Logger;
     const std::string payloadString = payload.toJson();
     std::size_t payloadSize = payloadString.length();
     uint8_t fin_rsv_opcode = 129;//@TODO static_cast<uint8_t>(payload.isBinary() ? 130 : 129);
@@ -464,38 +465,44 @@ void wss::ChatServer::sendTo(user_id_t recipient, const wss::MessagePayload &pay
         int i = 0;
         for (const auto &connection: connections) {
             if (!connection.second) {
+                // removing invalid recipient connection
                 m_connectionStorage->remove(recipient, connection.first);
                 continue;
             }
+
+            const WsConnectionPtr &connOut = connection.second;
 
             // DO NOT reuse stream, it will die after first sending
             auto sendStream = std::make_shared<WsMessageStream>();
             *sendStream << payloadString;
 
-            L_DEBUG_F("Chat::Send",
-                      "Sending message [thread=%lu] to recipient %lu, connection[%d]=%lu",
-                      getThreadName(),
-                      recipient,
-                      i,
-                      connection.second->getUniqueId());
+            Logger::get().debug(__FILE__, __LINE__, "Chat::Send",
+                                fmt::format("Sending message [thread={0}] to recipient {1}, connection[{2}]",
+                                            getThreadName(),
+                                            recipient,
+                                            i
+                                ));
 
             // connection->send is an asynchronous function
-            connection.second
-                      ->send(std::move(sendStream),
+            connOut->send(std::move(sendStream),
                              [this, recipient, payload,
-                                 cid = connection.first](const SimpleWeb::ErrorCode &errorCode, std::size_t ts) {
+                                 cid = connection.first] (const SimpleWeb::ErrorCode &errorCode, std::size_t ts) {
                                if (errorCode) {
                                    // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
-                                   L_DEBUG_F("Chat::Send::Error", "Unable to send message to %lu. Cause: %s error: %s",
-                                             recipient,
-                                             errorCode.category().name(),
-                                             errorCode.message().c_str()
-                                   );
+                                   Logger::get().debug(__FILE__, __LINE__, "Chat::Send::Error",
+                                                       fmt::format(
+                                                           "Unable to send message to {0}. Cause: {1} error: {2}",
+                                                           recipient,
+                                                           errorCode.category().name(),
+                                                           errorCode.message()
+                                                       ));
+
                                    if (errorCode.value() == boost::system::errc::broken_pipe) {
-                                       L_DEBUG_F("Chat::Send::Error",
-                                                 "Disconnecting Broken connection %lu (%lu)",
-                                                 recipient,
-                                                 cid);
+                                       Logger::get().debug(__FILE__, __LINE__, "Chat::Send::Error",
+                                                           fmt::format("Disconnecting Broken connection {0} ({1})",
+                                                                       recipient,
+                                                                       cid
+                                                           ));
                                        m_connectionStorage->remove(recipient, cid);
                                    }
                                    handleUndeliverable(recipient, payload);
@@ -512,7 +519,7 @@ void wss::ChatServer::sendTo(user_id_t recipient, const wss::MessagePayload &pay
         L_DEBUG("Chat::Send", "Connection not found exception. Adding payload to undelivered");
         handleUndeliverable(recipient, payload);
     } catch (const std::exception &e) {
-        L_WARN_F("Chat::Send", "Unknown error: %s", e.what());
+        Logger::get().warning(__FILE__, __LINE__, "Chat::Send", fmt::format("Unknown error: {0}", e.what()));
     } catch (...) {
         L_WARN("Chat::Send", "Unknown error");
     }
