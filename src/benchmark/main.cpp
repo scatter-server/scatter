@@ -27,13 +27,14 @@ std::atomic_int connected;
 std::recursive_mutex lock;
 
 // CONFIG
-const int RUN_TIMES = 5;
+const int RUN_TIMES = 500;
 const int CONCURRENCY = 50;
-const int MESSAGES = 100;
-const boost::int_least64_t SLEEP_MS = 50;
+const int MESSAGES = 2;
+const boost::int_least64_t SLEEP_MS = 0;
 //std::string endpoint = "localhost:8085";
-std::string endpoint = "localhost:8085";
+std::string endpoint = "192.168.1.210:8085";
 
+std::mutex connMutex;
 std::unordered_map<int, WsConnectionPtr> conns(CONCURRENCY);
 
 const static std::string DUMMY_TEXT =
@@ -121,6 +122,7 @@ stats_t _statistics;
 std::mutex statLock;
 
 void handleOne(int sen, int rec, WsConnectionPtr &conn) {
+    std::lock_guard<std::mutex> locker(connMutex);
     if (conn == nullptr) {
         L_ERR_F("HandleOne", "Connection is NULL sen=%d, rec=%d", sen, rec);
         return;
@@ -147,7 +149,8 @@ void handleOne(int sen, int rec, WsConnectionPtr &conn) {
         toolboxpp::Profiler::get().begin(tag);
         try {
             // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
-            conn->send(send_stream, [tag](const SimpleWeb::error_code &errorCode) {
+            conn->send(send_stream, [conn, tag](const SimpleWeb::error_code &errorCode) {
+              conn->send_close(1000, "OK");
               if (errorCode) {
                   std::stringstream ss;
                   ss << "Server: Error sending message. " << errorCode.category().name()
@@ -165,6 +168,8 @@ void handleOne(int sen, int rec, WsConnectionPtr &conn) {
               _statistics.sendTimes.push_back(sendTime);
               statLock.unlock();
               _statistics.sentMessages++;
+
+
             });
         } catch (const std::exception &e) {
             cerr << e.what() << endl;
@@ -179,13 +184,16 @@ void handleOne(int sen, int rec, WsConnectionPtr &conn) {
     }
 
     L_DEBUG_F("Client", "[%d] sent message to client [%d]", sen, rec);
-    conn->send_close(1000, "OK");
 }
 
-void connect(int sen, int rec) {
-    if (conns.count(sen)) {
-        return;
-    }
+void connect(int sen, int) {
+
+
+        if (conns.count(sen)) {
+            return;
+        }
+
+
 
     L_DEBUG_F("Client", "[%d] Connecting...", sen);
 
@@ -195,12 +203,13 @@ void connect(int sen, int rec) {
     );
     client.config.header.emplace("X-Auth-Token", "");
 
-    client.on_message = [sen](WsConnectionPtr, std::shared_ptr<WsClient::Message> msg) {
+    client.on_message = [sen](WsConnectionPtr, std::shared_ptr<WsClient::Message>) {
 //        cout << "Client: [" << sen << "] Message received: "<< endl;
     };
 
-    client.on_open = [sen, rec](WsConnectionPtr connection) {
+    client.on_open = [sen](WsConnectionPtr connection) {
       L_DEBUG_F("Client", "[%d] Connected!", sen);
+      std::lock_guard<std::mutex> locker(connMutex);
       conns[sen] = connection;
       connected++;
     };
@@ -208,6 +217,7 @@ void connect(int sen, int rec) {
     client.on_close = [sen](WsConnectionPtr /*connection*/, int status, const std::string &reason) {
       const char *s = reason.c_str();
       L_DEBUG_F("Client", "[%d] Disconnected with status code %d: %s", sen, status, s);
+      std::lock_guard<std::mutex> locker(connMutex);
       conns.erase(sen);
       connected--;
     };
@@ -215,6 +225,7 @@ void connect(int sen, int rec) {
     // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
     client.on_error = [sen](WsConnectionPtr /*connection*/, const SimpleWeb::error_code &ec) {
       L_ERR_F("Client", "[%d] Error: %s, error message: %s", sen, ec.category().name(), ec.message().c_str());
+      std::lock_guard<std::mutex> locker(connMutex);
       conns.erase(sen);
       connected--;
     };

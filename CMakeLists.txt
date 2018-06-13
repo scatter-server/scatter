@@ -18,28 +18,33 @@ message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 include(cmakes/opts.cmake)
 include(cmakes/configure.cmake)
 
-# gnu
+# common
 set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -Wno-parentheses ${CMAKE_CXX_FLAGS}")
 
 # linux clang
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+if (NOT APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	set(CMAKE_CXX_FLAGS "-stdlib=libc++ ${CMAKE_CXX_FLAGS} ")
-elseif (APPLE) # apple clang
+
+# apple clang
+elseif (APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
 	set(CMAKE_CXX_FLAGS "-stdlib=libc++ ${CMAKE_CXX_FLAGS}")
 	set(CMAKE_CXX_LINKER_FLAGS "${CMAKE_CXX_LINKER_FLAGS} -std=c++14 -stdlib=libc++ -undefined dynamic_lookup")
-elseif (MSVC) # visual studio
+
+# MS compiler
+elseif (MSVC)
 	message(STATUS "Build for Windows")
 	add_compile_options(/W1)
-else () #gnu only
+
+#gnu only
+else ()
 	set(CMAKE_CXX_FLAGS "-rdynamic ${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++")
+	set(CMAKE_CXX_LINKER_FLAGS "")
 endif ()
 
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -g3 -O0") #-Werror -fsanitize=thread -fno-omit-frame-pointer
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -g3 -O0") #-fsanitize=thread -fno-omit-frame-pointer
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS} -O3")
 
-#PATH=$PATH:/opt/gcc81/bin CXX_FLAGS="$CXX_FLAGS -fsanitize=thread -g3 -O0" CXX=/opt/gcc81/bin/g++-81 CC=/opt/gcc81/bin/gcc-81 ./bootstrap.sh --prefix=/opt/boost1670/debug
-#LDFLAGS="$LDFLAGS -Wl,-no_compact_unwind" CXX_FLAGS="$CXX_FLAGS -fsanitize=thread -g3 -O0" ./b2 install --prefix=/opt/boost1670/debug --with=all threading=multi link=static variant=debug toolset="gcc-8.1"
 # ARCH
 if (WITH_ARCH)
 	set(PROJECT_ARCH ${WITH_ARCH})
@@ -48,31 +53,25 @@ else ()
 	if (IS_DEBIAN)
 		if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
 			set(PROJECT_ARCH "amd64")
-			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -m64")
-			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_DEBUG} -m64")
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
 		elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "unknown")
 			set(PROJECT_ARCH "i386")
-			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -m32")
-			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_DEBUG} -m32")
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
 		else ()
 			set(PROJECT_ARCH ${CMAKE_SYSTEM_PROCESSOR})
 
 			if (CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-				set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -m64")
-				set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_DEBUG} -m64")
+				set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
 			else ()
-				set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -m32")
-				set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_DEBUG} -m32")
+				set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
 			endif ()
 		endif ()
 	else ()
 		set(PROJECT_ARCH ${CMAKE_SYSTEM_PROCESSOR})
 		if (CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -m64")
-			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_DEBUG} -m64")
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
 		else ()
-			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -m32")
-			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_DEBUG} -m32")
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
 		endif ()
 	endif ()
 endif ()

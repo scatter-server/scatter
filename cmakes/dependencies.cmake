@@ -43,6 +43,7 @@ find_package(CURL 7.26.0 REQUIRED)
 
 # date lib
 add_subdirectory(${PROJECT_LIBS_DIR}/date)
+target_compile_options(tz PRIVATE -Wno-deprecated-declarations)
 
 
 if (ENABLE_REDIS_TARGET)

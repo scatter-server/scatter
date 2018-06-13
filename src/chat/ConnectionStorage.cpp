@@ -7,6 +7,7 @@
  */
 
 #include "ConnectionStorage.h"
+#include <fmt/format.h>
 
 wss::ConnectionStorage::~ConnectionStorage() {
     for (auto &kv: m_idMap) {
@@ -25,23 +26,32 @@ bool wss::ConnectionStorage::exists(wss::user_id_t id) const {
     std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
     return m_idMap.find(id) != m_idMap.end();
 }
-bool wss::ConnectionStorage::verify(wss::user_id_t userId, wss::conn_id_t connectionId) {
-    const auto &it = m_idMap.find(userId);
-    if (it == m_idMap.end()) {
-        return false;
-    }
+bool wss::ConnectionStorage::verify(uint8_t pingFlag) {
+    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
+    for (const std::pair<user_id_t, std::unordered_map<conn_id_t, WsConnectionPtr>> &t: m_idMap) {
+        for (const auto &conn: t.second) {
+            if (!conn.second) {
 
-    if (it->second.find(connectionId) != it->second.end()) {
-        const WsConnectionPtr &ptr = it->second[connectionId];
-        if (!ptr) {
-            it->second.erase(connectionId);
-            return false;
+                // haha deadlock? i hope no
+                remove(t.first, conn.first);
+                continue;
+            }
+
+            auto pingStream = std::make_shared<WsMessageStream>();
+            *pingStream << ".";
+            conn.second
+                ->send(std::move(pingStream), [conn, this](const SimpleWeb::ErrorCode &err, std::size_t) {
+                  if (err) {
+                      // does not matter, what happens, anyway, this mean connection is bad, broken pipe, eof or something else
+                      remove(conn.second);
+                  } else {
+                      // lazy ping pong
+                      markPongWait(conn.second);
+                  }
+                }, pingFlag);
         }
-
-        return true;
-    } else {
-        return false;
     }
+    return true;
 }
 std::size_t wss::ConnectionStorage::size() const {
     std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
@@ -139,4 +149,40 @@ std::size_t wss::ConnectionStorage::disconnectWithoutPong(int statusCode, const 
     }
 
     return disconnected;
+}
+
+
+void wss::ConnectionStorage::forEach(
+    wss::user_id_t recipient,
+    const wss::ConnectionStorage::ItemHandler &handler,
+    const wss::ConnectionStorage::ItemNotFoundHandler& notFoundHandler) {
+
+    if(handler == nullptr) {
+        return;
+    }
+
+    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
+
+    try {
+        const auto &connections = get(recipient);
+        size_t i = 0;
+
+        for (const auto &connection: connections) {
+            if (!connection.second) {
+                if(notFoundHandler != nullptr) {
+                    notFoundHandler(recipient, connection.first);
+                }
+                // removing invalid recipient connection
+                remove(recipient, connection.first);
+                continue;
+            }
+
+            handler(i, connection.second, connection.first, recipient);
+        }
+
+    } catch (const std::exception &e) {
+        Logger::get().warning(__FILE__, __LINE__, "Connection::Handle", fmt::format("Unknown error: {0}", e.what()));
+    } catch (...) {
+        Logger::get().warning(__FILE__, __LINE__, "Connection::Handle", "Unknown error");
+    }
 }

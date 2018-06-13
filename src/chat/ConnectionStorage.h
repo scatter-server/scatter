@@ -17,6 +17,9 @@
 #include <atomic>
 #include <toolboxpp.h>
 #include "../wsserver_core.h"
+
+using toolboxpp::Logger;
+
 namespace wss {
 
 struct ConnectionNotFound : std::exception {
@@ -34,6 +37,10 @@ class ConnectionStorage {
     wss::ConnectionMap<std::pair<user_id_t, bool>> m_waitForPong;
 
  public:
+    using ItemHandler = std::function<void(size_t, const wss::WsConnectionPtr &, wss::conn_id_t, wss::user_id_t)>;
+    using ItemNotFoundHandler = std::function<void(wss::user_id_t, wss::conn_id_t)>;
+
+
     /// \brief Default empty constructor
     ConnectionStorage() = default;
 
@@ -56,7 +63,7 @@ class ConnectionStorage {
     /// \brief Check connection is not nullptr, remove if null
     /// \param connection
     /// \return true if is valid connection, false othwerwise
-    bool verify(wss::user_id_t userId, wss::conn_id_t connectionId);
+    bool verify(uint8_t pingFlag);
 
     /// \brief Count total users in map
     /// \return Size of map user:connections
@@ -109,6 +116,11 @@ class ConnectionStorage {
     /// \brief Disconnect all queued connections, that waits for pong response but not received
     /// \return count of disconnected connections
     std::size_t disconnectWithoutPong(int statusCode, const std::string &reason);
+
+    /// \brief Handle connections by recipient. Uses recursive mutex to prevent data races
+    /// \param recipient recipient id
+    /// \param handler
+    void forEach(wss::user_id_t recipient, const wss::ConnectionStorage::ItemHandler &handler, const wss::ConnectionStorage::ItemNotFoundHandler& = nullptr);
 };
 
 }

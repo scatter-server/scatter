@@ -153,28 +153,7 @@ void wss::ChatServer::watchdogWorker() {
                 L_DEBUG_F("Watchdog", "Disconnected %lu dangling connections", disconnected);
             }
 
-            for (const std::pair<user_id_t, std::unordered_map<conn_id_t, WsConnectionPtr>> &t: m_connectionStorage
-                ->get()) {
-                for (const auto &conn: t.second) {
-                    if (!conn.second) {
-                        m_connectionStorage->remove(t.first, conn.first);
-                        continue;
-                    }
-
-                    auto pingStream = std::make_shared<WsMessageStream>();
-                    *pingStream << ".";
-                    conn.second
-                        ->send(std::move(pingStream), [conn, this](const SimpleWeb::ErrorCode &err, std::size_t) {
-                          if (err) {
-                              // does not matter, what happens, anyway, this mean connection is bad, broken pipe, eof or something else
-                              m_connectionStorage->remove(conn.second);
-                          } else {
-                              // lazy ping pong
-                              m_connectionStorage->markPongWait(conn.second);
-                          }
-                        }, FLAG_PING);
-                }
-            }
+            m_connectionStorage->verify(FLAG_PING);
         }
     } catch (const boost::thread_interrupted &) {
         L_INFO("Watchdog", "Stopping...");
@@ -294,7 +273,11 @@ void wss::ChatServer::onConnected(WsConnectionPtr connection) {
         return;
     }
 
-    m_connectionStorage->add(id, connection);
+    {
+        std::lock_guard<std::recursive_mutex> conLock(m_connectionMutex);
+        m_connectionStorage->add(id, connection);
+    }
+
     getStat(id)->addConnection();
 
     L_DEBUG_F("Chat::Connect", "User %lu connected (%s:%d) on thread %lu",
@@ -450,7 +433,7 @@ void wss::ChatServer::sendTo(user_id_t recipient, const wss::MessagePayload &pay
     std::size_t payloadSize = payloadString.length();
     uint8_t fin_rsv_opcode = 129;//@TODO static_cast<uint8_t>(payload.isBinary() ? 130 : 129);
 
-    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
+//    std::lock_guard<std::recursive_mutex> locker(m_connectionMutex);
 
     if (!m_connectionStorage->size(recipient)) {
         handleUndeliverable(recipient, payload);
@@ -460,69 +443,44 @@ void wss::ChatServer::sendTo(user_id_t recipient, const wss::MessagePayload &pay
         return;
     }
 
-    try {
-        const auto &connections = m_connectionStorage->get(recipient);
-        int i = 0;
-        for (const auto &connection: connections) {
-            if (!connection.second) {
-                // removing invalid recipient connection
-                m_connectionStorage->remove(recipient, connection.first);
-                continue;
+        m_connectionStorage->forEach(recipient, [this, fin_rsv_opcode, payload, payloadString]
+        (size_t i, const wss::WsConnectionPtr &conn, wss::conn_id_t cid, wss::user_id_t uid){
+          // DO NOT reuse stream, it will die after first sending
+          auto sendStream = std::make_shared<WsMessageStream>();
+          *sendStream << payloadString;
+
+          Logger::get().debug(__FILE__, __LINE__, "Chat::Send",
+                              fmt::format("Sending message [thread={0}] to recipient {1}, connection[{2}]",
+                                          getThreadName(), uid, i
+                              ));
+
+          // connection->send is an asynchronous function
+          conn->send(sendStream, [this, uid, payload, cid]
+              (const SimpleWeb::ErrorCode &errorCode, std::size_t ts) {
+            if (errorCode) {
+                // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
+                Logger::get().debug(__FILE__, __LINE__, "Chat::Send::Error",
+                                    fmt::format(
+                                        "Unable to send message to {0}. Cause: {1} error: {2}",
+                                        uid, errorCode.category().name(), errorCode.message()
+                                    ));
+
+                if (errorCode.value() == boost::system::errc::broken_pipe) {
+                    Logger::get().debug(__FILE__, __LINE__, "Chat::Send::Error",
+                                        fmt::format("Disconnecting Broken connection {0} ({1})", uid, cid));
+                    m_connectionStorage->remove(uid, cid);
+                }
+                handleUndeliverable(uid, payload);
+            } else {
+                MessagePayload sent = payload;
+                sent.setRecipient(uid);
+                onMessageSent(std::move(sent), ts, true);
             }
-
-            const WsConnectionPtr &connOut = connection.second;
-
-            // DO NOT reuse stream, it will die after first sending
-            auto sendStream = std::make_shared<WsMessageStream>();
-            *sendStream << payloadString;
-
-            Logger::get().debug(__FILE__, __LINE__, "Chat::Send",
-                                fmt::format("Sending message [thread={0}] to recipient {1}, connection[{2}]",
-                                            getThreadName(),
-                                            recipient,
-                                            i
-                                ));
-
-            // connection->send is an asynchronous function
-            connOut->send(std::move(sendStream),
-                             [this, recipient, payload,
-                                 cid = connection.first] (const SimpleWeb::ErrorCode &errorCode, std::size_t ts) {
-                               if (errorCode) {
-                                   // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
-                                   Logger::get().debug(__FILE__, __LINE__, "Chat::Send::Error",
-                                                       fmt::format(
-                                                           "Unable to send message to {0}. Cause: {1} error: {2}",
-                                                           recipient,
-                                                           errorCode.category().name(),
-                                                           errorCode.message()
-                                                       ));
-
-                                   if (errorCode.value() == boost::system::errc::broken_pipe) {
-                                       Logger::get().debug(__FILE__, __LINE__, "Chat::Send::Error",
-                                                           fmt::format("Disconnecting Broken connection {0} ({1})",
-                                                                       recipient,
-                                                                       cid
-                                                           ));
-                                       m_connectionStorage->remove(recipient, cid);
-                                   }
-                                   handleUndeliverable(recipient, payload);
-                               } else {
-                                   MessagePayload sent = payload;
-                                   sent.setRecipient(recipient);
-                                   onMessageSent(std::move(sent), ts, true);
-                               }
-                             }, fin_rsv_opcode);
-
-            i++;
-        }
-    } catch (const ConnectionNotFound &) {
-        L_DEBUG("Chat::Send", "Connection not found exception. Adding payload to undelivered");
-        handleUndeliverable(recipient, payload);
-    } catch (const std::exception &e) {
-        Logger::get().warning(__FILE__, __LINE__, "Chat::Send", fmt::format("Unknown error: {0}", e.what()));
-    } catch (...) {
-        L_WARN("Chat::Send", "Unknown error");
-    }
+          }, fin_rsv_opcode);
+        }, [this, payload] (wss::user_id_t uid, wss::conn_id_t) {
+          L_DEBUG("Chat::Send", "Connection not found exception. Adding payload to undelivered");
+          handleUndeliverable(uid, payload);
+        });
 }
 
 void wss::ChatServer::handleUndeliverable(wss::user_id_t uid, const wss::MessagePayload &payload) {
@@ -567,6 +525,7 @@ void wss::ChatServer::addStopListener(wss::ChatServer::OnServerStopListener call
     m_stopListeners.push_back(callback);
 }
 std::unique_ptr<wss::Statistics> &wss::ChatServer::getStat(wss::user_id_t id) {
+    std::lock_guard<std::mutex> locker(m_statMutex);
     if (m_statistics.find(id) == m_statistics.end()) {
         m_statistics[id] = std::make_unique<wss::Statistics>(id);
     }

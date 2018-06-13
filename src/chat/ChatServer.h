@@ -270,6 +270,7 @@ class ChatServer : public virtual StandaloneService {
     std::mutex m_frameBufferMutex;
     std::recursive_mutex m_connectionMutex;
     std::mutex m_undeliveredMutex;
+    std::mutex m_statMutex;
 
     std::unique_ptr<boost::thread> m_workerThread;
     std::unique_ptr<boost::thread> m_watchdogThread;
@@ -277,7 +278,7 @@ class ChatServer : public virtual StandaloneService {
     WsServer::Endpoint *m_endpoint;
     std::unique_ptr<WsServer> m_server;
 
-    std::unique_ptr<wss::ConnectionStorage> m_connectionStorage;
+    const std::unique_ptr<wss::ConnectionStorage> m_connectionStorage;
     UserMap<std::shared_ptr<std::stringstream>> m_frameBuffer;
     UserMap<std::queue<wss::MessagePayload>> m_undeliveredMessagesMap;
     UserMap<std::unique_ptr<Statistics>> m_statistics;
