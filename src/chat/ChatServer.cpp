@@ -38,7 +38,7 @@ wss::ChatServer::ChatServer(
 
     m_endpoint->onOpen = std::bind(&wss::ChatServer::onConnected, this, std::placeholders::_1);
     m_endpoint->onError = [](WsConnectionPtr conn, const boost::system::error_code &ec) {
-      L_WARN_F("Server::Connection::Error", "Connection error[%lu]: %s %s",
+      L_DEBUG_F("Server::Connection::Error", "Connection error[%lu]: %s %s",
                conn->getId(),
                ec.category().name(),
                ec.message().c_str()
@@ -76,7 +76,7 @@ wss::ChatServer::ChatServer(const std::string &host, unsigned short port, const 
 
     m_endpoint->onOpen = std::bind(&wss::ChatServer::onConnected, this, std::placeholders::_1);
     m_endpoint->onError = [](WsConnectionPtr, const boost::system::error_code &ec) {
-        L_WARN_F("Server::Connection::Error", "Connection error: %s %s",
+        L_DEBUG_F("Server::Connection::Error", "Connection error: %s %s",
                  ec.category().name(),
                  ec.message().c_str()
         )
