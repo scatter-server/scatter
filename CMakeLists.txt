@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(wsserver VERSION 1.1.0)
+project(wsserver VERSION 1.2.0)
 set(CMAKE_CXX_STANDARD 14)
 set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(PROJECT_LIBS_DIR ${PROJECT_ROOT}/libs)

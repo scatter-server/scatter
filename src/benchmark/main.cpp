@@ -27,12 +27,13 @@ std::atomic_int connected;
 std::recursive_mutex lock;
 
 // CONFIG
+// TODO cli arguments
 const int RUN_TIMES = 500;
 const int CONCURRENCY = 50;
 const int MESSAGES = 2;
 const boost::int_least64_t SLEEP_MS = 0;
 //std::string endpoint = "localhost:8085";
-std::string endpoint = "192.168.1.210:8085";
+std::string endpoint = "localhost:8085";
 
 std::mutex connMutex;
 std::unordered_map<int, WsConnectionPtr> conns(CONCURRENCY);
@@ -203,7 +204,7 @@ void connect(int sen, int) {
     );
     client.config.header.emplace("X-Auth-Token", "");
 
-    client.on_message = [sen](WsConnectionPtr, std::shared_ptr<WsClient::Message>) {
+    client.on_message = [](WsConnectionPtr, std::shared_ptr<WsClient::Message>) {
 //        cout << "Client: [" << sen << "] Message received: "<< endl;
     };
 
