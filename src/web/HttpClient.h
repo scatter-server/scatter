@@ -16,12 +16,12 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <toolboxpp.h>
 #include <curl/curl.h>
-#include "..//wsserver_core.h"
+#include "../wsserver_core.h"
 
 #ifdef USE_SECURE_SERVER
-#include <server_https.hpp>
+#include <http/server_https.hpp>
 #else
-#include <server_http.hpp>
+#include <http/server_http.hpp>
 #endif
 
 namespace wss {

@@ -44,6 +44,11 @@ find_package(CURL 7.26.0 REQUIRED)
 # date lib
 add_subdirectory(${PROJECT_LIBS_DIR}/date)
 target_compile_options(tz PRIVATE -Wno-deprecated-declarations)
+set(USE_SYSTEM_TZ_DB ON CACHE BOOL "Enable system timezone DB" FORCE)
+set_target_properties(
+	tz PROPERTIES
+	USE_SYSTEM_TZ_DB On
+)
 
 
 if (ENABLE_REDIS_TARGET)

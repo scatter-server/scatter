@@ -91,14 +91,14 @@ include(cmakes/dependencies.cmake)
 
 add_executable(${PROJECT_NAME} src/main.cpp ${SERVER_EXEC_SRCS})
 
-linkdeps(${PROJECT_NAME})
+linkdeps(${PROJECT_NAME} all)
 if (WITH_BENCHMARK)
 	add_executable(wssbench
 	               src/benchmark/main.cpp
 	               ${COMMON_LIBS_SRC}
 	               ${WS_COMMON_SRC} ${WS_CLIENT_SRC})
 
-	linkdeps(wssbench)
+	linkdeps(wssbench all)
 endif ()
 
 if (WITH_TEST)

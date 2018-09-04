@@ -41,12 +41,10 @@ Simple, standalone, websocket high-performance message server.
 
 
 ## Downloads
-* [Debian Jessie DEB (amd64)](https://github.com/edwardstock/wsserver/releases/download/1.0.0/wsserver-1.0.0-linux-amd64.jessie.deb)
-* [Debian Stretch DEB (amd64)](https://github.com/edwardstock/wsserver/releases/download/1.0.0/wsserver-1.0.0-linux-amd64.stretch.deb)
-* [RHEL7 RPM (x86_64)](https://github.com/edwardstock/wsserver/releases/download/1.0.0/wsserver-1.0.0-linux-x86_64.el7.rpm)
+Prebuilt binaries available for download [here](https://github.com/edwardstock/wsserver/releases/latest)
 
 # Install
-* Debian
+* Debian**
 ```bash
 sudo dpkg -i wsserver.deb
 sudo apt-get -f install

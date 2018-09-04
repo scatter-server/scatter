@@ -76,8 +76,8 @@ set(WS_CLIENT_SRC
     )
 
 set(HTTP_COMMON_SRC
-    ${PROJECT_LIBS_DIR}/http/crypto.hpp
-    ${PROJECT_LIBS_DIR}/http/utility.hpp
+#    ${PROJECT_LIBS_DIR}/http/crypto.hpp
+#    ${PROJECT_LIBS_DIR}/http/utility.hpp
     ${PROJECT_LIBS_DIR}/http/status_code.hpp
     )
 
@@ -99,7 +99,7 @@ set(LOCK_FREE_QUEUE_SRC
 
 include_directories(${PROJECT_LIBS_DIR}/ws)
 include_directories(${PROJECT_LIBS_DIR}/json/src)
-include_directories(${PROJECT_LIBS_DIR}/http)
+include_directories(${PROJECT_LIBS_DIR})
 include_directories(${PROJECT_LIBS_DIR}/ini-parser/include)
 include_directories(${PROJECT_LIBS_DIR}/args)
 include_directories(${PROJECT_LIBS_DIR}/concurrentqueue)

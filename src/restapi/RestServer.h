@@ -16,9 +16,9 @@
 #include <memory>
 #include <algorithm>
 #include <fmt/format.h>
-#include "server_https.hpp"
-#include "server_http.hpp"
 #include "../wsserver_core.h"
+#include "http/server_http.hpp"
+#include "http/server_https.hpp"
 #include "../chat/ChatServer.h"
 #include "../base/StandaloneService.h"
 #include "../base/auth/Auth.h"
