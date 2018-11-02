@@ -28,7 +28,7 @@ std::recursive_mutex lock;
 
 // CONFIG
 // TODO cli arguments
-const int RUN_TIMES = 500;
+const int RUN_TIMES = 20;
 const int CONCURRENCY = 50;
 const int MESSAGES = 2;
 const boost::int_least64_t SLEEP_MS = 0;
@@ -202,7 +202,7 @@ void connect(int sen, int) {
         std::string(endpoint + "/chat?id=" + std::to_string(sen)),
         false
     );
-    client.config.header.emplace("X-Auth-Token", "");
+    client.config.header.emplace("X-Auth-Token", "aOel0Pnx9Fi-h2EeknsHuAyDknV5rbSR");
 
     client.on_message = [](WsConnectionPtr, std::shared_ptr<WsClient::Message>) {
 //        cout << "Client: [" << sen << "] Message received: "<< endl;

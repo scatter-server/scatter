@@ -14,26 +14,20 @@
 #include <string>
 #include "json.hpp"
 
-#ifdef USE_SECURE_SERVER
-#include "server_wss.hpp"
-#else
-#include "server_ws.hpp"
-#endif
+#include "base/ws/WebsocketServer.hpp"
 
 namespace wss {
 
 using user_id_t = unsigned long;
 using conn_id_t = unsigned long;
 
-#ifdef USE_SECURE_SERVER
-using WsServer = SimpleWeb::SocketServer<SimpleWeb::WSS>;
-#else
-using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
-#endif
+using WsBase = wss::server::websocket::SocketServerBase;
+using WsServer = wss::server::websocket::SocketServer;
+using WssServer = wss::server::websocket::SocketServerSecure;
 
-using WsMessageStream = WsServer::SendStream;
-using WsConnectionPtr = std::shared_ptr<WsServer::Connection>;
-using WsMessagePtr = std::shared_ptr<WsServer::Message>;
+using WsMessageStream = WsBase::SendStream;
+using WsConnectionPtr = std::shared_ptr<WsBase::Connection>;
+using WsMessagePtr = std::shared_ptr<WsBase::Message>;
 using json = nlohmann::json;
 
 

@@ -16,11 +16,11 @@ wss::web::IOContainer::IOContainer() :
     body() { }
 void wss::web::IOContainer::setBody(const std::string &body) {
     this->body = body;
-    setHeader({"Content-Length", wss::helpers::toString(this->body.length())});
+    setHeader({"Content-Length", wss::utils::toString(this->body.length())});
 }
 void wss::web::IOContainer::setBody(std::string &&body) {
     this->body = std::move(body);
-    setHeader({"Content-Length", wss::helpers::toString(this->body.length())});
+    setHeader({"Content-Length", wss::utils::toString(this->body.length())});
 }
 void wss::web::IOContainer::setHeader(wss::web::KeyValue &&keyValue) {
     using toolboxpp::strings::equalsIgnoreCase;
@@ -87,7 +87,7 @@ void wss::web::IOContainer::setHeaders(const std::unordered_map<std::string, std
         addHeader(h.first, h.second);
     }
 }
-void wss::web::IOContainer::setHeaders(SimpleWeb::CaseInsensitiveMultimap &mmp) {
+void wss::web::IOContainer::setHeaders(CaseInsensitiveMultimap &mmp) {
     for (auto &h: mmp) {
         addHeader(h.first, h.second);
     }
@@ -147,7 +147,8 @@ wss::web::Request::Request(const std::string &url, wss::web::Request::Method met
 wss::web::Request::Request(std::string &&url) : IOContainer(),
                                                 m_url(std::move(url)),
                                                 m_method(GET) { }
-wss::web::Request::Request(const wss::web::WebHttpRequest &sRequest) : IOContainer(),
+
+wss::web::Request::Request(const wss::web::HttpRequest &sRequest) : IOContainer(),
                                                                        m_url(sRequest->path),
                                                                        m_method(methodFromString(sRequest->method)) {
     for (auto &h: sRequest->header) {
@@ -373,6 +374,9 @@ wss::web::Response wss::web::HttpClient::execute(const wss::web::Request &reques
                 isPost = true;
                 break;
             case Request::Method::DELETE:curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+                isPost = false;
+                break;
+            case Request::Method::HEAD:curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "HEAD");
                 isPost = false;
                 break;
             default:break;

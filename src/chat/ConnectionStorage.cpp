@@ -40,7 +40,7 @@ bool wss::ConnectionStorage::verify(uint8_t pingFlag) {
             auto pingStream = std::make_shared<WsMessageStream>();
             *pingStream << ".";
             conn.second
-                ->send(std::move(pingStream), [conn, this](const SimpleWeb::ErrorCode &err, std::size_t) {
+                ->send(std::move(pingStream), [conn, this](const wss::server::websocket::ErrorCode &err, std::size_t) {
                   if (err) {
                       // does not matter, what happens, anyway, this mean connection is bad, broken pipe, eof or something else
                       remove(conn.second);

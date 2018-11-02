@@ -30,7 +30,7 @@ wss::MessagePayload::MessagePayload(user_id_t from, user_id_t to, std::string &&
     m_recipients(std::vector<user_id_t>{to}),
     m_text(std::move(message)),
     m_type(TYPE_TEXT),
-    m_timestamp(wss::helpers::getNowISODateTimeFractionalConfigAware()) {
+    m_timestamp(wss::utils::getNowISODateTimeFractionalConfigAware()) {
 
 }
 wss::MessagePayload::MessagePayload(user_id_t from, std::vector<user_id_t> &&to, std::string &&message) :
@@ -39,7 +39,7 @@ wss::MessagePayload::MessagePayload(user_id_t from, std::vector<user_id_t> &&to,
     m_recipients(std::move(to)),
     m_text(std::move(message)),
     m_type(TYPE_TEXT),
-    m_timestamp(wss::helpers::getNowISODateTimeFractionalConfigAware()) {
+    m_timestamp(wss::utils::getNowISODateTimeFractionalConfigAware()) {
     validate();
 }
 MessagePayload::MessagePayload(user_id_t from, user_id_t to, const std::string &message) :
@@ -48,7 +48,7 @@ MessagePayload::MessagePayload(user_id_t from, user_id_t to, const std::string &
     m_recipients(to),
     m_text(message),
     m_type(TYPE_TEXT),
-    m_timestamp(wss::helpers::getNowISODateTimeFractionalConfigAware()) {
+    m_timestamp(wss::utils::getNowISODateTimeFractionalConfigAware()) {
 }
 wss::MessagePayload::MessagePayload(user_id_t from, const std::vector<user_id_t> &to, const std::string &message) :
     m_id(wss::unid::generator()()),
@@ -56,7 +56,7 @@ wss::MessagePayload::MessagePayload(user_id_t from, const std::vector<user_id_t>
     m_recipients(to),
     m_text(message),
     m_type(TYPE_TEXT),
-    m_timestamp(wss::helpers::getNowISODateTimeFractionalConfigAware()) {
+    m_timestamp(wss::utils::getNowISODateTimeFractionalConfigAware()) {
     validate();
 }
 wss::MessagePayload::MessagePayload(const std::string &json) noexcept:
@@ -249,7 +249,7 @@ void wss::from_json(const wss::json &j, wss::MessagePayload &in) {
     if (j.find("timestamp") != j.end() && j.at("timestamp").is_string()) {
         in.m_timestamp = j.at("timestamp").get<std::string>();
     } else {
-        in.m_timestamp = wss::helpers::getNowISODateTimeFractionalConfigAware();
+        in.m_timestamp = wss::utils::getNowISODateTimeFractionalConfigAware();
     }
 }
 

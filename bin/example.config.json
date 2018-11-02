@@ -6,6 +6,7 @@
     "workers": 8,
     "tmpDir": "/tmp",
     "timezone": "Europe/Moscow",
+    "enableSecure": false,
     "secure": {
       "crtPath": "../certs/debug.crt",
       "keyPath": "../certs/pdebug.key"

@@ -11,7 +11,7 @@
 #include "date/date.h"
 #include "date/tz.h"
 
-boost::posix_time::ptime wss::helpers::parseDate(const std::string &t, const char *format) {
+boost::posix_time::ptime wss::utils::parseDate(const std::string &t, const char *format) {
     pt::time_input_facet *timeFacet(new pt::time_input_facet(format));
     std::locale ioFormat = std::locale(std::locale::classic(), timeFacet);
 
@@ -23,11 +23,11 @@ boost::posix_time::ptime wss::helpers::parseDate(const std::string &t, const cha
     return parsed;
 }
 
-boost::posix_time::ptime wss::helpers::parseISODateTime(const std::string &t) {
+boost::posix_time::ptime wss::utils::parseISODateTime(const std::string &t) {
     return parseDate(t, DATE_TIME_ISO_8601);
 }
 
-std::string wss::helpers::formatBoostPTime(const boost::posix_time::ptime &t, const char *format) {
+std::string wss::utils::formatBoostPTime(const boost::posix_time::ptime &t, const char *format) {
     pt::time_facet *timeFacet = new pt::time_facet(format);
     std::locale ioFormat = std::locale(std::locale::classic(), timeFacet);
 
@@ -40,7 +40,7 @@ std::string wss::helpers::formatBoostPTime(const boost::posix_time::ptime &t, co
     return ss.str();
 }
 
-std::string wss::helpers::getNowISODateTimeFractionalConfigAware() {
+std::string wss::utils::getNowISODateTimeFractionalConfigAware() {
     if (wss::Settings::get().server.timezone.empty()) {
         return getNowISODateTime("UTC");
     }
@@ -48,25 +48,25 @@ std::string wss::helpers::getNowISODateTimeFractionalConfigAware() {
     return getNowISODateTime(wss::Settings::get().server.timezone);
 }
 
-std::string wss::helpers::getNowLocalISODateTime() {
+std::string wss::utils::getNowLocalISODateTime() {
     return formatBoostPTime(pt::second_clock::local_time(), DATE_TIME_ISO_8601);
 }
 
-std::string wss::helpers::getNowLocalISODateTimeFractional() {
+std::string wss::utils::getNowLocalISODateTimeFractional() {
     return formatBoostPTime(pt::microsec_clock::local_time(), DATE_TIME_ISO_8601_FRACTIONAL);
 }
 
-std::string wss::helpers::getNowLocalISODateTimeFractionalTZ() {
+std::string wss::utils::getNowLocalISODateTimeFractionalTZ() {
     auto t = date::make_zoned(date::current_zone(), std::chrono::system_clock::now());
 
-    return date::format(wss::helpers::DATE_TIME_ISO_8601_FRACTIONAL_WITH_TZ, t);
+    return date::format(wss::utils::DATE_TIME_ISO_8601_FRACTIONAL_WITH_TZ, t);
 }
 
-std::string wss::helpers::getNowUTCISODateTime() {
+std::string wss::utils::getNowUTCISODateTime() {
     return formatBoostPTime(pt::second_clock::universal_time(), DATE_TIME_ISO_8601);
 }
 
-std::string wss::helpers::getNowISODateTime(const std::string &timezone) {
+std::string wss::utils::getNowISODateTime(const std::string &timezone) {
     // @TODO hack!
     auto t = date::make_zoned(timezone, std::chrono::system_clock::now());
     const std::string f1 = "%Y-%m-%d %H:%M:";
@@ -86,19 +86,19 @@ std::string wss::helpers::getNowISODateTime(const std::string &timezone) {
     return out;
 }
 
-std::string wss::helpers::getNowUTCISODateTimeFractional() {
+std::string wss::utils::getNowUTCISODateTimeFractional() {
     return formatBoostPTime(pt::microsec_clock::universal_time(), DATE_TIME_ISO_8601_FRACTIONAL);
 }
 
-std::string wss::helpers::getNowUTCISODateTimeFractionalTZ() {
+std::string wss::utils::getNowUTCISODateTimeFractionalTZ() {
     auto t = date::make_zoned("UTC", std::chrono::system_clock::now());
-    return date::format(wss::helpers::DATE_TIME_ISO_8601_FRACTIONAL_WITH_TZ, t);
+    return date::format(wss::utils::DATE_TIME_ISO_8601_FRACTIONAL_WITH_TZ, t);
 }
 
-std::string wss::helpers::humanReadableBytes(unsigned long bytes, bool si) {
+std::string wss::utils::humanReadableBytes(unsigned long bytes, bool si) {
     using namespace toolboxpp::strings;
     unsigned int unit = si ? 1000 : 1024;
-    if (bytes < unit) return wss::helpers::toString(bytes) + " B";
+    if (bytes < unit) return wss::utils::toString(bytes) + " B";
     auto exp = (std::size_t) (log(bytes) / log(unit));
 
     std::string units = (si ? "kMGTPE" : "KMGTPE");
@@ -112,7 +112,7 @@ std::string wss::helpers::humanReadableBytes(unsigned long bytes, bool si) {
     return std::string(buffer);
 }
 
-const std::string wss::helpers::generateRandomStringCRC32(unsigned short length) {
+const std::string wss::utils::generateRandomStringCRC32(unsigned short length) {
     std::string chars(
         "abcdefghijklmnopqrstuvwxyz"
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -131,5 +131,5 @@ const std::string wss::helpers::generateRandomStringCRC32(unsigned short length)
     boost::crc_32_type result;
     result.process_bytes(randomed.data(), randomed.length());
 
-    return wss::helpers::toString(result.checksum());
+    return wss::utils::toString(result.checksum());
 }

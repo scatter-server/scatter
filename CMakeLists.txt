@@ -79,10 +79,6 @@ message(STATUS "Build arch: ${PROJECT_ARCH}")
 
 add_definitions(-DWSSERVER_VERSION="${PROJECT_VERSION}")
 add_definitions(-DWS_BIN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/bin")
-if (ENABLE_SSL)
-	add_definitions(-DUSE_SECURE_SERVER=1)
-endif ()
-
 
 ### Dependencies
 include(cmakes/sources_sets.cmake)
@@ -98,6 +94,7 @@ if (WITH_BENCHMARK)
 	               ${COMMON_LIBS_SRC}
 	               ${WS_COMMON_SRC} ${WS_CLIENT_SRC})
 
+		target_include_directories(wssbench PUBLIC ${PROJECT_LIBS_DIR}/ws)
 	linkdeps(wssbench all)
 endif ()
 

@@ -22,7 +22,6 @@ using namespace std::placeholders;
 
 class ChatRestServer : public RestServer {
  public:
-    #ifdef USE_SECURE_SERVER
     explicit ChatRestServer(
         std::shared_ptr<ChatServer> &chatMessageServer,
         const std::string &crtPath, const std::string &keyPath
@@ -31,10 +30,9 @@ class ChatRestServer : public RestServer {
     ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServer,
                    const std::string &crtPath, const std::string &keyPath,
                    const std::string &host, unsigned short port);
-    #else
+
     explicit ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServer);
     ChatRestServer(std::shared_ptr<ChatServer> &chatMessageServer, const std::string &host, unsigned short port);
-    #endif
  protected:
     // actions
     /// \brief Statistics list method: GET /stats

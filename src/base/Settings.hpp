@@ -31,12 +31,13 @@ struct AuthSettings {
   nlohmann::json data;
 };
 
-struct Server {
-  struct Secure {
-    std::string crtPath;
-    std::string keyPath;
-  };
+struct Secure {
+  bool enabled = false;
+  std::string crtPath;
+  std::string keyPath;
+};
 
+struct Server {
   struct Watchdog {
     bool enabled = false;
   };
@@ -56,6 +57,7 @@ struct RestApi {
   std::string address = "*";
   uint16_t port = 8082;
   AuthSettings auth;
+  Secure secure;
 };
 struct Chat {
   struct Message {
@@ -96,9 +98,11 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
     setConfigDef(in.server.port, server, "port", (uint16_t) 8085);
     setConfigDef(in.server.timezone, server, "timezone", "UTC");
 
+
     if (server.find("secure") != server.end()) {
         setConfig(in.server.secure.crtPath, server["secure"], "crtPath");
         setConfig(in.server.secure.keyPath, server["secure"], "keyPath");
+        setConfig(in.server.secure.enabled, server["secure"], "enabled");
     }
 
     if (server.find("auth") != server.end()) {
@@ -125,6 +129,12 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
             in.restApi.auth = wss::AuthSettings();
             setConfigDef(in.restApi.auth.type, restApi["auth"], "type", "noauth");
             in.restApi.auth.data = restApi["auth"];
+        }
+
+        if (restApi.find("secure") != restApi.end()) {
+            setConfig(in.restApi.secure.crtPath, restApi["secure"], "crtPath");
+            setConfig(in.restApi.secure.keyPath, restApi["secure"], "keyPath");
+            setConfig(in.restApi.secure.enabled, restApi["secure"], "enabled");
         }
     }
 

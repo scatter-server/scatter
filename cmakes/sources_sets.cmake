@@ -20,6 +20,13 @@ set(SERVER_SRC
     src/helpers/base64.cpp
     src/helpers/base64.h
     src/base/StandaloneService.h
+    src/base/BaseServer.h
+    src/base/StatusCode.hpp
+    src/helpers/crypto.hpp
+    src/helpers/utility.hpp
+    src/base/SocketLayerWrapper.hpp
+    src/base/ws/WebsocketServer.hpp
+    src/base/http/HttpServer.h
     src/event/EventNotifier.cpp
     src/base/ServerStarter.cpp
     src/base/ServerStarter.h
@@ -76,8 +83,8 @@ set(WS_CLIENT_SRC
     )
 
 set(HTTP_COMMON_SRC
-#    ${PROJECT_LIBS_DIR}/http/crypto.hpp
-#    ${PROJECT_LIBS_DIR}/http/utility.hpp
+    ${PROJECT_LIBS_DIR}/http/crypto.hpp
+    ${PROJECT_LIBS_DIR}/http/utility.hpp
     ${PROJECT_LIBS_DIR}/http/status_code.hpp
     )
 
@@ -97,16 +104,15 @@ set(LOCK_FREE_QUEUE_SRC
     )
 
 
-include_directories(${PROJECT_LIBS_DIR}/ws)
+#include_directories(${PROJECT_LIBS_DIR}/ws)
 include_directories(${PROJECT_LIBS_DIR}/json/src)
 include_directories(${PROJECT_LIBS_DIR})
 include_directories(${PROJECT_LIBS_DIR}/ini-parser/include)
 include_directories(${PROJECT_LIBS_DIR}/args)
 include_directories(${PROJECT_LIBS_DIR}/concurrentqueue)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/helpers)
 
 
 set(SERVER_EXEC_SRCS
     ${SERVER_SRC}
-    ${COMMON_LIBS_SRC}
-    ${WS_SERVER_SRC} ${WS_COMMON_SRC}
-    ${HTTP_SERVER_SRC} ${HTTP_CLIENT_SRC} ${HTTP_COMMON_SRC})
+    ${COMMON_LIBS_SRC})

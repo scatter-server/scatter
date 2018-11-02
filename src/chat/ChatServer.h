@@ -25,7 +25,6 @@
 #include <functional>
 #include <toolboxpp.h>
 #include <boost/thread.hpp>
-#include "server_ws.hpp"
 #include "json.hpp"
 #include "Message.h"
 #include "../wsserver_core.h"
@@ -131,17 +130,21 @@ class ChatServer : public virtual StandaloneService {
     typedef std::function<void()> OnServerStopListener;
 
  public:
-    #ifdef USE_SECURE_SERVER
+    /// \brief Secure message server ctr (SSL)
+    /// \param crtPath
+    /// \param privKeyPath
+    /// \param host
+    /// \param port
+    /// \param regexPath
     ChatServer(
         const std::string &crtPath, const std::string &privKeyPath,
         const std::string &host, unsigned short port, const std::string &regexPath);
-    #else
+
     /// \brief Insecure message server ctr
     /// \param host hostname - ip address or hostname without protocol
     /// \param port port number
     /// \param regexPath endpoint regex: example ^/chat$
     ChatServer(const std::string &host, unsigned short port, const std::string &regexPath);
-    #endif
 
     /// \brief Stops io_service
     ~ChatServer();
@@ -275,8 +278,8 @@ class ChatServer : public virtual StandaloneService {
     std::unique_ptr<boost::thread> m_workerThread;
     std::unique_ptr<boost::thread> m_watchdogThread;
 
-    WsServer::Endpoint *m_endpoint;
-    std::unique_ptr<WsServer> m_server;
+    WsBase::Endpoint *m_endpoint;
+    std::unique_ptr<wss::server::websocket::SocketServerBase> m_server;
 
     const std::unique_ptr<wss::ConnectionStorage> m_connectionStorage;
     UserMap<std::shared_ptr<std::stringstream>> m_frameBuffer;

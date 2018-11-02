@@ -16,10 +16,18 @@ add_subdirectory(${PROJECT_LIBS_DIR}/fmt)
 
 
 # OpenSSL (libssl)
-if (APPLE AND NOT OPENSSL_ROOT_DIR)
-	set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
-endif ()
+
+message(STATUS "System: ${CMAKE_SYSTEM_NAME}")
+string(TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_LOWER)
+message(STATUS "CPU: ${CMAKE_SYSTEM_PROCESSOR}")
+set(OPENSSL_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/${SYSTEM_LOWER}_${CMAKE_SYSTEM_PROCESSOR}")
+
+#if (APPLE AND NOT OPENSSL_ROOT_DIR)
+#	set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
+#endif ()
 find_package(OpenSSL 1.0.0 REQUIRED)
+
+
 
 
 # ToolBox++
@@ -85,7 +93,7 @@ function (linkdeps DEPS_PROJECT)
 	# OpenSSL
 	target_link_libraries(${DEPS_PROJECT} ${OPENSSL_LIBRARIES})
 	target_include_directories(${DEPS_PROJECT} PUBLIC ${OPENSSL_INCLUDE_DIR})
-	message(STATUS "\t- openssl (${OPENSSL_LIBRARIES})")
+	message(STATUS "\t- openssl ${OPENSSL_VERSION} (${OPENSSL_LIBRARIES})")
 
 	# Toolbox++
 	target_link_libraries(${DEPS_PROJECT} toolboxpp)

@@ -64,7 +64,7 @@ class ServerStarter {
     /// \tparam T StandaloneService interface implementer
     /// \param s StandaloneService shared instance
     template<class T>
-    void runService(std::shared_ptr<T> &s) {
+    void enqueueService(std::shared_ptr<T> &s) {
         static_assert(std::is_base_of<wss::StandaloneService, T>::value,
                       "Service must be instance of wss::StandaloneService");
 

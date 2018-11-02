@@ -16,32 +16,25 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <toolboxpp.h>
 #include <curl/curl.h>
+#include "../base/StatusCode.hpp"
+#include "../base/http/HttpServer.h"
 #include "../wsserver_core.h"
-
-#ifdef USE_SECURE_SERVER
-#include <http/server_https.hpp>
-#else
-#include <http/server_http.hpp>
-#endif
 
 namespace wss {
 namespace web {
 
+using namespace wss::utils;
+
 /// \brief Simple std::pair<std::string, std::string>
-typedef std::pair<std::string, std::string> KeyValue;
+using KeyValue = std::pair<std::string, std::string>;
 
 /// \brief Simple vector of pairs wss::web::KeyValue
-typedef std::vector<KeyValue> KeyValueVector;
+using KeyValueVector = std::vector<KeyValue>;
 
-#ifdef USE_SECURE_SERVER
-using WebHttpServer = SimpleWeb::Server<SimpleWeb::HTTPS>;
-#else
-using WebHttpServer = SimpleWeb::Server<SimpleWeb::HTTP>;
-#endif
-
-using WebHttpStatus = SimpleWeb::StatusCode;
-using WebHttpResponse = std::shared_ptr<WebHttpServer::Response>;
-using WebHttpRequest = std::shared_ptr<WebHttpServer::Request>;
+using HttpBase = wss::server::http::ServerBase;
+using HttpStatus = wss::server::StatusCode;
+using HttpResponse = std::shared_ptr<HttpBase::Response>;
+using HttpRequest = std::shared_ptr<HttpBase::Request>;
 
 class IOContainer {
  protected:
@@ -71,7 +64,7 @@ class IOContainer {
     /// \brief Adds from map new headers values, if some key exists, value will overwrited
     /// \see addHeader(const KeyValue&)
     /// \param mmp
-    void setHeaders(SimpleWeb::CaseInsensitiveMultimap &mmp);
+    void setHeaders(CaseInsensitiveMultimap &mmp);
 
     /// \brief Adds from map new headers values, if some key exists, value will overwrited
     /// \see addHeader(const KeyValue&)
@@ -168,7 +161,7 @@ class Request : public IOContainer {
     explicit Request(const std::string &url);
     Request(const std::string &url, Method method);
     explicit Request(std::string &&url);
-    explicit Request(const WebHttpRequest &sRequest);
+    explicit Request(const HttpRequest &sRequest);
 
     /// \brief parse query string to vector<KeyValue>. String must not contains hostname or protocol, only query string.
     /// Example: ?id=1&param=2&someKey=3

@@ -15,7 +15,7 @@
 #include <string>
 
 namespace wss {
-namespace helpers {
+namespace utils {
 
 /// \brief Encode string to base 64 string
 /// \param len input string length

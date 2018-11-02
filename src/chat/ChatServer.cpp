@@ -11,23 +11,25 @@
 #include "../helpers/helpers.h"
 #include "../base/Settings.hpp"
 
-#ifdef USE_SECURE_SERVER
+
 wss::ChatServer::ChatServer(
     const std::string &crtPath, const std::string &privKeyPath,
     const std::string &host, unsigned short port, const std::string &regexPath) :
     m_useSSL(true),
     m_maxMessageSize(10 * 1024 * 1024),
-    m_server(std::make_unique<WsServer>(crtPath, privKeyPath)),
+    m_server(std::make_unique<WssServer>(crtPath, privKeyPath)),
     m_connectionStorage(std::make_unique<wss::ConnectionStorage>()) {
-    m_server->config.port = port;
-    m_server->config.threadPoolSize = std::thread::hardware_concurrency();
-    m_server->config.maxMessageSize = m_maxMessageSize;
+
+
+    m_server->getConfig().port = port;
+    m_server->getConfig().threadPoolSize = std::thread::hardware_concurrency();
+    m_server->getConfig().maxMessageSize = m_maxMessageSize;
 
     if (host.length() >= 7) {
-        m_server->config.address = host;
+        m_server->getConfig().address = host;
     };
 
-    m_endpoint = &m_server->endpoint[regexPath];
+    m_endpoint = &m_server->getEndpoint()[regexPath];
     m_endpoint->onMessage = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
       if (messagePtr->fin_rsv_opcode == FLAG_PONG) {
           onPong(connectionPtr, messagePtr);
@@ -38,7 +40,7 @@ wss::ChatServer::ChatServer(
 
     m_endpoint->onOpen = std::bind(&wss::ChatServer::onConnected, this, std::placeholders::_1);
     m_endpoint->onError = [](WsConnectionPtr conn, const boost::system::error_code &ec) {
-      L_DEBUG_F("Server::Connection::Error", "Connection error[%lu]: %s %s",
+      L_DEBUG_F("Server::Connection::Info", "Connection error[%lu]: %s %s",
                conn->getId(),
                ec.category().name(),
                ec.message().c_str()
@@ -51,21 +53,21 @@ wss::ChatServer::ChatServer(
                                     std::placeholders::_3);
 
 }
-#else
+
 wss::ChatServer::ChatServer(const std::string &host, unsigned short port, const std::string &regexPath) :
     m_useSSL(false),
     m_maxMessageSize(10 * 1024 * 1024),
     m_server(std::make_unique<WsServer>()),
     m_connectionStorage(std::make_unique<wss::ConnectionStorage>()) {
-    m_server->config.port = port;
-    m_server->config.threadPoolSize = std::thread::hardware_concurrency();
-    m_server->config.maxMessageSize = m_maxMessageSize;
+    m_server->getConfig().port = port;
+    m_server->getConfig().threadPoolSize = std::thread::hardware_concurrency();
+    m_server->getConfig().maxMessageSize = m_maxMessageSize;
 
     if (host.length() == 15) {
-        m_server->config.address = host;
+        m_server->getConfig().address = host;
     };
 
-    m_endpoint = &m_server->endpoint[regexPath];
+    m_endpoint = &m_server->getEndpoint()[regexPath];
     m_endpoint->onMessage = [this](WsConnectionPtr connectionPtr, WsMessagePtr messagePtr) {
       if (messagePtr->fin_rsv_opcode == FLAG_PONG) {
           onPong(connectionPtr, messagePtr);
@@ -76,7 +78,7 @@ wss::ChatServer::ChatServer(const std::string &host, unsigned short port, const 
 
     m_endpoint->onOpen = std::bind(&wss::ChatServer::onConnected, this, std::placeholders::_1);
     m_endpoint->onError = [](WsConnectionPtr, const boost::system::error_code &ec) {
-        L_DEBUG_F("Server::Connection::Error", "Connection error: %s %s",
+        L_DEBUG_F("Server::Connection::Info", "Connection error: %s %s",
                  ec.category().name(),
                  ec.message().c_str()
         )
@@ -88,7 +90,6 @@ wss::ChatServer::ChatServer(const std::string &host, unsigned short port, const 
                                     std::placeholders::_3);
 
 }
-#endif
 
 wss::ChatServer::~ChatServer() {
     stopService();
@@ -96,7 +97,7 @@ wss::ChatServer::~ChatServer() {
 }
 
 void wss::ChatServer::setThreadPoolSize(std::size_t size) {
-    m_server->config.threadPoolSize = size;
+    m_server->getConfig().threadPoolSize = size;
 }
 void wss::ChatServer::joinThreads() {
     if (m_workerThread && m_workerThread->joinable()) {
@@ -117,11 +118,12 @@ void wss::ChatServer::detachThreads() {
 }
 void wss::ChatServer::runService() {
     std::string hostname = "[any:address]";
-    if (not m_server->config.address.empty()) {
-        hostname = m_server->config.address;
+    if (not m_server->getConfig().address.empty()) {
+        hostname = m_server->getConfig().address;
     }
     const char *proto = m_useSSL ? "wss" : "ws";
-    L_INFO_F("WebSocket Server", "Started at %s://%s:%d", proto, hostname.c_str(), m_server->config.port);
+    L_INFO_F("WebSocket Server", "Started at %s://%s:%d", proto, hostname.c_str(),
+             m_server->getConfig().port);
     m_workerThread = std::make_unique<boost::thread>([this] {
       this->m_server->start();
     });
@@ -196,7 +198,7 @@ void wss::ChatServer::onMessage(WsConnectionPtr &connection, WsMessagePtr messag
             if (buffered.length() > m_maxMessageSize) {
                 connection->sendClose(STATUS_MESSAGE_TOO_BIG,
                                       "Message to big. Maximum size: "
-                                          + wss::helpers::humanReadableBytes(m_maxMessageSize));
+                                          + wss::utils::humanReadableBytes(m_maxMessageSize));
                 return;
             }
 
@@ -273,30 +275,29 @@ void wss::ChatServer::onConnected(WsConnectionPtr connection) {
         return;
     }
 
-    {
-        std::lock_guard<std::recursive_mutex> conLock(m_connectionMutex);
-        m_connectionStorage->add(id, connection);
-    }
-
-    getStat(id)->addConnection();
-
-    L_DEBUG_F("Chat::Connect", "User %lu connected (%s:%d) on thread %lu",
-              id,
-              connection->remoteEndpointAddress().c_str(),
-              connection->remoteEndpointPort(),
-              getThreadName()
-    );
-
-    redeliverMessagesTo(id);
-
-    boost::thread authThread([this, connection, request] {
+    boost::thread authThread([this, id, connection, request] {
       bool authorized = m_auth->validateAuth(request);
 
       if (!authorized) {
           connection->sendClose(STATUS_UNAUTHORIZED, "Unauthorized");
-          m_connectionStorage->remove(connection);
           return;
       }
+
+      {
+          std::lock_guard<std::recursive_mutex> conLock(m_connectionMutex);
+          m_connectionStorage->add(id, connection);
+      }
+
+      getStat(id)->addConnection();
+
+      L_DEBUG_F("Chat::Connect", "User %lu connected (%s:%d) on thread %lu",
+                id,
+                connection->remoteEndpointAddress().c_str(),
+                connection->remoteEndpointPort(),
+                getThreadName()
+      );
+
+      redeliverMessagesTo(id);
     });
     authThread.detach();
 }
@@ -456,7 +457,7 @@ void wss::ChatServer::sendTo(user_id_t recipient, const wss::MessagePayload &pay
 
           // connection->send is an asynchronous function
           conn->send(sendStream, [this, uid, payload, cid]
-              (const SimpleWeb::ErrorCode &errorCode, std::size_t ts) {
+              (const wss::server::websocket::ErrorCode &errorCode, std::size_t ts) {
             if (errorCode) {
                 // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for error code meanings
                 Logger::get().debug(__FILE__, __LINE__, "Chat::Send::Error",
@@ -508,7 +509,7 @@ std::size_t wss::ChatServer::getThreadName() {
 }
 void wss::ChatServer::setMessageSizeLimit(size_t bytes) {
     m_maxMessageSize = bytes;
-    m_server->config.maxMessageSize = m_maxMessageSize;
+    m_server->getConfig().maxMessageSize = m_maxMessageSize;
 }
 void wss::ChatServer::setAuth(const nlohmann::json &config) {
     m_auth = wss::auth::registry::createFromConfig(config);

@@ -7,6 +7,7 @@
     "tmpDir": "/tmp",
     "timezone": "Europe/Moscow",
     "secure": {
+      "enabled": false,
       "crtPath": "<insert certificate path here>",
       "keyPath": "<insert private key path here>"
     },
@@ -24,6 +25,11 @@
     "enabled": true,
     "address": "*",
     "port": 8092,
+    "secure": {
+      "enabled": false,
+      "crtPath": "../certs/server.crt",
+      "keyPath": "../certs/server.key"
+    },
     "auth": {
       "type": "noauth",
       "name": "X-Ws-Token",

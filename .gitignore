@@ -2,10 +2,6 @@
 .idea/
 bin/local.config.json
 cmake-build-*/
-*.a
-*.dylib
-*.dll
-*.so
 *.cpp.o
 .mainframer
 *.bin

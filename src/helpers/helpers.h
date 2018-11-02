@@ -26,7 +26,7 @@
 #include <toolboxpp.h>
 
 namespace wss {
-namespace helpers {
+namespace utils {
 
 namespace cal = boost::gregorian;
 namespace pt = boost::posix_time;

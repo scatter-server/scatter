@@ -8,24 +8,24 @@
 
 #include "RestServer.h"
 
-#ifdef USE_SECURE_SERVER
 wss::RestServer::RestServer(
     const std::string &crtPath, const std::string &keyPath,
-    const std::string &host, uint16_t port) : m_server(crtPath, keyPath) {
-    m_server.config.port = port;
-    if (host.length() > 1) {
-        m_server.config.address = host;
-    }
-}
-#else
-wss::RestServer::RestServer(const std::string &host, unsigned short port) {
-    m_server.config.port = port;
-    if (host.length() > 1) {
-        m_server.config.address = host;
-    }
-}
+    const std::string &host, uint16_t port) :
+    m_server(std::make_unique<HttpsServer>(crtPath, keyPath)) {
 
-#endif
+    m_server->config.port = port;
+    if (host.length() > 1) {
+        m_server->config.address = host;
+    }
+}
+wss::RestServer::RestServer(const std::string &host, unsigned short port) :
+    m_server(std::make_unique<HttpServer>()) {
+
+    m_server->config.port = port;
+    if (host.length() > 1) {
+        m_server->config.address = host;
+    }
+}
 
 wss::RestServer::~RestServer() {
     stopService();
@@ -36,28 +36,28 @@ void wss::RestServer::createEndpoints() {
 }
 
 void wss::RestServer::cleanupEndpoints() {
-    m_server.resource.clear();
+    m_server->resource.clear();
 }
 
 void wss::RestServer::setAddress(const std::string &address) {
     if (address.length() > 1) {
-        m_server.config.address = address;
+        m_server->config.address = address;
     }
 }
 void wss::RestServer::setAddress(std::string &&address) {
     if (address.length() > 1) {
-        m_server.config.address = std::move(address);
+        m_server->config.address = std::move(address);
     }
 }
 void wss::RestServer::setPort(uint16_t portNumber) {
-    m_server.config.port = portNumber;
+    m_server->config.port = portNumber;
 }
 
 void wss::RestServer::setResponseStatus(wss::HttpResponse &response,
                                         HttpStatus status,
                                         std::size_t contentLength) {
 
-    const std::string &sCode = SimpleWeb::status_code(status);
+    const std::string &sCode = wss::server::status_code(status);
     std::stringstream ss;
     ss << contentLength;
 
@@ -133,13 +133,15 @@ void wss::RestServer::runService() {
 
     m_workerThread = std::make_unique<std::thread>([this]() {
       // Start server
-      this->m_server.start();
+      m_server->start();
     });
-    const char *hostname = m_server.config.address.empty() ? "[any:address]" : m_server.config.address.c_str();
-    L_INFO_F("HttpServer", "Started at http://%s:%d", hostname, m_server.config.port);
+
+    const char *hostname = m_server->config.address.empty() ? "[any:address]" : m_server->config.address.c_str();
+    L_INFO_F("HttpServer", "Started at http://%s:%d", hostname, m_server->config.port);
+
 }
 void wss::RestServer::stopService() {
-    this->m_server.stop();
+    m_server->stop();
     cleanupEndpoints();
 }
 

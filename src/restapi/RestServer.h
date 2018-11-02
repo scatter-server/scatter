@@ -16,37 +16,36 @@
 #include <memory>
 #include <algorithm>
 #include <fmt/format.h>
+#include "../base/BaseServer.h"
 #include "../wsserver_core.h"
-#include "http/server_http.hpp"
-#include "http/server_https.hpp"
+#include "../base/http/HttpServer.h"
 #include "../chat/ChatServer.h"
 #include "../base/StandaloneService.h"
 #include "../base/auth/Auth.h"
 #include "../helpers/helpers.h"
+#include "../base/Settings.hpp"
 
 #define ACTION_DEFINE(name) void name(HttpResponse response, HttpRequest request)
 #define ACTION_BIND(cName, mName) std::bind(&cName::mName, this, std::placeholders::_1, std::placeholders::_2)
 
 namespace wss {
 
-#ifdef USE_SECURE_SERVER
-using HttpServer = SimpleWeb::Server<SimpleWeb::HTTPS>;
-#else
-using HttpServer = SimpleWeb::Server<SimpleWeb::HTTP>;
-#endif
+using namespace wss::server;
 
-using HttpStatus = SimpleWeb::StatusCode;
-using HttpResponse = std::shared_ptr<HttpServer::Response>;
-using HttpRequest = std::shared_ptr<HttpServer::Request>;
+using HttpBase = wss::server::http::ServerBase;
+using HttpsServer = wss::server::http::ServerSecure;
+using HttpServer = wss::server::http::Server;
+using HttpStatus = wss::server::StatusCode;
+using HttpResponse = std::shared_ptr<HttpBase::Response>;
+using HttpsResponse = std::shared_ptr<HttpBase::Response>;
+using HttpRequest = std::shared_ptr<HttpBase::Request>;
+using HttpsRequest = std::shared_ptr<HttpBase::Request>;
 
 class RestServer : public virtual StandaloneService {
  public:
-    #ifdef USE_SECURE_SERVER
     RestServer(const std::string &crtPath, const std::string &keyPath,
                const std::string &host, uint16_t port);
-    #else
     RestServer(const std::string &host, unsigned short port);
-    #endif
     virtual ~RestServer();
 
     void joinThreads() override;
@@ -63,7 +62,8 @@ class RestServer : public virtual StandaloneService {
     RestServer &addEndpoint(const std::string &path, const std::string &methodName, ResponseCallback &&callback) {
         const std::string endpoint = "^/" + path + "$";
         L_INFO_F("HttpServer", "Endpoint: %s /%s", methodName.c_str(), path.c_str());
-        m_server.resource[endpoint][toolboxpp::strings::toUpper(methodName)] =
+
+        m_server->resource[endpoint][toolboxpp::strings::toUpper(methodName)] =
             [this, callback](wss::HttpResponse response, wss::HttpRequest request) {
               const wss::web::Request verifyRequest(request);
               response->close_connection_after_response = true;
@@ -81,7 +81,7 @@ class RestServer : public virtual StandaloneService {
                                                      {"HTTP/1.1",         "401 Unauthorized"},
                                                      {"Server",           "WS Rest Server"},
                                                      {"Connection",       "keep-alive"},
-                                                     {"Content-Length",   wss::helpers::toString(out.length())},
+                                                     {"Content-Length",   wss::utils::toString(out.length())},
                                                      {"WWW-Authenticate", "Basic realm=\"Come to the dark side, we have cookies!\""},
                                                  });
 
@@ -95,6 +95,7 @@ class RestServer : public virtual StandaloneService {
               }
               callback(response, request);
             };
+
         return *this;
     }
 
@@ -117,7 +118,7 @@ class RestServer : public virtual StandaloneService {
     std::string buildResponse(const std::vector<std::pair<std::string, std::string>> &parts);
  private:
     std::unique_ptr<Auth> m_auth;
-    HttpServer m_server;
+    std::unique_ptr<HttpBase> m_server;
     std::unique_ptr<std::thread> m_workerThread;
 
     void cleanupEndpoints();

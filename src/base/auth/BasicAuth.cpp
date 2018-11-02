@@ -30,7 +30,7 @@ std::string wss::BasicAuth::getLocalValue() const {
     std::stringstream ss;
     ss << m_username << ":" << password;
     const std::string glued = ss.str();
-    const std::string encoded = wss::helpers::base64_encode(
+    const std::string encoded = wss::utils::base64_encode(
         reinterpret_cast<const unsigned char *>(glued.c_str()),
         static_cast<unsigned int>(glued.length())
     );
