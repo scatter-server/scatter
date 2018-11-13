@@ -27,8 +27,8 @@
     "port": 8092,
     "secure": {
       "enabled": false,
-      "crtPath": "../certs/server.crt",
-      "keyPath": "../certs/server.key"
+      "crtPath": "<insert certificate path here>",
+      "keyPath": "<insert private key path here>"
     },
     "auth": {
       "type": "noauth",

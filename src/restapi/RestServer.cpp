@@ -11,7 +11,8 @@
 wss::RestServer::RestServer(
     const std::string &crtPath, const std::string &keyPath,
     const std::string &host, uint16_t port) :
-    m_server(std::make_unique<HttpsServer>(crtPath, keyPath)) {
+    m_server(std::make_unique<HttpsServer>(crtPath, keyPath)),
+    m_useSSL(true) {
 
     m_server->config.port = port;
     if (host.length() > 1) {
@@ -19,7 +20,8 @@ wss::RestServer::RestServer(
     }
 }
 wss::RestServer::RestServer(const std::string &host, unsigned short port) :
-    m_server(std::make_unique<HttpServer>()) {
+    m_server(std::make_unique<HttpServer>()),
+    m_useSSL(false) {
 
     m_server->config.port = port;
     if (host.length() > 1) {
@@ -136,8 +138,9 @@ void wss::RestServer::runService() {
       m_server->start();
     });
 
-    const char *hostname = m_server->config.address.empty() ? "[any:address]" : m_server->config.address.c_str();
-    L_INFO_F("HttpServer", "Started at http://%s:%d", hostname, m_server->config.port);
+    const char *proto = m_useSSL ? "https" : "http";
+    const char *hostname = m_server->config.address.empty() ? "0.0.0.0" : m_server->config.address.c_str();
+    L_INFO_F("HttpServer", "Started at %s://%s:%d", proto, hostname, m_server->config.port);
 
 }
 void wss::RestServer::stopService() {

@@ -120,6 +120,7 @@ class RestServer : public virtual StandaloneService {
     std::unique_ptr<Auth> m_auth;
     std::unique_ptr<HttpBase> m_server;
     std::unique_ptr<std::thread> m_workerThread;
+    bool m_useSSL;
 
     void cleanupEndpoints();
 };

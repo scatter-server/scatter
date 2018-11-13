@@ -117,7 +117,7 @@ void wss::ChatServer::detachThreads() {
     }
 }
 void wss::ChatServer::runService() {
-    std::string hostname = "[any:address]";
+    std::string hostname = "0.0.0.0";
     if (not m_server->getConfig().address.empty()) {
         hostname = m_server->getConfig().address;
     }
