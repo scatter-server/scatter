@@ -15,22 +15,24 @@
 
 wss::event::EventNotifier::EventNotifier(std::shared_ptr<wss::ChatServer> &ws) :
     m_keepGoing(true),
+    m_readCondition(),
     m_ws(ws),
     m_enableRetry(wss::Settings::get().event.enableRetry),
     m_maxParallelWorkers(wss::Settings::get().event.maxParallelWorkers),
     m_maxRetries(3),
-    m_intervalSeconds(10),
+    m_retryIntervalSeconds(10),
     m_ioService(),
     m_threadGroup(),
     m_work(m_ioService) { }
 
 wss::event::EventNotifier::~EventNotifier() {
     m_keepGoing = false;
+    m_readCondition.notify_one();
     onStop();
 }
 
 void wss::event::EventNotifier::setRetryIntervalSeconds(int seconds) {
-    m_intervalSeconds = seconds;
+    m_retryIntervalSeconds = seconds;
 }
 
 std::shared_ptr<wss::event::Target> wss::event::EventNotifier::createTargetByConfig(const nlohmann::json &json) {
@@ -130,17 +132,18 @@ void wss::event::EventNotifier::onStop() {
 }
 
 void wss::event::EventNotifier::handleMessageQueue() {
+    std::unique_lock<std::mutex> lock(m_readMutex);
     const auto &ready = [this](SendStatus status) {
       if (!m_enableRetry) return true;
 
       const long diff = abs(std::time(nullptr) - status.sendTime);
-      return diff >= m_intervalSeconds;
+      return diff >= m_retryIntervalSeconds;
     };
 
     while (m_keepGoing) {
         // @TODO play around this time, check performance and cpu consumption
-        // probably we should use notifiers, calculate data additions or average send times, instead of just checking every .5 seconds
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
+
+        m_readCondition.wait_for(lock, std::chrono::seconds(m_retryIntervalSeconds));
 
         std::vector<SendStatus> bulk;
 
@@ -179,6 +182,8 @@ void wss::event::EventNotifier::handleMessageQueue() {
                                                   status.target->getType(),
                                                   status.sendResult));
 
+                  m_readCondition.notify_one();
+
                   // if tries < maxRetries
                   if (status.sendTries < m_maxRetries) {
                       status.sendTries++;
@@ -213,6 +218,7 @@ void wss::event::EventNotifier::handleMessageQueue() {
 void wss::event::EventNotifier::addMessage(wss::MessagePayload payload) {
     for (auto &target: m_targets) {
         m_sendQueue.enqueue(SendStatus(target.second, payload, 0L, 1));
+        m_readCondition.notify_one();
     }
 }
 
