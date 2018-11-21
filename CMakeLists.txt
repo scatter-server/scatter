@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.0)
-project(wsserver VERSION 1.2.0)
+project(wsserver
+        VERSION 1.2.0
+        DESCRIPTION "WebSocket Open Messaging Server"
+        HOMEPAGE_URL "https://github.com/wsserver"
+        LANGUAGES CXX
+        )
 set(CMAKE_CXX_STANDARD 14)
 set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(PROJECT_LIBS_DIR ${PROJECT_ROOT}/libs)
@@ -25,17 +30,17 @@ set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -Wno-parentheses ${CMAKE_CXX_FLAGS
 if (NOT APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	set(CMAKE_CXX_FLAGS "-stdlib=libc++ ${CMAKE_CXX_FLAGS} ")
 
-# apple clang
+	# apple clang
 elseif (APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
 	set(CMAKE_CXX_FLAGS "-stdlib=libc++ ${CMAKE_CXX_FLAGS}")
 	set(CMAKE_CXX_LINKER_FLAGS "${CMAKE_CXX_LINKER_FLAGS} -std=c++14 -stdlib=libc++ -undefined dynamic_lookup")
 
-# MS compiler
+	# MS compiler
 elseif (MSVC)
 	message(STATUS "Build for Windows")
 	add_compile_options(/W1)
 
-#gnu only
+	#gnu only
 else ()
 	set(CMAKE_CXX_FLAGS "-rdynamic ${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++")
 	set(CMAKE_CXX_LINKER_FLAGS "")
@@ -87,6 +92,14 @@ include(cmakes/dependencies.cmake)
 
 add_executable(${PROJECT_NAME} src/main.cpp ${SERVER_EXEC_SRCS})
 
+# required for openssl, it has undefined symbol `dlclose`
+find_library(DL_LIBRARIES NAMES dl)
+if (NOT DL_LIBRARIES)
+	message(FATAL_ERROR "Library libdl not found!")
+endif ()
+message(STATUS "\t- dl (${DL_LIBRARIES})")
+target_link_libraries(${PROJECT_NAME} ${DL_LIBRARIES})
+
 linkdeps(${PROJECT_NAME} all)
 if (WITH_BENCHMARK)
 	add_executable(wssbench
@@ -94,7 +107,7 @@ if (WITH_BENCHMARK)
 	               ${COMMON_LIBS_SRC}
 	               ${WS_COMMON_SRC} ${WS_CLIENT_SRC})
 
-		target_include_directories(wssbench PUBLIC ${PROJECT_LIBS_DIR}/ws)
+	target_include_directories(wssbench PUBLIC ${PROJECT_LIBS_DIR}/ws)
 	linkdeps(wssbench all)
 endif ()
 
@@ -103,7 +116,7 @@ if (WITH_TEST)
 endif ()
 
 
-if ($ENV{USER} STREQUAL "root")
+if ("$ENV{USER}" STREQUAL "root")
 	include(cmakes/install.cmake)
 else ()
 	message(STATUS "INSTALL:

@@ -1,0 +1,27 @@
+# vim:set ft=dockerfile:
+
+FROM debian:stretch-slim
+RUN apt-get -y update;
+
+RUN apt-get -y install git \
+    wget make curl apt-utils \
+    build-essential \
+    libboost1.62-all-dev \
+    libcurl4-openssl-dev;
+
+COPY . /server
+ENV USER root
+
+WORKDIR /server
+RUN mkdir -p /server/_build
+RUN ls -lsah /server/_build
+WORKDIR /server/_build
+RUN sh /server/packaging/init_build.sh
+
+# workaround for date library, it won't work from first configuring
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_OS=debian-stretch
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_OS=debian-stretch
+RUN make
+
+RUN ls -lsah /server/_build
+RUN make package

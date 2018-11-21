@@ -7,7 +7,12 @@ set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_VENDOR "Eduard Maximovich")
 set(CPACK_PACKAGE_CONTACT "edward.vstock@gmail.com")
-set(CPACK_SYSTEM_NAME "linux-${PROJECT_ARCH}")
+if (NOT "${BUILD_OS}" STREQUAL "")
+	set(CPACK_SYSTEM_NAME "linux-${BUILD_OS}-${PROJECT_ARCH}")
+else ()
+	set(CPACK_SYSTEM_NAME "linux-${PROJECT_ARCH}")
+endif ()
+
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "WebSocket message server")
 
 install(

@@ -15,18 +15,11 @@ endif ()
 add_subdirectory(${PROJECT_LIBS_DIR}/fmt)
 
 
-# OpenSSL (libssl)
-
-message(STATUS "System: ${CMAKE_SYSTEM_NAME}")
+# OpenSSL (libssl/libcrypto)
 string(TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_LOWER)
-message(STATUS "CPU: ${CMAKE_SYSTEM_PROCESSOR}")
 set(OPENSSL_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/${SYSTEM_LOWER}_${CMAKE_SYSTEM_PROCESSOR}")
-
-#if (APPLE AND NOT OPENSSL_ROOT_DIR)
-#	set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
-#endif ()
-find_package(OpenSSL 1.0.0 REQUIRED)
-
+set(OPENSSL_USE_STATIC_LIBS ON)
+find_package(OpenSSL 1.1.1 REQUIRED)
 
 
 
@@ -56,6 +49,7 @@ set(USE_SYSTEM_TZ_DB ON CACHE BOOL "Enable system timezone DB" FORCE)
 set_target_properties(
 	tz PROPERTIES
 	USE_SYSTEM_TZ_DB On
+	BUILD_SHARED_LIBS Off
 )
 
 
@@ -102,7 +96,8 @@ function (linkdeps DEPS_PROJECT)
 
 	# JSON
 	target_link_libraries(${DEPS_PROJECT} nlohmann_json)
-	target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/json/src)
+	target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/json/include/nlohmann)
+	target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/json/include)
 	message(STATUS "\t- JSON")
 
 	# CURL
