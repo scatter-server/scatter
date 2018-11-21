@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 project(wsserver
-        VERSION 1.2.0
+        VERSION 2.0.0
         DESCRIPTION "WebSocket Open Messaging Server"
         HOMEPAGE_URL "https://github.com/wsserver"
         LANGUAGES CXX

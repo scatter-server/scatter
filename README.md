@@ -67,7 +67,7 @@ rpm -i wsserver.rpm
 	* Boost 1.64 requires CMake 3.8 or newer
 	* Boost 1.65 and 1.65.1 require CMake 3.9.3 or newer
 	* Boost.Asio
-* OpenSSL
+* libcrypto/libssl (OpenSSL) 1.1.1+ (bundled for x86-64 linux and macOS)
 * libcurl-ssl-dev
 * ToolBox++ (https://github.com/edwardstock/toolboxpp) 
  
