@@ -38,6 +38,7 @@ struct Secure {
 };
 
 struct Server {
+  /// @todo create simple field
   struct Watchdog {
     bool enabled = false;
   };

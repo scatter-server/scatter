@@ -108,7 +108,7 @@ tar -xzf boost_1_66_0.tar.gz && cd boost_1_66_0
 ```
 
 
-### Prepare Debian 9 (stretch)
+### Prepare Debian 9/10 (stretch or buster)
 ```bash
 apt-get install libboost1.62-all-dev libcurl4-openssl-dev libssl-dev
 ```
