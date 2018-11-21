@@ -132,7 +132,9 @@ class SocketServerBase : public BaseServer {
             wss::server::websocket::SendCallback callback;
         };
 
-        Connection(std::shared_ptr<ScopeRunner> handler_runner, long timeout_idle, asio::io_context &ioContext) noexcept
+        Connection(std::shared_ptr<ScopeRunner> handler_runner,
+                   long timeout_idle,
+                   wss::io_context_service &ioContext) noexcept
             : handlerRunner(std::move(handler_runner)),
               socket(std::make_unique<SocketLayerWrapper>(ioContext)),
                      closed(false),
@@ -142,7 +144,7 @@ class SocketServerBase : public BaseServer {
 
         Connection(std::shared_ptr<ScopeRunner> handler_runner,
                    long timeout_idle,
-                   asio::io_context &ioContext,
+                   wss::io_context_service &ioContext,
                    asio::ssl::context &sslContext) noexcept:
             handlerRunner(std::move(handler_runner)),
             socket(std::make_unique<SocketLayerWrapper>(ioContext, sslContext)),

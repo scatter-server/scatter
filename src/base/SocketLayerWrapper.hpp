@@ -10,13 +10,31 @@
 #ifndef WSSERVER_SOCKETLAYERWRAPPER_HPP
 #define WSSERVER_SOCKETLAYERWRAPPER_HPP
 
+#include <boost/version.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl/stream.hpp>
+#include <boost/asio/ssl/context.hpp>
 #include <functional>
 #include <memory>
 #include <vector>
 
 using namespace boost;
+using namespace boost::asio;
+
+#if (BOOST_VERSION >= 106600)
+#include <boost/asio/io_context.hpp>
+
+namespace wss {
+using basic_socket_name = asio::basic_socket<asio::ip::tcp>;
+using io_context_service = asio::io_context;
+}
+#else
+#include <boost/asio/io_service.hpp>
+namespace wss {
+using basic_socket_name = asio::basic_socket<asio::ip::tcp, asio::stream_socket_service<asio::ip::tcp>>;
+using io_context_service = asio::io_service;
+}
+#endif
 
 class SocketLayerWrapper {
  private:
@@ -26,6 +44,7 @@ class SocketLayerWrapper {
  public:
     template<typename ...Args>
     SocketLayerWrapper(Args &&...args) {
+        asio::io_service srv;
         if (sizeof...(args) == 1) {
             m_insecure = new asio::ip::tcp::socket(std::forward<Args>(args)...);
             m_secure = nullptr;
@@ -35,12 +54,12 @@ class SocketLayerWrapper {
         }
 
     }
-    SocketLayerWrapper(boost::asio::io_context &ioContext) {
+    SocketLayerWrapper(wss::io_context_service &ioContext) {
         m_insecure = new asio::ip::tcp::socket(ioContext);
         m_secure = nullptr;
     }
 
-    SocketLayerWrapper(boost::asio::io_context &ioContext, asio::ssl::context &sslContext) {
+    SocketLayerWrapper(wss::io_context_service &ioContext, asio::ssl::context &sslContext) {
         m_secure = new asio::ssl::stream<asio::ip::tcp::socket>(ioContext, sslContext);
         m_insecure = nullptr;
     }
@@ -105,7 +124,7 @@ class SocketLayerWrapper {
         }
     }
 
-    const asio::basic_socket<asio::ip::tcp> &lowest_layer() const {
+    const wss::basic_socket_name &lowest_layer() const {
         if (isSecure()) {
             return m_secure->lowest_layer();
         }
@@ -113,7 +132,7 @@ class SocketLayerWrapper {
         return m_insecure->lowest_layer();
     }
 
-    asio::basic_socket<asio::ip::tcp> &lowest_layer() {
+    wss::basic_socket_name &lowest_layer() {
         if (isSecure()) {
             return m_secure->lowest_layer();
         }
@@ -121,7 +140,7 @@ class SocketLayerWrapper {
         return m_insecure->lowest_layer();
     }
 
-    const asio::io_context &get_io_service() const {
+    const wss::io_context_service &get_io_service() const {
         if (isSecure()) {
             return m_secure->get_io_service();
         }
@@ -129,7 +148,7 @@ class SocketLayerWrapper {
         return m_insecure->get_io_service();
     }
 
-    asio::io_context &get_io_service() {
+    wss::io_context_service &get_io_service() {
         if (isSecure()) {
             return m_secure->get_io_service();
         }
