@@ -1,5 +1,5 @@
 /**
- * wsserver
+ * scatter
  * Auth.cpp
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>

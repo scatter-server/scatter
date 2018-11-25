@@ -3,8 +3,8 @@
 PLATFORMS=(stretch jessie)
 PLATFORM_PACKAGE=(deb deb)
 
-VM_PREFIX="wsserver_build_"
-VM_ID_PREFIX="wsserver_"
+VM_PREFIX="scatter_build_"
+VM_ID_PREFIX="scatter_"
 
 #deb: jessie wheezy
 #rpm: centos6 centos7
@@ -24,7 +24,7 @@ do
     mkdir -p ${outputDir}
 
     echo " -- Build for ${platform}"
-    docker build --rm -t wsserver_${platform}:${index} -f ${PWD}/packaging/build_${platform}.docker ${PWD}
+    docker build --rm -t scatter_${platform}:${index} -f ${PWD}/packaging/build_${platform}.docker ${PWD}
     containerId=$(docker run --name ${vm_name} -id ${vm_id}:${index})
     builtPackage=$(docker exec ${vm_name} ls -lsa ${buildRootPath} | grep ${pkg} | awk '{print $10}')
 

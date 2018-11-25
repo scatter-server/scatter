@@ -1,5 +1,5 @@
 /*!
- * wsserver.
+ * scatter.
  * SocketLayerWrapper.hpp
  *
  * \date 2018
@@ -7,8 +7,8 @@
  * \link   https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_SOCKETLAYERWRAPPER_HPP
-#define WSSERVER_SOCKETLAYERWRAPPER_HPP
+#ifndef SCATTER_SOCKETLAYERWRAPPER_HPP
+#define SCATTER_SOCKETLAYERWRAPPER_HPP
 
 #include <boost/version.hpp>
 #include <boost/asio.hpp>
@@ -172,4 +172,4 @@ class SocketLayerWrapper {
 
 };
 
-#endif //WSSERVER_SOCKETLAYERWRAPPER_HPP
+#endif //SCATTER_SOCKETLAYERWRAPPER_HPP

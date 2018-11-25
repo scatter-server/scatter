@@ -1,12 +1,12 @@
 /*! 
- * wsserver. 2018
+ * scatter. 2018
  * 
  * \author Eduard Maximovich <edward.vstock@gmail.com>
  * \link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_EXECAUTH_H
-#define WSSERVER_EXECAUTH_H
+#ifndef SCATTER_EXECAUTH_H
+#define SCATTER_EXECAUTH_H
 
 #include <unordered_map>
 #include "Auth.h"
@@ -57,4 +57,4 @@ class RemoteAuth : public Auth {
 
 }
 
-#endif //WSSERVER_EXECAUTH_H
+#endif //SCATTER_EXECAUTH_H

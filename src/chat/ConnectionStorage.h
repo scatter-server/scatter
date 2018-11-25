@@ -1,13 +1,13 @@
 /**
- * wsserver
+ * scatter
  * ConnectionStorage.h
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_CONNECTIONSTORAGE_H
-#define WSSERVER_CONNECTIONSTORAGE_H
+#ifndef SCATTER_CONNECTIONSTORAGE_H
+#define SCATTER_CONNECTIONSTORAGE_H
 
 #include <mutex>
 #include <functional>
@@ -16,7 +16,7 @@
 #include <string>
 #include <atomic>
 #include <toolboxpp.h>
-#include "../wsserver_core.h"
+#include "../scatter_core.h"
 
 using toolboxpp::Logger;
 
@@ -125,4 +125,4 @@ class ConnectionStorage {
 
 }
 
-#endif //WSSERVER_CONNECTIONSTORAGE_H
+#endif //SCATTER_CONNECTIONSTORAGE_H

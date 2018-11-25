@@ -1,5 +1,5 @@
 /**
- * wsserver_standalone
+ * scatter_standalone
  * HttpClient.cpp
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>

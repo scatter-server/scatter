@@ -1,13 +1,13 @@
 /**
- * wsserver
+ * scatter
  * DateHelper.hpp
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_DATEHELPER_HPP
-#define WSSERVER_DATEHELPER_HPP
+#ifndef SCATTER_DATEHELPER_HPP
+#define SCATTER_DATEHELPER_HPP
 
 #include <string>
 #include <ctime>
@@ -122,4 +122,4 @@ const std::string toString(T n) {
 }
 }
 
-#endif //WSSERVER_DATEHELPER_HPP
+#endif //SCATTER_DATEHELPER_HPP

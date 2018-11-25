@@ -1,12 +1,12 @@
 /*! 
- * wsserver. 2018
+ * scatter. 2018
  * 
  * \author Eduard Maximovich <edward.vstock@gmail.com>
  * \link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_ALLOFAUTH_H
-#define WSSERVER_ALLOFAUTH_H
+#ifndef SCATTER_ALLOFAUTH_H
+#define SCATTER_ALLOFAUTH_H
 
 #include "Auth.h"
 #include "OneOfAuth.h"
@@ -24,4 +24,4 @@ class AllOfAuth : public OneOfAuth {
 
 }
 
-#endif //WSSERVER_ALLOFAUTH_H
+#endif //SCATTER_ALLOFAUTH_H

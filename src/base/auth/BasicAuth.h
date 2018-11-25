@@ -1,12 +1,12 @@
 /*! 
- * wsserver. 2018
+ * scatter. 2018
  * 
  * \author Eduard Maximovich <edward.vstock@gmail.com>
  * \link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_BASICAUTH_H
-#define WSSERVER_BASICAUTH_H
+#ifndef SCATTER_BASICAUTH_H
+#define SCATTER_BASICAUTH_H
 
 #include "Auth.h"
 
@@ -45,4 +45,4 @@ class BasicAuth : public Auth {
 
 }
 
-#endif //WSSERVER_BASICAUTH_H
+#endif //SCATTER_BASICAUTH_H

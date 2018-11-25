@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
-project(wsserver
+project(scatter
         VERSION 2.0.0
-        DESCRIPTION "WebSocket Open Messaging Server"
-        HOMEPAGE_URL "https://github.com/wsserver"
+        DESCRIPTION "Free and Open Source WebSocket standalone message server"
+        HOMEPAGE_URL "https://github.com/scatter"
         LANGUAGES CXX
         )
 set(CMAKE_CXX_STANDARD 14)
@@ -95,20 +95,20 @@ add_executable(${PROJECT_NAME} src/main.cpp ${SERVER_EXEC_SRCS})
 # required for openssl, it has undefined symbol `dlclose`
 find_library(DL_LIBRARIES NAMES dl)
 if (NOT DL_LIBRARIES)
-	message(FATAL_ERROR "Library libdl not found!")
+	message(FATAL_ERROR "libdl not found!")
 endif ()
 message(STATUS "\t- dl (${DL_LIBRARIES})")
 target_link_libraries(${PROJECT_NAME} ${DL_LIBRARIES})
 
 linkdeps(${PROJECT_NAME} all)
 if (WITH_BENCHMARK)
-	add_executable(wssbench
+	add_executable(bench
 	               src/benchmark/main.cpp
 	               ${COMMON_LIBS_SRC}
 	               ${WS_COMMON_SRC} ${WS_CLIENT_SRC})
 
-	target_include_directories(wssbench PUBLIC ${PROJECT_LIBS_DIR}/ws)
-	linkdeps(wssbench all)
+	target_include_directories(bench PUBLIC ${PROJECT_LIBS_DIR}/ws)
+	linkdeps(bench all)
 endif ()
 
 if (WITH_TEST)

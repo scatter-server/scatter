@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 rm -rf ${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}
-rm -rf /etc/wsserver
+rm -rf /etc/scatter
 /bin/systemctl stop ${PROJECT_NAME}.service
 /bin/systemctl disable ${PROJECT_NAME}.service
 rm -rf ${SYSTEMD_SERVICE_PATH}/${PROJECT_NAME}.service

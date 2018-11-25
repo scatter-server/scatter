@@ -1,13 +1,13 @@
 /**
- * wsserver
+ * scatter
  * Auth.hpp
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_AUTH_HPP
-#define WSSERVER_AUTH_HPP
+#ifndef SCATTER_AUTH_HPP
+#define SCATTER_AUTH_HPP
 
 #include <string>
 #include <sstream>
@@ -76,4 +76,4 @@ std::unique_ptr<wss::Auth> createFromConfig(const nlohmann::json &config);
 }
 }
 
-#endif //WSSERVER_AUTH_HPP
+#endif //SCATTER_AUTH_HPP

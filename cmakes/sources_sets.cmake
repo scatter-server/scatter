@@ -2,8 +2,8 @@
 set(SERVER_SRC
     src/chat/ChatServer.h
     src/chat/ChatServer.cpp
-    src/wsserver_core.h
-    src/chat/Message.h
+    src/scatter_core.h
+    src/public/Message.h
     src/chat/Message.cpp
     src/restapi/RestServer.cpp
     src/restapi/RestServer.h
@@ -16,7 +16,7 @@ set(SERVER_SRC
     src/event/EventNotifier.h
     src/event/PostbackTarget.cpp
     src/event/PostbackTarget.h
-    src/event/Target.hpp
+    src/public/Target.hpp
     src/helpers/base64.cpp
     src/helpers/base64.h
     src/base/StandaloneService.h
@@ -105,6 +105,7 @@ set(LOCK_FREE_QUEUE_SRC
 
 
 #include_directories(${PROJECT_LIBS_DIR}/ws)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/public)
 include_directories(${PROJECT_LIBS_DIR}/json/src)
 include_directories(${PROJECT_LIBS_DIR})
 include_directories(${PROJECT_LIBS_DIR}/ini-parser/include)

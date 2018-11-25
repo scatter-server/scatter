@@ -1,11 +1,11 @@
 /**
- * wsserver
+ * scatter
  * Message.cpp
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
-#include "Message.h"
+#include "../public/Message.h"
 #include "../helpers/helpers.h"
 
 #include <fmt/format.h>

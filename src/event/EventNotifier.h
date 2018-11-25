@@ -1,13 +1,13 @@
 /**
- * wsserver
+ * scatter
  * EventNotifier.h
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_EVENTNOTIFIER_H
-#define WSSERVER_EVENTNOTIFIER_H
+#ifndef SCATTER_EVENTNOTIFIER_H
+#define SCATTER_EVENTNOTIFIER_H
 
 #include <vector>
 #include <string>
@@ -23,7 +23,7 @@
 #include <boost/asio/io_service.hpp>
 #include "../chat/ChatServer.h"
 #include "../base/StandaloneService.h"
-#include "Target.hpp"
+#include "../public/Target.hpp"
 #include "PostbackTarget.h"
 #include "concurrentqueue.h"
 
@@ -146,4 +146,4 @@ class EventNotifier : public virtual wss::StandaloneService {
 }
 }
 
-#endif //WSSERVER_EVENTNOTIFIER_H
+#endif //SCATTER_EVENTNOTIFIER_H

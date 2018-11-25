@@ -1,5 +1,5 @@
 /**
- * wsserver
+ * scatter
  * WsServer.cpp
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
@@ -16,7 +16,7 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : m_args() {
     m_args.add<uint16_t>("verbosity", 'l', "Log level: 0 (error,critical), 1(0 + info), 2(all)", false, 2);
 
     if (argc == 2 && strcmp(argv[argc - 1], "-v") == 0) {
-        std::cout << WSSERVER_VERSION << std::endl;
+        std::cout << SCATTER_VERSION << std::endl;
         return;
     }
 

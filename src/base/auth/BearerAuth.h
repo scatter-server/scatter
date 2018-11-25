@@ -1,12 +1,12 @@
 /*! 
- * wsserver. 2018
+ * scatter. 2018
  * 
  * \author Eduard Maximovich <edward.vstock@gmail.com>
  * \link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_BEARERAUTH_H
-#define WSSERVER_BEARERAUTH_H
+#ifndef SCATTER_BEARERAUTH_H
+#define SCATTER_BEARERAUTH_H
 
 #include "Auth.h"
 #include "HeaderAuth.h"
@@ -40,4 +40,4 @@ class BearerAuth : public HeaderAuth {
 
 }
 
-#endif //WSSERVER_BEARERAUTH_H
+#endif //SCATTER_BEARERAUTH_H

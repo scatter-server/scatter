@@ -1,5 +1,5 @@
 /*!
- * wsserver
+ * scatter
  * unid.cpp
  *
  * \date 2017

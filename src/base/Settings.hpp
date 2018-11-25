@@ -1,13 +1,13 @@
 /**
- * wsserver
+ * scatter
  * Settings.hpp
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_SETTINGS_HPP
-#define WSSERVER_SETTINGS_HPP
+#ifndef SCATTER_SETTINGS_HPP
+#define SCATTER_SETTINGS_HPP
 
 #include "json.hpp"
 #include <iostream>
@@ -189,4 +189,4 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
 
 }
 
-#endif //WSSERVER_SETTINGS_HPP
+#endif //SCATTER_SETTINGS_HPP

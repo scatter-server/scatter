@@ -1,17 +1,17 @@
 /**
- * wsserver
+ * scatter
  * ChatRestApi.h
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_CHATRESTAPI_H
-#define WSSERVER_CHATRESTAPI_H
+#ifndef SCATTER_CHATRESTAPI_H
+#define SCATTER_CHATRESTAPI_H
 
 #include <functional>
 #include <memory>
-#include "..//wsserver_core.h"
+#include "..//scatter_core.h"
 #include "RestServer.h"
 #include "../base/auth/Auth.h"
 #include "json.hpp"
@@ -70,4 +70,4 @@ class ChatRestServer : public RestServer {
 };
 }
 
-#endif //WSSERVER_CHATRESTAPI_H
+#endif //SCATTER_CHATRESTAPI_H

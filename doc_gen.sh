@@ -10,7 +10,7 @@ fi
 cd src
 ln -s ../README.md README.md
 cd ../docs
-${DOXY_BIN} wsserver_doc
+${DOXY_BIN} scatter_doc
 rm -f README.md
 cd ../
 

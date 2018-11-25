@@ -1,12 +1,12 @@
 /*! 
- * wsserver. 2018
+ * scatter. 2018
  * 
  * \author Eduard Maximovich <edward.vstock@gmail.com>
  * \link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_HEADERAUTH_H
-#define WSSERVER_HEADERAUTH_H
+#ifndef SCATTER_HEADERAUTH_H
+#define SCATTER_HEADERAUTH_H
 
 #include "Auth.h"
 
@@ -45,4 +45,4 @@ class HeaderAuth : public Auth {
 
 }
 
-#endif //WSSERVER_HEADERAUTH_H
+#endif //SCATTER_HEADERAUTH_H

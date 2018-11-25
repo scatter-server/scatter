@@ -1,13 +1,13 @@
 /**
- * wsserver
+ * scatter
  * WsServer.h
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_WSSERVER_H
-#define WSSERVER_WSSERVER_H
+#ifndef SCATTER_SCATTER_H
+#define SCATTER_SCATTER_H
 
 #include <csignal>
 #include <istream>
@@ -90,4 +90,4 @@ class ServerStarter {
 };
 
 }
-#endif //WSSERVER_WSSERVER_H
+#endif //SCATTER_SCATTER_H

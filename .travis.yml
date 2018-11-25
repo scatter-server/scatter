@@ -20,7 +20,7 @@ matrix:
         - cmake-data
       coverity_scan:
         project:
-          name: edwardstock/wsserver
+          name: scatter-server/scatter
           description: WebSocket Message Server
         notification_email: edward.vstock@gmail.com
         build_command_prepend: cov-configure --comptype gcc --compiler g++-4.9

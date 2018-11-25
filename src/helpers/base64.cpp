@@ -1,5 +1,5 @@
 /**
- * wsserver
+ * scatter
  * base64.cpp
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>

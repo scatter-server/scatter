@@ -1,17 +1,17 @@
 /**
- * wsserver
+ * scatter
  * Statistics.h
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_STATISTICS_H
-#define WSSERVER_STATISTICS_H
+#ifndef SCATTER_STATISTICS_H
+#define SCATTER_STATISTICS_H
 
 #include <atomic>
 #include <ctime>
-#include "../wsserver_core.h"
+#include "../scatter_core.h"
 
 namespace wss {
 
@@ -114,4 +114,4 @@ class Statistics {
 };
 }
 
-#endif //WSSERVER_STATISTICS_H
+#endif //SCATTER_STATISTICS_H

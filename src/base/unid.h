@@ -1,5 +1,5 @@
 /*!
- * wsserver
+ * scatter
  * MessageID.h
  *
  * \date   2017
@@ -7,8 +7,8 @@
  * \link   https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_UNID_H
-#define WSSERVER_UNID_H
+#ifndef SCATTER_UNID_H
+#define SCATTER_UNID_H
 
 #include <string>
 #include <atomic>
@@ -91,4 +91,4 @@ class unid {
 using unid_t = unid::id;
 }
 
-#endif //WSSERVER_UNID_H
+#endif //SCATTER_UNID_H

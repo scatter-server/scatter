@@ -1,5 +1,5 @@
 /**
- * wsserver
+ * scatter
  * RedisTarget.cpp
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
@@ -9,7 +9,7 @@
 #include "RedisTarget.h"
 wss::event::RedisTarget::RedisTarget(const nlohmann::json &config) :
     Target(config),
-    modeTargetName("wsserver_events_queue"),
+    modeTargetName("scatter_events_queue"),
     mode(Queue) {
 
     if (config.find("unixSocket") != config.end()) {
@@ -103,10 +103,10 @@ void wss::event::RedisTarget::onConnected(const nlohmann::json &config) {
 
         if (toolboxpp::strings::equalsIgnoreCase(m, "queue")) {
             mode = Queue;
-            modeTargetName = modeObj.value("name", "wsserver_events_queue");
+            modeTargetName = modeObj.value("name", "scatter_events_queue");
         } else if (toolboxpp::strings::equalsIgnoreCase(m, "channel")) {
             mode = Channel;
-            modeTargetName = modeObj.value("name", "wsserver_events_channel");
+            modeTargetName = modeObj.value("name", "scatter_events_channel");
         } else {
             appendErrorMessage(fmt::format("Unknown mode for redis target: {0}", m));
             return;

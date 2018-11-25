@@ -1,16 +1,16 @@
 /**
- * wsserver
+ * scatter
  * RedisTarget.h
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_REDISTARGET_H
-#define WSSERVER_REDISTARGET_H
+#ifndef SCATTER_REDISTARGET_H
+#define SCATTER_REDISTARGET_H
 
 #include <cpp_redis/core/client.hpp>
-#include "Target.hpp"
+#include "../public/Target.hpp"
 
 namespace wss {
 namespace event {
@@ -37,4 +37,4 @@ class RedisTarget : public wss::event::Target {
 }
 }
 
-#endif //WSSERVER_REDISTARGET_H
+#endif //SCATTER_REDISTARGET_H

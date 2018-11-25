@@ -1,5 +1,5 @@
 /*!
- * wsserver.
+ * scatter.
  * HttpServer.h
  *
  * \date 2018
@@ -7,8 +7,8 @@
  * \link   https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_HTTPSERVER_H
-#define WSSERVER_HTTPSERVER_H
+#ifndef SCATTER_HTTPSERVER_H
+#define SCATTER_HTTPSERVER_H
 
 #include "utility.hpp"
 #include "crypto.hpp"
@@ -853,4 +853,4 @@ class ServerSecure : public ServerBase {
 } //namespace server
 } //namespace http
 
-#endif //WSSERVER_HTTPSERVER_H
+#endif //SCATTER_HTTPSERVER_H

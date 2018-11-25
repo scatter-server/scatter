@@ -1,5 +1,5 @@
 /**
- * wsserver
+ * scatter
  * EventNotifier.cpp
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>

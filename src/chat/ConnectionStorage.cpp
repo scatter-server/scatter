@@ -1,5 +1,5 @@
 /**
- * wsserver
+ * scatter
  * ConnectionStorage.cpp
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>

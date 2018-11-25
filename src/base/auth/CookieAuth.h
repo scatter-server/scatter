@@ -1,12 +1,12 @@
 /*! 
- * wsserver. 2018
+ * scatter. 2018
  * 
  * \author Eduard Maximovich <edward.vstock@gmail.com>
  * \link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_COOKIEAUTH_H
-#define WSSERVER_COOKIEAUTH_H
+#ifndef SCATTER_COOKIEAUTH_H
+#define SCATTER_COOKIEAUTH_H
 
 #include "Auth.h"
 
@@ -37,4 +37,4 @@ class CookieAuth : public Auth {
 
 }
 
-#endif //WSSERVER_COOKIEAUTH_H
+#endif //SCATTER_COOKIEAUTH_H

@@ -2,11 +2,11 @@
 
 echo "Restarting systemctl..."
 /bin/systemctl daemon-reload
-echo "Enabling systemctl -> wsserver.service"
-/bin/systemctl enable wsserver.service
+echo "Enabling systemctl -> scatter.service"
+/bin/systemctl enable scatter.service
 
 echo ""
 echo "Now you just can start service by calling:"
-echo "  -> systemctl start wsserver.service"
+echo "  -> systemctl start scatter.service"
 echo "or"
-echo "  -> service wsserver start"
+echo "  -> service scatter start"

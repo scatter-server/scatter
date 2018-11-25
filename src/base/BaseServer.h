@@ -1,5 +1,5 @@
 /*!
- * wsserver.
+ * scatter.
  * BaseSocketServer.h
  *
  * Virtual class to make single proxy intance of variable instances of socket servers (for example: ssl and without ssl support)
@@ -9,8 +9,8 @@
  * \link   https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_BASESERVER_H
-#define WSSERVER_BASESERVER_H
+#ifndef SCATTER_BASESERVER_H
+#define SCATTER_BASESERVER_H
 
 #include <memory>
 
@@ -38,4 +38,4 @@ class BaseServer {
 } //namespace server
 } //namespace wss
 
-#endif //WSSERVER_BASESERVER_H
+#endif //SCATTER_BASESERVER_H

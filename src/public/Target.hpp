@@ -1,21 +1,17 @@
 /**
- * wsserver
+ * scatter
  * EventConfig.h
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_EVENTCONFIG_H
-#define WSSERVER_EVENTCONFIG_H
+#ifndef SCATTER_TARGET_H
+#define SCATTER_TARGET_H
 
 #include <string>
-#include <curl/curl.h>
-#include "../helpers/base64.h"
-#include "../chat/Message.h"
-#include "../web/HttpClient.h"
-#include "../base/Settings.hpp"
-//#include "EventNotifier.h"
+#include "Message.h"
+#include <json.hpp>
 
 namespace wss {
 namespace event {
@@ -108,4 +104,4 @@ class Target {
 }
 }
 
-#endif //WSSERVER_EVENTCONFIG_H
+#endif //SCATTER_TARGET_H

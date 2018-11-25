@@ -1,5 +1,5 @@
 /**
- * wsserver
+ * scatter
  * PostbackTarget.cpp
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>

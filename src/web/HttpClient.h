@@ -1,13 +1,13 @@
 /**
- * wsserver_standalone
+ * scatter_standalone
  * HttpClient.h
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_STANDALONE_HTTPCLIENT_H
-#define WSSERVER_STANDALONE_HTTPCLIENT_H
+#ifndef SCATTER_STANDALONE_HTTPCLIENT_H
+#define SCATTER_STANDALONE_HTTPCLIENT_H
 
 #include <string>
 #include <iostream>
@@ -18,7 +18,7 @@
 #include <curl/curl.h>
 #include "../base/StatusCode.hpp"
 #include "../base/http/HttpServer.h"
-#include "../wsserver_core.h"
+#include "../scatter_core.h"
 
 namespace wss {
 namespace web {
@@ -294,4 +294,4 @@ class HttpClient {
 }
 }
 
-#endif //WSSERVER_STANDALONE_HTTPCLIENT_H
+#endif //SCATTER_STANDALONE_HTTPCLIENT_H

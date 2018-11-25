@@ -1,7 +1,7 @@
 # WsServer - WebSocket Open Message Server
-[![Build Status](https://travis-ci.org/edwardstock/wsserver.svg?branch=master)](https://travis-ci.org/edwardstock/wsserver)
+[![Build Status](https://travis-ci.org/scatter-server/scatter.svg?branch=master)](https://travis-ci.org/scatter-server/scatter)
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/274ad89f657b4c0695568ec42f7f39bb)](https://www.codacy.com/app/edwardstock/wsserver?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=edwardstock/wsserver&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/274ad89f657b4c0695568ec42f7f39bb)](https://www.codacy.com/app/scatter-server/scatter?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=scatter-server/scatter&amp;utm_campaign=Badge_Grade)
 
 ## About
 Simple, standalone, websocket high-performance message server.
@@ -41,20 +41,20 @@ Simple, standalone, websocket high-performance message server.
 
 
 ## Downloads
-Prebuilt binaries available for download [here](https://github.com/edwardstock/wsserver/releases/latest)
+Prebuilt binaries available for download [here](https://github.com/scatter-server/scatter/releases/latest)
 
 # Install
 * Debian**
 ```bash
-sudo dpkg -i wsserver.deb
+sudo dpkg -i scatter.deb
 sudo apt-get -f install
 ```
 
 * Centos
 ```bash
-yum install wsserver.rpm
+yum install scatter.rpm
 # or
-rpm -i wsserver.rpm
+rpm -i scatter.rpm
 
 ```
 
@@ -74,7 +74,7 @@ rpm -i wsserver.rpm
  
 ## Clone (with submodules)
 ```bash
-git clone --recursive https://github.com/edwardstock/wsserver.git
+git clone --recursive https://github.com/scatter-server/scatter.git
 ```
  
 ## Prepare to build
@@ -132,9 +132,9 @@ sudo make && make install
 
 ## Run (systemd)
 ```bash
-sudo systemctl start wsserver.service
+sudo systemctl start scatter.service
 # or oldschool style:
-sudo service wsserver start
+sudo service scatter start
 ```
 
 ## Documentation (Doxygen)
@@ -152,7 +152,7 @@ Then look for html doc inside **docs/** directory
 |              endpoint              | string     | "/chat"              | Target websocket endpoint. Finally, address will loks like: ws://myserver/myendpoint                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 |               address              | string     | "*" (any)            | Server address. Leave asterisk (*) for apply any address, or set your server IP-address                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 |                port                | uint16     | 8085                 | Server incoming port. By default, is 8085. Don't forget to add rule for your **iptables** of **firewalld** rule: *8085/tcp*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-|               workers              | uint32     | (system dependent)   | Number of threads for incoming connections. Recommended value - processor cores number. If wsserver can't determine number of cores, will set value to: 2                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+|               workers              | uint32     | (system dependent)   | Number of threads for incoming connections. Recommended value - processor cores number. If server can't determine number of cores, will set value to: 2                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 |               tmpDir               | string     | "/tmp"               | Temporary dir. Reserved, not used now.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 |          useUniversalTime          | bool       | false                | Use local or universal time in messages (universal is UTC, local is system time).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 |                                    |            |                      |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |

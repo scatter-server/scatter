@@ -1,5 +1,5 @@
 /*!
- * wsserver
+ * scatter
  * TestAuth.cpp
  *
  * \date   2017

@@ -1,13 +1,13 @@
 /**
- * wsserver
+ * scatter
  * RestServer.h
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_REST_SERVER_H
-#define WSSERVER_REST_SERVER_H
+#ifndef SCATTER_REST_SERVER_H
+#define SCATTER_REST_SERVER_H
 
 #include <string>
 #include <iostream>
@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <fmt/format.h>
 #include "../base/BaseServer.h"
-#include "../wsserver_core.h"
+#include "../scatter_core.h"
 #include "../base/http/HttpServer.h"
 #include "../chat/ChatServer.h"
 #include "../base/StandaloneService.h"
@@ -126,4 +126,4 @@ class RestServer : public virtual StandaloneService {
 };
 
 }
-#endif //WSSERVER_REST_SERVER_H
+#endif //SCATTER_REST_SERVER_H

@@ -1,17 +1,17 @@
 /**
- * wsserver
+ * scatter
  * PostbackTarget.h
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_POSTBACKTARGET_H
-#define WSSERVER_POSTBACKTARGET_H
+#ifndef SCATTER_POSTBACKTARGET_H
+#define SCATTER_POSTBACKTARGET_H
 
 #include <string>
 #include "json.hpp"
-#include "Target.hpp"
+#include "../public/Target.hpp"
 #include "../web/HttpClient.h"
 #include "../chat/ChatServer.h"
 #include "../base/auth/Auth.h"
@@ -53,4 +53,4 @@ class PostbackTarget : public Target {
 }
 }
 
-#endif //WSSERVER_POSTBACKTARGET_H
+#endif //SCATTER_POSTBACKTARGET_H

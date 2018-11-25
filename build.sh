@@ -48,5 +48,5 @@ fi
 
 mkdir -p build && cd build
 sudo ${CMAKE_BIN} .. -DCMAKE_BUILD_TYPE=Release
-${CMAKE_BIN} --build . --target wsserver
+${CMAKE_BIN} --build . --target scatter
 sudo ${CMAKE_BIN} --build . --target install

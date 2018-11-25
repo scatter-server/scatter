@@ -1,13 +1,13 @@
 /**
- * wsserver
- * types.h
+ * scatter
+ * scatter_core.h
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_DEFS_H
-#define WSSERVER_DEFS_H
+#ifndef SCATTER_DEFS_H
+#define SCATTER_DEFS_H
 
 #include <memory>
 #include <thread>
@@ -39,4 +39,4 @@ using ConnectionMap = std::unordered_map<conn_id_t, T>;
 
 }
 
-#endif //WSSERVER_DEFS_H
+#endif //SCATTER_DEFS_H

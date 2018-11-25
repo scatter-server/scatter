@@ -1,13 +1,13 @@
 /**
- * wsserver
+ * scatter
  * joinable.h
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_JOINABLE_H
-#define WSSERVER_JOINABLE_H
+#ifndef SCATTER_JOINABLE_H
+#define SCATTER_JOINABLE_H
 
 namespace wss {
 
@@ -25,4 +25,4 @@ class StandaloneService {
 };
 }
 
-#endif //WSSERVER_JOINABLE_H
+#endif //SCATTER_JOINABLE_H

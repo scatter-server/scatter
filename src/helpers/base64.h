@@ -1,5 +1,5 @@
 /**
- * wsserver
+ * scatter
  * base64.h
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
@@ -9,8 +9,8 @@
 
 
 
-#ifndef WSSERVER_BASE64_H
-#define WSSERVER_BASE64_H
+#ifndef SCATTER_BASE64_H
+#define SCATTER_BASE64_H
 
 #include <string>
 
@@ -29,4 +29,4 @@ std::string base64_decode(std::string const &s);
 }
 }
 
-#endif //WSSERVER_BASE64_H
+#endif //SCATTER_BASE64_H

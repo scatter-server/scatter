@@ -1,13 +1,13 @@
 /**
- * wsserver
+ * scatter
  * Server.h
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_SERVER_H
-#define WSSERVER_SERVER_H
+#ifndef SCATTER_SERVER_H
+#define SCATTER_SERVER_H
 
 #include <string>
 #include <iostream>
@@ -26,8 +26,8 @@
 #include <toolboxpp.h>
 #include <boost/thread.hpp>
 #include "json.hpp"
-#include "Message.h"
-#include "../wsserver_core.h"
+#include "../public/Message.h"
+#include "../scatter_core.h"
 #include "../base/StandaloneService.h"
 #include "ConnectionStorage.h"
 #include "../base/auth/Auth.h"
@@ -320,4 +320,4 @@ class ChatServer : public virtual StandaloneService {
 
 }
 
-#endif //WSSERVER_SERVER_H
+#endif //SCATTER_SERVER_H

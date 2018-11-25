@@ -43,9 +43,9 @@ function build() {
 		vagrant ssh -c "cd ${buildDir} && cmake ../../ ${var}"
 		vagrant ssh -c "cd ${buildDir} && make -j2 && sudo make install && make package"
 
-		vers=$(vagrant ssh -c "${buildDir}/wsserver -v | tr -d '\n'")
-		outFile="${OUTPUT}/wsserver-${vers}-linux-${arch}.${suffix}.${ext}"
-		vagrant ssh -c "cp ${buildDir}/wsserver-${vers}* ${outFile}"
+		vers=$(vagrant ssh -c "${buildDir}/scatter -v | tr -d '\n'")
+		outFile="${OUTPUT}/scatter-${vers}-linux-${arch}.${suffix}.${ext}"
+		vagrant ssh -c "cp ${buildDir}/scatter-${vers}* ${outFile}"
 
 		echo -e "> Copy package ${outFile}"
 	done

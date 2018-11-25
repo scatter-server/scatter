@@ -24,7 +24,7 @@ install(
 )
 
 install(
-	FILES ${CMAKE_CURRENT_SOURCE_DIR}/bin/config.json DESTINATION /etc/wsserver/
+	FILES ${CMAKE_CURRENT_SOURCE_DIR}/bin/config.json DESTINATION /etc/scatter/
 	PERMISSIONS OWNER_READ OWNER_WRITE #0644
 	GROUP_READ
 	WORLD_READ
@@ -36,12 +36,12 @@ include(FeatureSummary)
 if (IS_REDHAT)
 	set(SYSTEMD_SERVICE_PATH "/usr/lib/systemd/system")
 
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/wsserver.service ${CMAKE_BINARY_DIR}/bin/wsserver.service)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/scatter.service ${CMAKE_BINARY_DIR}/bin/scatter.service)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/install.sh ${CMAKE_BINARY_DIR}/bin/install.sh)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/uninstall.sh ${CMAKE_BINARY_DIR}/bin/uninstall.sh)
 
 	install(
-		FILES ${CMAKE_BINARY_DIR}/bin/wsserver.service
+		FILES ${CMAKE_BINARY_DIR}/bin/scatter.service
 		DESTINATION ${SYSTEMD_SERVICE_PATH}
 		PERMISSIONS OWNER_READ OWNER_WRITE #0644
 		GROUP_READ
@@ -58,17 +58,17 @@ if (IS_REDHAT)
 	set(CPACK_GENERATOR "RPM")
 	set(CPACK_RPM_PACKAGE_ARCHITECTURE "${PROJECT_ARCH}")
 	set(CPACK_RPM_PACKAGE_LICENSE "Apache-2.0")
-	set(CPACK_RPM_PACKAGE_URL "https://github.com/edwardstock/wsserver")
+	set(CPACK_RPM_PACKAGE_URL "https://github.com/scatter-server/scatter")
 	set(CPACK_RPM_PACKAGE_GROUP "System Environment/Daemons")
 	set(CPACK_RPM_PACKAGE_REQUIRES "openssl >= 1.0.0, libcurl >= 7.29.0")
 
 elseif (IS_DEBIAN)
 	set(SYSTEMD_SERVICE_PATH "/lib/systemd/system")
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/wsserver.service ${CMAKE_BINARY_DIR}/bin/wsserver.service)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/scatter.service ${CMAKE_BINARY_DIR}/bin/scatter.service)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/install.sh ${CMAKE_BINARY_DIR}/bin/install.sh)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/uninstall.sh ${CMAKE_BINARY_DIR}/bin/uninstall.sh)
 	install(
-		FILES ${CMAKE_BINARY_DIR}/bin/wsserver.service
+		FILES ${CMAKE_BINARY_DIR}/bin/scatter.service
 		DESTINATION ${SYSTEMD_SERVICE_PATH}
 		PERMISSIONS OWNER_READ OWNER_WRITE #0644
 		GROUP_READ

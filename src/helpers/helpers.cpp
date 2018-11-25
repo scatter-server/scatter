@@ -1,5 +1,5 @@
 /**
- * wsserver
+ * scatter
  * DateHelper.cpp
  *
  * @author Eduard Maximovich <edward.vstock@gmail.com>

@@ -1,5 +1,5 @@
 /*!
- * wsserver.
+ * scatter.
  * WebsocketServer.h
  *
  * \date 2018
@@ -7,8 +7,8 @@
  * \link   https://github.com/edwardstock
  */
 
-#ifndef WSSERVER_WEBSOCKETSERVER_H
-#define WSSERVER_WEBSOCKETSERVER_H
+#ifndef SCATTER_WEBSOCKETSERVER_H
+#define SCATTER_WEBSOCKETSERVER_H
 
 #include "../BaseServer.h"
 #include "../SocketLayerWrapper.hpp"
@@ -939,4 +939,4 @@ class SocketServerSecure : public SocketServerBase {
 } //websocket
 
 
-#endif //WSSERVER_WEBSOCKETSERVER_H
+#endif //SCATTER_WEBSOCKETSERVER_H
