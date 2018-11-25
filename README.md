@@ -1,10 +1,10 @@
-# WsServer - WebSocket Open Message Server
+# Scatter
 [![Build Status](https://travis-ci.org/scatter-server/scatter.svg?branch=master)](https://travis-ci.org/scatter-server/scatter)
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/274ad89f657b4c0695568ec42f7f39bb)](https://www.codacy.com/app/scatter-server/scatter?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=scatter-server/scatter&amp;utm_campaign=Badge_Grade)
 
 ## About
-Simple, standalone, websocket high-performance message server.
+Simple, standalone, websocket high-performance message server, written in C++.
 
 ## Features
 * Native Multi-threading (boostthread pool)
