@@ -52,6 +52,13 @@ struct Server {
   Watchdog watchdog;
   AuthSettings auth;
   std::string timezone;
+  std::vector<std::string> extSearchPaths;
+  std::vector<std::string> defExtSearchPaths = {
+      "/usr/lib",
+      "/usr/lib64",
+      "/usr/local/lib",
+      "/usr/local/lib64"
+  };
 };
 struct RestApi {
   bool enabled = false;
@@ -99,6 +106,11 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
     setConfigDef(in.server.port, server, "port", (uint16_t) 8085);
     setConfigDef(in.server.timezone, server, "timezone", "UTC");
 
+    if(server.find("extSearchPaths") != server.end()) {
+        in.server.extSearchPaths = server.at("extSearchPaths").get<std::vector<std::string>>();
+        in.server.extSearchPaths.resize(in.server.extSearchPaths.size() + in.server.defExtSearchPaths.size());
+        in.server.extSearchPaths.insert(in.server.extSearchPaths.end(), in.server.defExtSearchPaths.begin(), in.server.defExtSearchPaths.end());
+    }
 
     if (server.find("secure") != server.end()) {
         setConfig(in.server.secure.crtPath, server["secure"], "crtPath");

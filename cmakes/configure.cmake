@@ -17,3 +17,15 @@ endif ()
 
 
 option(ENABLE_REDIS_TARGET "Enables redis target in event notifier" OFF)
+
+
+# apple
+if (APPLE)
+	add_definitions(-DSCATTER_LIB_EXT=dylib)
+	# MS compiler
+elseif (MSVC)
+	add_definitions(-DSCATTER_LIB_EXT=dll)
+	#gnu only
+else ()
+	add_definitions(-DSCATTER_LIB_EXT=so)
+endif ()
