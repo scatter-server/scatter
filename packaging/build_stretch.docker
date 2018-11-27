@@ -1,6 +1,8 @@
 # vim:set ft=dockerfile:
 
 FROM debian:stretch-slim
+# use this line to install libcurl4 instead of deprecated libcurl3
+#RUN echo deb http://ftp.us.debian.org/debian testing main contrib non-free >> /etc/apt/sources.list
 RUN apt-get -y update;
 
 RUN apt-get -y install git \
@@ -16,12 +18,19 @@ WORKDIR /server
 RUN mkdir -p /server/_build
 RUN ls -lsah /server/_build
 WORKDIR /server/_build
+
+# cmake
 RUN sh /server/packaging/init_build.sh
 
+
+
+WORKDIR /server/_build
+
 # workaround for date library, it won't work from first configuring
-RUN cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_OS=debian-stretch
-RUN cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_OS=debian-stretch
+RUN cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_OS=debian-stretch -DENABLE_REDIS_TARGET=Off
+RUN cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_OS=debian-stretch -DENABLE_REDIS_TARGET=Off
 RUN make
+RUN make install
 
 RUN ls -lsah /server/_build
 RUN make package

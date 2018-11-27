@@ -19,8 +19,7 @@ add_subdirectory(${PROJECT_LIBS_DIR}/fmt)
 string(TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_LOWER)
 set(OPENSSL_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/${SYSTEM_LOWER}_${CMAKE_SYSTEM_PROCESSOR}")
 set(OPENSSL_USE_STATIC_LIBS ON)
-find_package(OpenSSL 1.1.1 REQUIRED)
-
+find_package(OpenSSL 1.1.0 REQUIRED)
 
 
 # ToolBox++
@@ -39,7 +38,24 @@ find_package(Threads REQUIRED)
 
 
 # cURL
-find_package(CURL 7.26.0 REQUIRED)
+if (CURL_ROOT_PATH)
+	message(STATUS "Curl search path: ${CURL_ROOT_PATH}")
+	find_library(CURL_LIBRARIES libcurl.a curl PATHS "${CURL_ROOT_PATH}" NO_DEFAULT_PATH)
+	if (CURL_LIBRARIES-NOTFOUND)
+		message(FATAL_ERROR "Curl not found in ${CURL_ROOT_PATH}/lib")
+	endif ()
+	set(CURL_VERSION_STRING "<unknown>")
+	set(CURL_INCLUDE_DIRS ${CURL_ROOT_PATH}/include)
+elseif (CURL_STATIC)
+	find_library(CURL_LIBRARIES libcurl.a curl)
+	if (CURL_LIBRARIES-NOTFOUND)
+		message(FATAL_ERROR "Curl not found")
+	endif ()
+	set(CURL_VERSION_STRING "<unknown>")
+	set(CURL_INCLUDE_DIRS ${CURL_ROOT_PATH}/include)
+else ()
+	find_package(CURL 7.26.0 REQUIRED)
+endif ()
 
 
 # date lib
@@ -103,7 +119,7 @@ function (linkdeps DEPS_PROJECT)
 	# CURL
 	target_link_libraries(${DEPS_PROJECT} ${CURL_LIBRARIES})
 	target_include_directories(${DEPS_PROJECT} PUBLIC ${CURL_INCLUDE_DIRS})
-	message(STATUS "\t- curl")
+	message(STATUS "\t- curl ${CURL_VERSION_STRING} (${CURL_LIBRARIES})")
 
 	# FMT
 	target_link_libraries(${DEPS_PROJECT} fmt::fmt)
