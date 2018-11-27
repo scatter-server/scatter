@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-PLATFORMS=(stretch jessie)
-PLATFORM_PACKAGE=(deb deb)
+PLATFORMS=(stretch)
+PLATFORM_PACKAGE=(deb)
 
 VM_PREFIX="scatter_build_"
 VM_ID_PREFIX="scatter_"
@@ -34,8 +34,12 @@ do
 
     echo -e "\n -- Cleanup"
     docker stop ${containerId}
+
+    if [ "$1" != "nodelete" ]
+    then
     docker rm ${containerId}
     docker rmi ${vm_id}:${index}
+    fi
 
     echo -e "\n"
 done
