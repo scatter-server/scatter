@@ -82,15 +82,148 @@ else ()
 endif ()
 message(STATUS "Build arch: ${PROJECT_ARCH}")
 
-add_definitions(-DWSSERVER_VERSION="${PROJECT_VERSION}")
+if (APPLE)
+	add_definitions(-DSCATTER_LIB_SUFFIX="dylib")
+elseif (UNIX)
+	add_definitions(-DSCATTER_LIB_SUFFIX="so")
+elseif (WIN32)
+	add_definitions(-DSCATTER_LIB_SUFFIX="dll")
+else ()
+	message(FATAL_ERROR "Unsupported OS")
+endif ()
+
+add_definitions(-DSCATTER_VERSION="${PROJECT_VERSION}")
 add_definitions(-DWS_BIN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
+
 ### Dependencies
-include(cmakes/sources_sets.cmake)
 include(cmakes/dependencies.cmake)
+
+### Sources
+set(SERVER_SRC
+    src/ServerCore.h
+
+    src/chat/ChatServer.h
+    src/chat/ChatServer.cpp
+    src/chat/ConnectionStorage.cpp
+    src/chat/ConnectionStorage.h
+    src/chat/Statistics.cpp
+    src/chat/Statistics.h
+
+    src/restapi/RestServer.cpp
+    src/restapi/RestServer.h
+    src/restapi/ChatRestServer.cpp
+    src/restapi/ChatRestServer.h
+
+    src/event/EventNotifier.h
+    src/event/EventNotifier.cpp
+
+    src/base/Settings.hpp
+    src/base/StandaloneService.h
+    src/base/BaseServer.h
+    src/base/ServerStarter.h
+    src/base/ServerStarter.cpp
+    src/base/SocketLayerWrapper.hpp
+    src/base/ws/WebsocketServer.hpp
+    src/base/http/HttpServer.hpp
+    )
+
+set(SCATTER_CORE_LIB_SRCS
+    src/public/scatter/StatusCode.h
+    src/public/scatter/ScatterCore.h
+
+    src/public/scatter/Target.h
+    src/event/PostbackTarget.h
+    src/event/PostbackTarget.cpp
+
+    src/public/scatter/utility.hpp
+    src/public/scatter/unid.h
+    src/base/unid.cpp
+    src/public/scatter/Message.h
+    src/chat/Message.cpp
+
+
+    src/helpers/helpers.h
+    src/helpers/helpers.cpp
+    src/helpers/base64.cpp
+    src/helpers/base64.h
+    src/helpers/crypto.hpp
+
+    src/public/scatter/Auth.h
+    src/base/auth/Auth.cpp
+    src/base/auth/OneOfAuth.cpp
+    src/base/auth/OneOfAuth.h
+    src/base/auth/AllOfAuth.cpp
+    src/base/auth/AllOfAuth.h
+    src/base/auth/BasicAuth.cpp
+    src/base/auth/BasicAuth.h
+    src/base/auth/HeaderAuth.cpp
+    src/base/auth/HeaderAuth.h
+    src/base/auth/BearerAuth.cpp
+    src/base/auth/BearerAuth.h
+    src/base/auth/CookieAuth.cpp
+    src/base/auth/CookieAuth.h
+    src/base/auth/RemoteAuth.cpp
+    src/base/auth/RemoteAuth.h
+
+    src/public/scatter/HttpClient.h
+    src/web/HttpClient.cpp
+    )
+
+add_library(${PROJECT_NAME}_core SHARED ${SCATTER_CORE_LIB_SRCS})
+linkdeps(${PROJECT_NAME}_core boost)
+
+if (ENABLE_REDIS_TARGET)
+	set(EVENT_REDIS_TARGET_SRC
+	    src/event/RedisTarget.cpp
+	    src/event/RedisTarget.h)
+
+	add_library(${PROJECT_NAME}_event_redis SHARED ${EVENT_REDIS_TARGET_SRC})
+	target_link_libraries(${PROJECT_NAME}_event_redis ${PROJECT_NAME}_core)
+endif ()
+
+
+set(COMMON_LIBS_SRC
+    ${PROJECT_LIBS_DIR}/args/cmdline.hpp
+    )
+
+set(WS_CLIENT_SRC
+    ${PROJECT_LIBS_DIR}/ws/client_ws.hpp
+    ${PROJECT_LIBS_DIR}/ws/client_wss.hpp
+    )
+
+set(HTTP_COMMON_SRC
+    ${PROJECT_LIBS_DIR}/http/crypto.hpp
+    ${PROJECT_LIBS_DIR}/http/utility.hpp
+    ${PROJECT_LIBS_DIR}/http/status_code.hpp
+    )
+
+set(HTTP_CLIENT_SRC
+    ${PROJECT_LIBS_DIR}/http/client_http.hpp
+    ${PROJECT_LIBS_DIR}/http/client_https.hpp
+    )
+
+set(LOCK_FREE_QUEUE_SRC
+    ${PROJECT_LIBS_DIR}/concurrentqueue/concurrentqueue.h
+    ${PROJECT_LIBS_DIR}/concurrentqueue/blockingconcurrentqueue.h
+    )
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/public)
+include_directories(${PROJECT_LIBS_DIR}/json/src)
+include_directories(${PROJECT_LIBS_DIR})
+include_directories(${PROJECT_LIBS_DIR}/ini-parser/include)
+include_directories(${PROJECT_LIBS_DIR}/args)
+include_directories(${PROJECT_LIBS_DIR}/concurrentqueue)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/helpers)
+
+
+set(SERVER_EXEC_SRCS
+    ${SERVER_SRC}
+    ${COMMON_LIBS_SRC})
 
 
 add_executable(${PROJECT_NAME} src/main.cpp ${SERVER_EXEC_SRCS})
+target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_core)
 
 # required for openssl, it has undefined symbol `dlclose`
 find_library(DL_LIBRARIES NAMES dl)

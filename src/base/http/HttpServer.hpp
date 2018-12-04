@@ -10,7 +10,7 @@
 #ifndef SCATTER_HTTPSERVER_H
 #define SCATTER_HTTPSERVER_H
 
-#include "utility.hpp"
+#include "scatter/utility.hpp"
 #include "crypto.hpp"
 #include "../BaseServer.h"
 #include "../SocketLayerWrapper.hpp"
@@ -848,6 +848,12 @@ class ServerSecure : public ServerBase {
         });
     }
 };
+
+// Global defs
+using HttpBase = wss::server::http::ServerBase;
+using HttpStatus = wss::server::StatusCode;
+using HttpResponse = std::shared_ptr<HttpBase::Response>;
+using HttpRequest = std::shared_ptr<HttpBase::Request>;
 
 } //namespace wss
 } //namespace server

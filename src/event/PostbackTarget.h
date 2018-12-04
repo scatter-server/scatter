@@ -11,10 +11,10 @@
 
 #include <string>
 #include "json.hpp"
-#include "../public/Target.hpp"
-#include "../web/HttpClient.h"
+#include "scatter/Target.h"
+#include "scatter/HttpClient.h"
 #include "../chat/ChatServer.h"
-#include "../base/auth/Auth.h"
+#include "scatter/Auth.h"
 
 namespace wss {
 namespace event {

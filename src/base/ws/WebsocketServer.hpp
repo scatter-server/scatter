@@ -14,7 +14,7 @@
 #include "../SocketLayerWrapper.hpp"
 
 #include "crypto.hpp"
-#include "utility.hpp"
+#include "scatter/utility.hpp"
 
 #include <atomic>
 #include <iostream>

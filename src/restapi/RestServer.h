@@ -16,12 +16,12 @@
 #include <memory>
 #include <algorithm>
 #include <fmt/format.h>
+#include "../ServerCore.h"
+#include <scatter/Auth.h>
 #include "../base/BaseServer.h"
-#include "../scatter_core.h"
-#include "../base/http/HttpServer.h"
+#include "../base/http/HttpServer.hpp"
 #include "../chat/ChatServer.h"
 #include "../base/StandaloneService.h"
-#include "../base/auth/Auth.h"
 #include "../helpers/helpers.h"
 #include "../base/Settings.hpp"
 
@@ -58,6 +58,17 @@ class RestServer : public virtual StandaloneService {
     void setAddress(std::string &&host);
     void setPort(uint16_t portNumber);
 
+    wss::web::Request webRequestFromServer(const wss::server::http::HttpRequest &request) {
+        wss::web::Request out;
+        for (auto &h: request->header) {
+            out.addHeader(h.first, h.second);
+        }
+
+        out.parseParamsString(request->query_string);
+
+        return out;
+    }
+
     template<typename ResponseCallback = std::function<void(HttpResponse, HttpRequest)> >
     RestServer &addEndpoint(const std::string &path, const std::string &methodName, ResponseCallback &&callback) {
         const std::string endpoint = "^/" + path + "$";
@@ -65,7 +76,7 @@ class RestServer : public virtual StandaloneService {
 
         m_server->resource[endpoint][toolboxpp::strings::toUpper(methodName)] =
             [this, callback](wss::HttpResponse response, wss::HttpRequest request) {
-              const wss::web::Request verifyRequest(request);
+              const wss::web::Request verifyRequest = webRequestFromServer(request);
               response->close_connection_after_response = true;
               if (!m_auth->validateAuth(verifyRequest)) {
 

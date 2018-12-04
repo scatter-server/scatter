@@ -16,25 +16,19 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <toolboxpp.h>
 #include <curl/curl.h>
-#include "../base/StatusCode.hpp"
-#include "../base/http/HttpServer.h"
-#include "../scatter_core.h"
+#include <json.hpp>
+#include "StatusCode.h"
+#include "ScatterCore.h"
+#include "utility.hpp"
 
 namespace wss {
 namespace web {
-
-using namespace wss::utils;
 
 /// \brief Simple std::pair<std::string, std::string>
 using KeyValue = std::pair<std::string, std::string>;
 
 /// \brief Simple vector of pairs wss::web::KeyValue
 using KeyValueVector = std::vector<KeyValue>;
-
-using HttpBase = wss::server::http::ServerBase;
-using HttpStatus = wss::server::StatusCode;
-using HttpResponse = std::shared_ptr<HttpBase::Response>;
-using HttpRequest = std::shared_ptr<HttpBase::Request>;
 
 class IOContainer {
  protected:
@@ -64,7 +58,7 @@ class IOContainer {
     /// \brief Adds from map new headers values, if some key exists, value will overwrited
     /// \see addHeader(const KeyValue&)
     /// \param mmp
-    void setHeaders(CaseInsensitiveMultimap &mmp);
+    void setHeaders(wss::utils::CaseInsensitiveMultimap &mmp);
 
     /// \brief Adds from map new headers values, if some key exists, value will overwrited
     /// \see addHeader(const KeyValue&)
@@ -161,7 +155,6 @@ class Request : public IOContainer {
     explicit Request(const std::string &url);
     Request(const std::string &url, Method method);
     explicit Request(std::string &&url);
-    explicit Request(const HttpRequest &sRequest);
 
     /// \brief parse query string to vector<KeyValue>. String must not contains hostname or protocol, only query string.
     /// Example: ?id=1&param=2&someKey=3

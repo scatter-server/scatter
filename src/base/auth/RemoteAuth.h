@@ -9,7 +9,7 @@
 #define SCATTER_EXECAUTH_H
 
 #include <unordered_map>
-#include "Auth.h"
+#include "scatter/Auth.h"
 
 namespace wss {
 

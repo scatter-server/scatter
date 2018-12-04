@@ -1,12 +1,12 @@
 #ifndef WSS_UTILITY
 #define WSS_UTILITY
 
-#include "../base/StatusCode.hpp"
 #include <atomic>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include "StatusCode.h"
 
 #ifdef USE_BOOST_REGEX
 #include <boost/regex.hpp>
@@ -317,7 +317,6 @@ inline void spin_loop_pause() noexcept { _mm_pause(); }
 #else
 inline void spin_loop_pause() noexcept {}
 #endif
-
 
 /// Makes it possible to for instance cancel Asio handlers without stopping asio::ioService
 class ScopeRunner {

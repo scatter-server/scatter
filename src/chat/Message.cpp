@@ -5,7 +5,7 @@
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
-#include "../public/Message.h"
+#include "scatter/Message.h"
 #include "../helpers/helpers.h"
 
 #include <fmt/format.h>

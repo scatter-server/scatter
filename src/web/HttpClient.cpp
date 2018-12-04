@@ -8,7 +8,7 @@
 
 #include <thread>
 #include <future>
-#include "HttpClient.h"
+#include "scatter/HttpClient.h"
 #include "../helpers/helpers.h"
 
 // BASE IO
@@ -87,7 +87,7 @@ void wss::web::IOContainer::setHeaders(const std::unordered_map<std::string, std
         addHeader(h.first, h.second);
     }
 }
-void wss::web::IOContainer::setHeaders(CaseInsensitiveMultimap &mmp) {
+void wss::web::IOContainer::setHeaders(wss::utils::CaseInsensitiveMultimap &mmp) {
     for (auto &h: mmp) {
         addHeader(h.first, h.second);
     }
@@ -147,16 +147,7 @@ wss::web::Request::Request(const std::string &url, wss::web::Request::Method met
 wss::web::Request::Request(std::string &&url) : IOContainer(),
                                                 m_url(std::move(url)),
                                                 m_method(GET) { }
-
-wss::web::Request::Request(const wss::web::HttpRequest &sRequest) : IOContainer(),
-                                                                       m_url(sRequest->path),
-                                                                       m_method(methodFromString(sRequest->method)) {
-    for (auto &h: sRequest->header) {
-        addHeader(h.first, h.second);
-    }
-
-    parseParamsString(sRequest->query_string);
-}
+                                                
 void wss::web::Request::parseParamsString(const std::string &queryString) {
     std::string query = queryString;
     if (query[0] == '?') {

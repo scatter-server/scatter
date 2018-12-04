@@ -12,6 +12,7 @@
 #include <string>
 #include "Message.h"
 #include <json.hpp>
+#include <dlfcn.h>
 
 namespace wss {
 namespace event {
@@ -21,6 +22,11 @@ namespace event {
 ///     "url": "http://example.com/postback",
 class Target {
  public:
+    // DEFS
+    typedef Target *(CreateFunc)(const char *);
+    typedef void    (ReleaseFunc)(Target *);
+
+
     /// \brief Accept json config of entire target object
     /// \param config
     explicit Target(const nlohmann::json &config) :
@@ -99,6 +105,75 @@ class Target {
     bool m_validState;
     std::string m_errorMessage;
     std::vector<std::shared_ptr<wss::event::Target>> fallbackTargets;
+};
+
+extern "C" SCATTER_EXPORT Target *target_create(const nlohmann::json &config);
+extern "C" SCATTER_EXPORT void target_release(Target *target);
+
+
+/// \brief RAII wrapper for dynamic load shared libs
+class TargetLoader final {
+ public:
+    TargetLoader(const std::string &targetLib, const std::string &targetLibPath) :
+        m_targetLib(getLibName(targetLib, targetLibPath)) {
+    }
+
+    ~TargetLoader() {
+        if(m_releaseFunc) {
+            m_releaseFunc(m_target);
+        }
+
+        if (m_imageHandle) {
+            dlclose(m_imageHandle);
+        }
+    }
+
+    Target* operator->() const noexcept {
+        return m_target;
+    }
+
+    bool load() {
+        m_imageHandle = dlopen(m_targetLib.c_str(), RTLD_LAZY);
+        if (m_imageHandle == nullptr) {
+            std::cerr << dlerror() << std::endl;
+            return false;
+        }
+
+        auto *f_init = (Target::CreateFunc *) dlsym(m_imageHandle, "target_create");
+        if (f_init == nullptr) {
+            std::cerr << dlerror() << std::endl;
+            return false;
+        }
+
+        m_releaseFunc = (Target::ReleaseFunc *) dlsym(m_imageHandle, "target_release");
+        if (m_releaseFunc == nullptr) {
+            std::cerr << dlerror() << std::endl;
+            return false;
+        }
+
+        m_target = f_init("");
+        return true;
+    }
+
+ private:
+    Target *m_target;
+    std::string m_targetLib;
+    void *m_imageHandle;
+    Target::ReleaseFunc *m_releaseFunc;
+
+    const std::string getLibName(const std::string &libName, const std::string &modPath) const {
+        std::stringstream name_builder;
+        name_builder << modPath;
+        if (modPath.length() > 0 && modPath[modPath.length() - 1] != '/') {
+            name_builder << "/";
+        }
+        name_builder << "lib";
+        name_builder << libName;
+        name_builder << ".";
+        name_builder << SCATTER_LIB_SUFFIX;
+
+        return name_builder.str();
+    }
 };
 
 }

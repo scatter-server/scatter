@@ -8,7 +8,7 @@
 #ifndef SCATTER_ALLOFAUTH_H
 #define SCATTER_ALLOFAUTH_H
 
-#include "Auth.h"
+#include <scatter/Auth.h>
 #include "OneOfAuth.h"
 
 namespace wss {

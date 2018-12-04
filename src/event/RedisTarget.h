@@ -10,7 +10,7 @@
 #define SCATTER_REDISTARGET_H
 
 #include <cpp_redis/core/client.hpp>
-#include "../public/Target.hpp"
+#include "../public/scatter/Target.h"
 
 namespace wss {
 namespace event {

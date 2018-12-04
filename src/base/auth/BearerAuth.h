@@ -8,7 +8,7 @@
 #ifndef SCATTER_BEARERAUTH_H
 #define SCATTER_BEARERAUTH_H
 
-#include "Auth.h"
+#include "scatter/Auth.h"
 #include "HeaderAuth.h"
 
 namespace wss {

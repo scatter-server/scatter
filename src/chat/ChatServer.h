@@ -26,11 +26,11 @@
 #include <toolboxpp.h>
 #include <boost/thread.hpp>
 #include "json.hpp"
-#include "../public/Message.h"
-#include "../scatter_core.h"
+#include "scatter/Message.h"
+#include "../ServerCore.h"
 #include "../base/StandaloneService.h"
 #include "ConnectionStorage.h"
-#include "../base/auth/Auth.h"
+#include "scatter/Auth.h"
 #include "Statistics.h"
 
 namespace wss {

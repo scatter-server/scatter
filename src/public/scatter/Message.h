@@ -6,16 +6,16 @@
  * @link https://github.com/edwardstock
  */
 
-#ifndef SCATTER_MESSAGE_HPP
-#define SCATTER_MESSAGE_HPP
+#ifndef SCATTER_MESSAGE_H
+#define SCATTER_MESSAGE_H
 
 #include <string>
 #include <iostream>
 #include <type_traits>
 #include <toolboxpp.h>
 #include <json.hpp>
-#include "../scatter_core.h"
-#include "../base/unid.h"
+#include "ScatterCore.h"
+#include "unid.h"
 
 namespace wss {
 
@@ -159,4 +159,4 @@ void from_json(const wss::json &j, wss::MessagePayload &in);
 
 }
 
-#endif //SCATTER_MESSAGE_HPP
+#endif //SCATTER_MESSAGE_H

@@ -11,9 +11,9 @@
 
 #include <functional>
 #include <memory>
-#include "..//scatter_core.h"
+#include "../ServerCore.h"
 #include "RestServer.h"
-#include "../base/auth/Auth.h"
+#include "scatter/Auth.h"
 #include "json.hpp"
 
 namespace wss {

@@ -8,7 +8,7 @@
 #ifndef SCATTER_BASICAUTH_H
 #define SCATTER_BASICAUTH_H
 
-#include "Auth.h"
+#include "scatter/Auth.h"
 
 namespace wss {
 

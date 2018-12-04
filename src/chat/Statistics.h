@@ -11,7 +11,7 @@
 
 #include <atomic>
 #include <ctime>
-#include "../scatter_core.h"
+#include "../ServerCore.h"
 
 namespace wss {
 

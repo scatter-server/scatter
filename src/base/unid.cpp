@@ -12,7 +12,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <fmt/format.h>
-#include "unid.h"
+#include "scatter/unid.h"
 
 wss::unid::unid() :
     pid((uint16_t) (getpid() & 0x0000FFFF)),

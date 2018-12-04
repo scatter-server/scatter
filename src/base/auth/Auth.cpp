@@ -8,7 +8,7 @@
 #include <fmt/format.h>
 #include <vector>
 #include <memory>
-#include "Auth.h"
+#include "scatter/Auth.h"
 #include "BasicAuth.h"
 #include "HeaderAuth.h"
 #include "BearerAuth.h"

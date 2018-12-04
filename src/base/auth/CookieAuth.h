@@ -8,7 +8,7 @@
 #ifndef SCATTER_COOKIEAUTH_H
 #define SCATTER_COOKIEAUTH_H
 
-#include "Auth.h"
+#include "scatter/Auth.h"
 
 namespace wss {
 

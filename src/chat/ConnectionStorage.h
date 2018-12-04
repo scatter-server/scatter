@@ -16,7 +16,7 @@
 #include <string>
 #include <atomic>
 #include <toolboxpp.h>
-#include "../scatter_core.h"
+#include "../ServerCore.h"
 
 using toolboxpp::Logger;
 

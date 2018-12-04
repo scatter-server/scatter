@@ -13,7 +13,7 @@
 #include <sstream>
 #include <memory>
 #include "json.hpp"
-#include "../../web/HttpClient.h"
+#include "HttpClient.h"
 
 namespace wss {
 
@@ -42,7 +42,7 @@ namespace wss {
 /// type: allOf
 ///   types: [...list of auth objects...]
 ///
-class Auth {
+class SCATTER_EXPORT Auth {
  public:
     /// \brief Auth type
     /// \return string type used by json config
@@ -70,7 +70,7 @@ namespace registry {
 /// \param config Json config
 /// \return unique_ptr of entire auth type,
 /// if unsupported type, will return base WebAuth that does not requires authorization
-std::unique_ptr<wss::Auth> createFromConfig(const nlohmann::json &config);
+SCATTER_EXPORT std::unique_ptr<wss::Auth> createFromConfig(const nlohmann::json &config);
 }
 
 }
