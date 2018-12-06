@@ -30,13 +30,15 @@ using KeyValue = std::pair<std::string, std::string>;
 /// \brief Simple vector of pairs wss::web::KeyValue
 using KeyValueVector = std::vector<KeyValue>;
 
-class IOContainer {
+class SCATTER_EXPORT IOContainer {
  protected:
     KeyValueVector headers;
     std::string body;
 
  public:
     IOContainer();
+
+    virtual ~IOContainer() = default;
 
     /// \brief Set request body data
     /// \param body string data for request/response
@@ -138,7 +140,7 @@ class IOContainer {
     std::vector<std::string> getHeadersGlued() const;
 };
 
-class Request : public IOContainer {
+class SCATTER_EXPORT Request : public IOContainer {
  public:
     /// \brief Http methods
     enum Method {
@@ -155,6 +157,7 @@ class Request : public IOContainer {
     explicit Request(const std::string &url);
     Request(const std::string &url, Method method);
     explicit Request(std::string &&url);
+    ~Request() override { };
 
     /// \brief parse query string to vector<KeyValue>. String must not contains hostname or protocol, only query string.
     /// Example: ?id=1&param=2&someKey=3
@@ -222,7 +225,7 @@ class Request : public IOContainer {
     KeyValueVector getParams() const;
 };
 
-class Response : public IOContainer {
+class SCATTER_EXPORT Response : public IOContainer {
  public:
     int status = 200;
     std::string statusMessage;
@@ -246,7 +249,7 @@ class Response : public IOContainer {
 };
 
 /// \brief Simple Http Client based on libcurl
-class HttpClient {
+class SCATTER_EXPORT HttpClient {
  private:
     bool m_verbose = false;
     long m_connectionTimeout = 10L;

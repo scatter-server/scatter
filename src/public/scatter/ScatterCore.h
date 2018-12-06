@@ -10,6 +10,7 @@
 #ifndef SCATTER_CORE_H
 #define SCATTER_CORE_H
 
+#include <toolboxpp.h>
 #if defined _WIN32 || defined __CYGWIN__
 #ifdef WIN_EXPORT
 // Exporting...
@@ -38,6 +39,7 @@
 
 namespace wss {
 
+using Logger = toolboxpp::Logger;
 using user_id_t = unsigned long;
 using conn_id_t = unsigned long;
 

@@ -171,7 +171,7 @@ set(SCATTER_CORE_LIB_SRCS
     )
 
 add_library(${PROJECT_NAME}_core SHARED ${SCATTER_CORE_LIB_SRCS})
-linkdeps(${PROJECT_NAME}_core boost)
+linkdeps(TARGET ${PROJECT_NAME}_core DEPENDENCIES threads boost json fmt toolbox fmt openssl curl date)
 
 if (ENABLE_REDIS_TARGET)
 	set(EVENT_REDIS_TARGET_SRC
@@ -179,9 +179,9 @@ if (ENABLE_REDIS_TARGET)
 	    src/event/RedisTarget.h)
 
 	add_library(${PROJECT_NAME}_event_redis SHARED ${EVENT_REDIS_TARGET_SRC})
+	linkdeps(TARGET ${PROJECT_NAME}_event_redis DEPENDENCIES redis json fmt)
 	target_link_libraries(${PROJECT_NAME}_event_redis ${PROJECT_NAME}_core)
 endif ()
-
 
 set(COMMON_LIBS_SRC
     ${PROJECT_LIBS_DIR}/args/cmdline.hpp
@@ -216,7 +216,6 @@ include_directories(${PROJECT_LIBS_DIR}/args)
 include_directories(${PROJECT_LIBS_DIR}/concurrentqueue)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/helpers)
 
-
 set(SERVER_EXEC_SRCS
     ${SERVER_SRC}
     ${COMMON_LIBS_SRC})
@@ -230,10 +229,9 @@ find_library(DL_LIBRARIES NAMES dl)
 if (NOT DL_LIBRARIES)
 	message(FATAL_ERROR "libdl not found!")
 endif ()
-message(STATUS "\t- dl (${DL_LIBRARIES})")
 target_link_libraries(${PROJECT_NAME} ${DL_LIBRARIES})
 
-linkdeps(${PROJECT_NAME} all)
+linkdeps(TARGET ${PROJECT_NAME} DEPENDENCIES all)
 if (WITH_BENCHMARK)
 	add_executable(bench
 	               src/benchmark/main.cpp
@@ -241,7 +239,7 @@ if (WITH_BENCHMARK)
 	               ${WS_COMMON_SRC} ${WS_CLIENT_SRC})
 
 	target_include_directories(bench PUBLIC ${PROJECT_LIBS_DIR}/ws)
-	linkdeps(bench all)
+	linkdeps(TARGET bench DEPENDENCIES all)
 endif ()
 
 if (WITH_TEST)

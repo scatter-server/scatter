@@ -19,6 +19,7 @@ namespace server {
 
 class BaseServer {
  public:
+    virtual ~BaseServer() = default;
     /*!
      * \brief Start server
      */

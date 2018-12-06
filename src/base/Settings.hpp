@@ -10,6 +10,7 @@
 #define SCATTER_SETTINGS_HPP
 
 #include "json.hpp"
+#include <boost/filesystem.hpp>
 #include <iostream>
 #include <thread>
 
@@ -108,7 +109,8 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
 
     if(server.find("extSearchPaths") != server.end()) {
         in.server.extSearchPaths = server.at("extSearchPaths").get<std::vector<std::string>>();
-        in.server.extSearchPaths.resize(in.server.extSearchPaths.size() + in.server.defExtSearchPaths.size());
+        in.server.extSearchPaths.push_back("");
+        in.server.extSearchPaths.push_back(boost::filesystem::current_path().generic_string());
         in.server.extSearchPaths.insert(in.server.extSearchPaths.end(), in.server.defExtSearchPaths.begin(), in.server.defExtSearchPaths.end());
     }
 

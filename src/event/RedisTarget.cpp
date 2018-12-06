@@ -5,7 +5,8 @@
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
-
+#include <iostream>
+#include <sstream>
 #include "RedisTarget.h"
 wss::event::RedisTarget::RedisTarget(const nlohmann::json &config) :
     Target(config),
@@ -40,6 +41,9 @@ wss::event::RedisTarget::RedisTarget(const nlohmann::json &config) :
                            });
         } catch (const std::exception &err) {
             appendErrorMessage(err.what());
+            std::stringstream ss;
+            ss << "Redis server: tcp://" << addr << ":" << portNum << std::endl;
+            appendErrorMessage(ss.str());
             return;
         }
 
@@ -112,4 +116,11 @@ void wss::event::RedisTarget::onConnected(const nlohmann::json &config) {
             return;
         }
     }
+}
+
+wss::event::Target *wss::event::target_create(const nlohmann::json &config) {
+    return new RedisTarget(config);
+}
+void wss::event::target_release(wss::event::Target *target) {
+    delete target;
 }

@@ -9,10 +9,6 @@
 #include "EventNotifier.h"
 #include "../base/Settings.hpp"
 
-#ifdef ENABLE_REDIS_TARGET
-#include "RedisTarget.h"
-#endif
-
 wss::event::EventNotifier::EventNotifier(std::shared_ptr<wss::ChatServer> &ws) :
     m_keepGoing(true),
     m_readCondition(),
@@ -49,15 +45,15 @@ std::shared_ptr<wss::event::Target> wss::event::EventNotifier::createTargetByCon
 
     if (eq(type, "postback")) {
         out = std::make_shared<wss::event::PostbackTarget>(json);
-    } else
-        //@TODO shared modules and target map in config, instead of hardcode
-        #ifdef ENABLE_REDIS_TARGET
-    if (eq(type, "redis")) {
-        out = std::make_shared<wss::event::RedisTarget>(json);
-    } else
-        #endif
-    {
-        throw std::runtime_error("Unsupported target type: " + type);
+    } else {
+        out = std::make_shared<wss::event::TargetLoader>(json, type);
+
+        wss::event::TargetLoader *tl = (wss::event::TargetLoader *) out.get();
+
+        std::string loadError;
+        if (!tl->load(wss::Settings::get().server.extSearchPaths, loadError)) {
+            throw std::runtime_error(fmt::format("Unable to load target {0}: {1}", type, loadError));
+        }
     }
 
     if (json.find("fallback") != json.end()) {

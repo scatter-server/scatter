@@ -44,6 +44,8 @@ namespace wss {
 ///
 class SCATTER_EXPORT Auth {
  public:
+    virtual ~Auth() = default;
+
     /// \brief Auth type
     /// \return string type used by json config
     virtual std::string getType();

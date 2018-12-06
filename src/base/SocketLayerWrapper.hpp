@@ -36,7 +36,7 @@ using io_context_service = asio::io_service;
 }
 #endif
 
-class SocketLayerWrapper {
+class SocketLayerWrapper final {
  private:
     asio::ip::tcp::socket *m_insecure;
     asio::ssl::stream<asio::ip::tcp::socket> *m_secure;

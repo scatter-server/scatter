@@ -10,7 +10,8 @@
 #define SCATTER_REDISTARGET_H
 
 #include <cpp_redis/core/client.hpp>
-#include "../public/scatter/Target.h"
+#include <scatter/Target.h>
+#include <scatter/Message.h>
 
 namespace wss {
 namespace event {
@@ -34,6 +35,9 @@ class RedisTarget : public wss::event::Target {
 
     void onConnected(const nlohmann::json &config);
 };
+
+extern "C" SCATTER_EXPORT Target *target_create(const nlohmann::json &config);
+extern "C" SCATTER_EXPORT void target_release(Target *target);
 }
 }
 

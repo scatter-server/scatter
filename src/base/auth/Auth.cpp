@@ -5,10 +5,9 @@
  * @author Eduard Maximovich <edward.vstock@gmail.com>
  * @link https://github.com/edwardstock
  */
-#include <fmt/format.h>
 #include <vector>
 #include <memory>
-#include "scatter/Auth.h"
+#include <scatter/Auth.h>
 #include "BasicAuth.h"
 #include "HeaderAuth.h"
 #include "BearerAuth.h"

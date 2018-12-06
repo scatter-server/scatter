@@ -13,6 +13,7 @@ namespace wss {
 
 class StandaloneService {
  public:
+    virtual ~StandaloneService() = default;
     /// \brief Joins service threads
     virtual void joinThreads() = 0;
     /// \brief Detach service threads from main

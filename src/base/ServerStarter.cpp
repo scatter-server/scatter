@@ -45,7 +45,15 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : m_args() {
     }
 
     nlohmann::json config;
-    configFileStream >> config;
+    try {
+        configFileStream >> config;
+    } catch (const std::exception &e) {
+        cerr << "Unable to load config " << configPath << ": " << endl;
+        cerr << e.what() << endl;
+        m_valid = false;
+        return;
+    }
+
     wss::Settings &settings = wss::Settings::get();
     settings = config;
 
