@@ -10,7 +10,7 @@
 #define SCATTER_POSTBACKTARGET_H
 
 #include <string>
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 #include "scatter/Target.h"
 #include "scatter/HttpClient.h"
 #include "../chat/ChatServer.h"

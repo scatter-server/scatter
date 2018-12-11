@@ -12,25 +12,30 @@ endif ()
 
 
 # fmt
-add_subdirectory(${PROJECT_LIBS_DIR}/fmt)
+add_subdirectory(${PROJECT_LIBS_DIR}/fmt EXCLUDE_FROM_ALL)
+target_compile_options(fmt PUBLIC "-fPIC")
 
 
 # OpenSSL (libssl/libcrypto)
 string(TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_LOWER)
 set(OPENSSL_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/${SYSTEM_LOWER}_${CMAKE_SYSTEM_PROCESSOR}")
 set(OPENSSL_USE_STATIC_LIBS ON)
+include_directories(${OPENSSL_ROOT_DIR}/include)
 find_package(OpenSSL 1.1.0 REQUIRED)
 
 
+
 # ToolBox++
-add_subdirectory(${PROJECT_LIBS_DIR}/toolboxpp)
+add_subdirectory(${PROJECT_LIBS_DIR}/toolboxpp EXCLUDE_FROM_ALL)
+target_compile_options(toolboxpp PUBLIC "-fPIC")
 set_target_properties(
 	toolboxpp PROPERTIES
 	ENABLE_STATIC ON
 )
 
 # Json nlohmann
-set(JSON_BuildTests OFF CACHE BOOL "Build json test" FORCE)
+option(JSON_BuildTests "" OFF)
+option(JSON_MultipleHeaders "" OFF)
 add_subdirectory(${PROJECT_LIBS_DIR}/json)
 
 # Thread
@@ -59,51 +64,31 @@ endif ()
 
 
 # date lib
-add_subdirectory(${PROJECT_LIBS_DIR}/date)
+option(USE_SYSTEM_TZ_DB "" ON)
+option(DISABLE_STRING_VIEW "" ON)
+option(ENABLE_DATE_TESTING "" OFF)
+option(BUILD_SHARED_LIBS "" OFF)
+add_subdirectory(${PROJECT_LIBS_DIR}/date EXCLUDE_FROM_ALL)
 target_compile_options(tz PRIVATE -Wno-deprecated-declarations)
-set(USE_SYSTEM_TZ_DB ON CACHE BOOL "Enable system timezone DB" FORCE)
+target_compile_options(tz PUBLIC "-fPIC")
+
+# Redis client
+add_subdirectory(${PROJECT_LIBS_DIR}/cpp_redis EXCLUDE_FROM_ALL)
 set_target_properties(
-	tz PROPERTIES
-	USE_SYSTEM_TZ_DB On
-	BUILD_SHARED_LIBS Off
+	cpp_redis PROPERTIES
+	LOGGING_ENABLED Off
+	USE_CUSTOM_TCP_CLIENT Off
+	BUILD_EXAMPLES Off
+	BUILD_TESTS Off
 )
 
+# AMQP
+option(AMQP-CPP_BUILD_SHARED "" OFF)
+option(AMQP-CPP_LINUX_TCP "" ON)
+option(AMQP-CPP_BUILD_EXAMPLES "" OFF)
+add_subdirectory(${PROJECT_LIBS_DIR}/amqp-cpp EXCLUDE_FROM_ALL)
+target_compile_options(amqpcpp PUBLIC "-fPIC")
 
-if (ENABLE_REDIS_TARGET)
-	add_definitions(-DENABLE_REDIS_TARGET)
-	# Redis client
-	add_subdirectory(libs/cpp_redis)
-	set_target_properties(
-		cpp_redis PROPERTIES
-		LOGGING_ENABLED Off
-		USE_CUSTOM_TCP_CLIENT Off
-		BUILD_EXAMPLES Off
-		BUILD_TESTS Off
-	)
-endif ()
-
-
-#set(LINK_LIBS "")
-#macro(add_lib libname)
-#	#    find_library(TEST_LIB_${libname} ${libname})
-#	add_library(${libname} STATIC IMPORTED)
-#
-#	set(LIB_FILE_SUFFIX_${libname} ".so")
-#	if (${ARGC} GREATER 1)
-#		set(LIB_FILE_SUFFIX_${libname} ${ARGV1})
-#	endif ()
-#
-#	set_target_properties(${libname} PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}/lib${libname}${LIB_FILE_SUFFIX_${libname}})
-#	set(TEST_LIB_${libname} ${PROJECT_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}/lib${libname}${LIB_FILE_SUFFIX_${libname}})
-#
-#	string(TOUPPER "lib${libname}" DEF_NAME_${libname}_UPPER)
-#	string(REPLACE "-" "_" DEF_NAME_${libname} ${DEF_NAME_${libname}_UPPER})
-#	add_definitions(-DHAVE_${DEF_NAME_${libname}}=1)
-#	set(HAVE_${DEF_NAME_${libname}} 1)
-#	message(STATUS "Found: lib${libname} – ${TEST_LIB_${libname}}")
-#	#		target_link_libraries(${PROJECT_NAME} ${libname})
-#	list(APPEND LINK_LIBS ${libname})
-#endmacro()
 
 include(CMakeParseArguments)
 function (linkdeps)
@@ -124,19 +109,15 @@ function (linkdeps)
 	list(FIND LIBS_REQ "date" HAVE_DATE)
 	list(FIND LIBS_REQ "redis" HAVE_REDIS)
 	list(FIND LIBS_REQ "fmt" HAVE_FMT)
+	list(FIND LIBS_REQ "amqp" HAVE_AMQP)
 
-	set(LINK_ALL "0")
-	if ("${HAVE_ALL}" GREATER -1)
-		set(LINK_ALL "1")
-	endif ()
-
-	if ("${HAVE_THREADS}" GREATER -1 OR ${LINK_ALL})
+	if ("${HAVE_THREADS}" GREATER -1)
 		# Threads @TODO boost-only threads
 		target_link_libraries(${DEPS_PROJECT} ${CMAKE_THREAD_LIBS_INIT})
 		message(STATUS "\t- threads")
 	endif ()
 
-	if ("${HAVE_BOOST}" GREATER -1 OR ${LINK_ALL})
+	if ("${HAVE_BOOST}" GREATER -1)
 		# Boost
 		target_link_libraries(${DEPS_PROJECT} ${Boost_LIBRARIES})
 		target_include_directories(${DEPS_PROJECT} PUBLIC ${Boost_INCLUDE_DIR})
@@ -149,55 +130,60 @@ function (linkdeps)
 		message(STATUS "\t- boost")
 	endif ()
 
-	if ("${HAVE_OPENSSL}" GREATER -1 OR ${LINK_ALL})
+	if ("${HAVE_OPENSSL}" GREATER -1)
 		# OpenSSL
 		target_link_libraries(${DEPS_PROJECT} ${OPENSSL_LIBRARIES})
 		target_include_directories(${DEPS_PROJECT} PUBLIC ${OPENSSL_INCLUDE_DIR})
 		message(STATUS "\t- openssl ${OPENSSL_VERSION} (${OPENSSL_LIBRARIES})")
 	endif ()
 
-	if ("${HAVE_TOOLBOX}" GREATER -1 OR ${LINK_ALL})
+	if ("${HAVE_TOOLBOX}" GREATER -1)
 		# Toolbox++
 		target_link_libraries(${DEPS_PROJECT} toolboxpp)
 		target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/toolboxpp/include)
 		message(STATUS "\t- toolbox++")
 	endif ()
 
-	if ("${HAVE_JSON}" GREATER -1 OR ${LINK_ALL})
+	if ("${HAVE_JSON}" GREATER -1)
 		# JSON
 		target_link_libraries(${DEPS_PROJECT} nlohmann_json)
-		target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/json/include/nlohmann)
-		target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/json/include)
+		target_include_directories(${DEPS_PROJECT} PRIVATE ${PROJECT_LIBS_DIR}/json/include)
 		message(STATUS "\t- JSON")
 	endif ()
 
-	if ("${HAVE_CURL}" GREATER -1 OR ${LINK_ALL})
+	if ("${HAVE_CURL}" GREATER -1)
 		# CURL
 		target_link_libraries(${DEPS_PROJECT} ${CURL_LIBRARIES})
 		target_include_directories(${DEPS_PROJECT} PUBLIC ${CURL_INCLUDE_DIRS})
 		message(STATUS "\t- curl ${CURL_VERSION_STRING} (${CURL_LIBRARIES})")
 	endif ()
 
-	if ("${HAVE_FMT}" GREATER -1 OR ${LINK_ALL})
+	if ("${HAVE_FMT}" GREATER -1)
 		# FMT
 		target_link_libraries(${DEPS_PROJECT} fmt::fmt)
-		target_include_directories(${DEPS_PROJECT} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libs/fmt)
+		target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/fmt)
 		message(STATUS "\t- fmt")
 	endif ()
 
-	if ("${HAVE_DATE}" GREATER -1 OR ${LINK_ALL})
+	if ("${HAVE_DATE}" GREATER -1)
 		# Date lib
 		target_link_libraries(${DEPS_PROJECT} tz)
-		target_include_directories(${DEPS_PROJECT} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libs/date/include)
+		target_link_libraries(${DEPS_PROJECT} date_interface)
+		target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/date/include)
 		message(STATUS "\t- date & timezone lib")
 	endif ()
 
-	if ("${HAVE_REDIS}" GREATER -1 OR ${LINK_ALL})
-		if (ENABLE_REDIS_TARGET)
-			# Redis (cpp_redis)
-			target_link_libraries(${DEPS_PROJECT} cpp_redis)
-			target_include_directories(${DEPS_PROJECT} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libs/cpp_redis/includes)
-			message(STATUS "\t- cpp_redis")
-		endif ()
+	if ("${HAVE_REDIS}" GREATER -1)
+		# Redis (cpp_redis)
+		target_link_libraries(${DEPS_PROJECT} cpp_redis)
+		target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/cpp_redis/includes)
+		message(STATUS "\t- cpp_redis")
+	endif ()
+
+	if ("${HAVE_AMQP}" GREATER -1)
+		# AMQP (amqpcpp)
+		target_link_libraries(${DEPS_PROJECT} amqpcpp)
+		target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/amqp/include)
+		message(STATUS "\t- AMQP")
 	endif ()
 endfunction ()

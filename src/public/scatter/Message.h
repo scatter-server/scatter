@@ -13,7 +13,7 @@
 #include <iostream>
 #include <type_traits>
 #include <toolboxpp.h>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 #include "ScatterCore.h"
 #include "unid.h"
 

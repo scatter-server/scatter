@@ -12,6 +12,7 @@
 #include <cpp_redis/core/client.hpp>
 #include <scatter/Target.h>
 #include <scatter/Message.h>
+#include <nlohmann/json.hpp>
 
 namespace wss {
 namespace event {

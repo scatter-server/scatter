@@ -16,7 +16,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <toolboxpp.h>
 #include <curl/curl.h>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 #include "StatusCode.h"
 #include "ScatterCore.h"
 #include "utility.hpp"

@@ -17,9 +17,9 @@
 #include <memory>
 #include <algorithm>
 #include <functional>
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 
-#include "cmdline.hpp"
+#include <cmdline.hpp>
 #include "../event/EventNotifier.h"
 #include "../restapi/ChatRestServer.h"
 #include "..//chat/ChatServer.h"

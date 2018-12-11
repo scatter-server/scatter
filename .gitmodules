@@ -25,3 +25,6 @@
 [submodule "libs/date"]
 	path = libs/date
 	url = https://github.com/HowardHinnant/date.git
+[submodule "libs/amqp-cpp"]
+	path = libs/amqp-cpp
+	url = https://github.com/CopernicaMarketingSoftware/AMQP-CPP.git

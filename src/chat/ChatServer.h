@@ -25,7 +25,7 @@
 #include <functional>
 #include <toolboxpp.h>
 #include <boost/thread.hpp>
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 #include "scatter/Message.h"
 #include "../ServerCore.h"
 #include "../base/StandaloneService.h"

@@ -12,7 +12,7 @@
 #include <string>
 #include <sstream>
 #include <memory>
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 #include "HttpClient.h"
 
 namespace wss {

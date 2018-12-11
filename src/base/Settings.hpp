@@ -9,7 +9,7 @@
 #ifndef SCATTER_SETTINGS_HPP
 #define SCATTER_SETTINGS_HPP
 
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 #include <boost/filesystem.hpp>
 #include <iostream>
 #include <thread>
@@ -55,6 +55,8 @@ struct Server {
   std::string timezone;
   std::vector<std::string> extSearchPaths;
   std::vector<std::string> defExtSearchPaths = {
+      "../lib",
+      "../lib64",
       "/usr/lib",
       "/usr/lib64",
       "/usr/local/lib",
@@ -112,6 +114,8 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
         in.server.extSearchPaths.push_back("");
         in.server.extSearchPaths.push_back(boost::filesystem::current_path().generic_string());
         in.server.extSearchPaths.insert(in.server.extSearchPaths.end(), in.server.defExtSearchPaths.begin(), in.server.defExtSearchPaths.end());
+    } else {
+        in.server.extSearchPaths = std::move(in.server.defExtSearchPaths);
     }
 
     if (server.find("secure") != server.end()) {

@@ -12,7 +12,7 @@
 #include <memory>
 #include <thread>
 #include <string>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 #include <scatter/ScatterCore.h>
 
 #include "base/ws/WebsocketServer.hpp"

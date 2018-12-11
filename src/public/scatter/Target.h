@@ -12,7 +12,7 @@
 #include <string>
 #include <dlfcn.h>
 #include <sys/stat.h>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 #include "Message.h"
 
 namespace wss {

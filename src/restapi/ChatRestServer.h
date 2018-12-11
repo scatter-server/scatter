@@ -14,7 +14,7 @@
 #include "../ServerCore.h"
 #include "RestServer.h"
 #include "scatter/Auth.h"
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 
 namespace wss {
 

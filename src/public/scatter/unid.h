@@ -12,7 +12,7 @@
 
 #include <string>
 #include <atomic>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 #include <fmt/format.h>
 
 namespace wss {

@@ -27,8 +27,7 @@ RUN sh /server/packaging/init_build.sh
 WORKDIR /server/_build
 
 # workaround for date library, it won't work from first configuring
-RUN cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_OS=debian-stretch -DENABLE_REDIS_TARGET=Off
-RUN cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_OS=debian-stretch -DENABLE_REDIS_TARGET=Off
+RUN cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_OS=debian-stretch
 RUN make
 RUN make install
 

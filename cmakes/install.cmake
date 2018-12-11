@@ -1,44 +1,55 @@
-message(STATUS "INSTALL: available")
+include(${PROJECT_ROOT}/cmakes/FindLinuxPlatform.cmake)
+include(FeatureSummary)
 
-set(PREFIX "/usr" CACHE PATH "Prefix prepended to install directories")
-set(CMAKE_INSTALL_PREFIX "${PREFIX}" CACHE INTERNAL "Prefix prepended to install directories" FORCE)
+if (NOT INSTALL_PREFIX)
+	set(CMAKE_INSTALL_PREFIX "/usr" CACHE INTERNAL "Prefix prepended to install directories" FORCE)
+else ()
+	set(CMAKE_INSTALL_PREFIX "${INSTALL_PREFIX}" CACHE INTERNAL "Prefix prepended to install directories" FORCE)
+endif ()
+
+message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_VENDOR "Eduard Maximovich")
 set(CPACK_PACKAGE_CONTACT "edward.vstock@gmail.com")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/scatter-server/scatter")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Simple, standalone, websocket high-performance message server, written in C++")
+set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_ROOT}/LICENSE")
+
 if (NOT "${BUILD_OS}" STREQUAL "")
 	set(CPACK_SYSTEM_NAME "linux-${BUILD_OS}-${PROJECT_ARCH}")
 else ()
 	set(CPACK_SYSTEM_NAME "linux-${PROJECT_ARCH}")
 endif ()
 
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "WebSocket message server")
 
 install(
-	TARGETS ${PROJECT_NAME}
+	TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_core
 	RUNTIME DESTINATION bin
+	ARCHIVE DESTINATION lib
+	LIBRARY DESTINATION lib
+	PUBLIC_HEADER DESTINATION include/scatter
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE #0755
 	GROUP_READ GROUP_EXECUTE
 	WORLD_READ WORLD_EXECUTE
 )
 
-install(
-	FILES ${CMAKE_CURRENT_SOURCE_DIR}/bin/config.json DESTINATION /etc/scatter/
-	PERMISSIONS OWNER_READ OWNER_WRITE #0644
-	GROUP_READ
-	WORLD_READ
-)
-
-include(cmakes/FindLinuxPlatform.cmake)
-include(FeatureSummary)
+if ("$ENV{USER}" STREQUAL "root")
+	install(
+		FILES ${PROJECT_ROOT}/bin/config.json DESTINATION /etc/scatter/
+		PERMISSIONS OWNER_READ OWNER_WRITE #0644
+		GROUP_READ
+		WORLD_READ
+	)
+endif ()
 
 if (IS_REDHAT)
 	set(SYSTEMD_SERVICE_PATH "/usr/lib/systemd/system")
 
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/scatter.service ${CMAKE_BINARY_DIR}/bin/scatter.service)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/install.sh ${CMAKE_BINARY_DIR}/bin/install.sh)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/uninstall.sh ${CMAKE_BINARY_DIR}/bin/uninstall.sh)
+	configure_file(${PROJECT_ROOT}/bin/scatter.service ${CMAKE_BINARY_DIR}/bin/scatter.service)
+	configure_file(${PROJECT_ROOT}/bin/install.sh ${CMAKE_BINARY_DIR}/bin/install.sh)
+	configure_file(${PROJECT_ROOT}/bin/uninstall.sh ${CMAKE_BINARY_DIR}/bin/uninstall.sh)
 
 	install(
 		FILES ${CMAKE_BINARY_DIR}/bin/scatter.service
@@ -64,9 +75,9 @@ if (IS_REDHAT)
 
 elseif (IS_DEBIAN)
 	set(SYSTEMD_SERVICE_PATH "/lib/systemd/system")
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/scatter.service ${CMAKE_BINARY_DIR}/bin/scatter.service)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/install.sh ${CMAKE_BINARY_DIR}/bin/install.sh)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bin/uninstall.sh ${CMAKE_BINARY_DIR}/bin/uninstall.sh)
+	configure_file(${PROJECT_ROOT}/bin/scatter.service ${CMAKE_BINARY_DIR}/bin/scatter.service)
+	configure_file(${PROJECT_ROOT}/bin/install.sh ${CMAKE_BINARY_DIR}/bin/install.sh)
+	configure_file(${PROJECT_ROOT}/bin/uninstall.sh ${CMAKE_BINARY_DIR}/bin/uninstall.sh)
 	install(
 		FILES ${CMAKE_BINARY_DIR}/bin/scatter.service
 		DESTINATION ${SYSTEMD_SERVICE_PATH}
@@ -91,7 +102,7 @@ elseif (IS_DEBIAN)
 	endif ()
 
 else ()
-	message(STATUS "Install target on this system is not supported")
+	message(WARNING "Packaging on this system is not supported")
 endif ()
 
 include(CPack)

@@ -1,0 +1,93 @@
+{
+  "definitions": {},
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/scatter/scatter/bin/local.config.json",
+  "type": "object",
+  "title": "AMQP config schema",
+  "properties": {
+    "host": {
+      "$id": "#/properties/host",
+      "type": "string",
+      "title": "Server host",
+      "default": "localhost",
+      "examples": [
+        "localhost"
+      ],
+      "pattern": "^(.*)$"
+    },
+    "port": {
+      "$id": "#/properties/port",
+      "type": "integer",
+      "title": "Port number",
+      "default": 5672,
+      "examples": [
+        5672
+      ],
+      "exclusiveMinimum": 0.0,
+      "exclusiveMaximum": 65536.0
+    },
+    "ssl": {
+      "$id": "#/properties/ssl",
+      "type": "boolean",
+      "title": "Enable SSL connection over AMQP",
+      "default": false,
+      "examples": [
+        false
+      ]
+    },
+    "user": {
+      "$id": "#/properties/user",
+      "type": "string",
+      "title": "AMQP user name",
+      "default": "guest",
+      "examples": [
+        "guest"
+      ],
+      "pattern": "^(.*)$"
+    },
+    "password": {
+      "$id": "#/properties/password",
+      "type": "string",
+      "title": "AMQP user password",
+      "default": "guest",
+      "examples": [
+        "guest"
+      ],
+      "pattern": "^(.*)$"
+    },
+    "vhost": {
+      "$id": "#/properties/vhost",
+      "type": "string",
+      "title": "Virtual host path",
+      "default": "/",
+      "examples": [
+        "/"
+      ],
+      "pattern": "^(.*)$"
+    },
+    "exchange": {
+      "$id": "#/properties/exchange",
+      "type": "string",
+      "title": "Exchange name",
+      "default": "amqp.fanout",
+      "examples": [
+        "amqp.fanout",
+        "amqp.direct"
+      ],
+      "pattern": "^(.*)$"
+    },
+    "queue": {
+      "$id": "#/properties/queue",
+      "type": "string",
+      "title": "Queue name",
+      "default": "scatter_event",
+      "examples": [
+        "scatter_event"
+      ],
+      "pattern": "^(.*)$"
+    }
+  },
+  "required": [
+    "queue"
+  ]
+}

@@ -16,9 +16,6 @@ if ("${BUILD_TYPE}" STREQUAL "debug")
 endif ()
 
 
-option(ENABLE_REDIS_TARGET "Enables redis target in event notifier" OFF)
-
-
 # apple
 if (APPLE)
 	add_definitions(-DSCATTER_LIB_EXT=dylib)
