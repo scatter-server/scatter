@@ -80,7 +80,6 @@ void wss::event::amqp::from_json(const nlohmann::json &j, wss::event::amqp::AMQP
 
 wss::event::AMQPTarget::AMQPTarget(const nlohmann::json &config) :
     Target(config),
-    success(false),
     cfg(new amqp::AMQPConfig),
     service(2),
     handler(service) {
@@ -98,6 +97,14 @@ wss::event::AMQPTarget::AMQPTarget(const nlohmann::json &config) :
     // we need a channel too
     channel = std::make_unique<AMQP::TcpChannel>(connection.get());
 
+    start();
+}
+wss::event::AMQPTarget::~AMQPTarget() {
+    stop();
+    delete cfg;
+}
+
+void wss::event::AMQPTarget::start() {
     channel->declareExchange(cfg->exchange.name, cfg->exchange.getType(), cfg->exchange.getFlags())
            .onSuccess([this]() {
              wss::Logger::get().info(__FILE__,
@@ -139,6 +146,8 @@ wss::event::AMQPTarget::AMQPTarget(const nlohmann::json &config) :
                                      "AMQP",
                                      fmt::format("Bind: queue={0}, exchange={1}, routing_key={2}",
                                                  cfg->queue.name, cfg->exchange.name, cfg->routingKey));
+
+             setValidState(true);
            })
            .onError([this](const char *err) {
              appendErrorMessage(std::string(err));
@@ -152,23 +161,27 @@ wss::event::AMQPTarget::AMQPTarget(const nlohmann::json &config) :
       service.run();
     });
 }
-wss::event::AMQPTarget::~AMQPTarget() {
-    stop();
-    delete cfg;
-    delete publishService;
-}
 
 void wss::event::AMQPTarget::stop() {
     connection->close();
     service.stop();
     publishService->join();
+    delete publishService;
+    setValidState(false);
 }
 
-bool wss::event::AMQPTarget::send(const wss::MessagePayload &payload, std::string &error) {
-    // now, only sequantially
-    // @TODO make parallel send, probably batched
+// now, only sequantially
+// @TODO make parallel send, probably batched
+void wss::event::AMQPTarget::send(const wss::MessagePayload &payload,
+                                  const wss::event::Target::OnSendSuccess &successCallback,
+                                  const wss::event::Target::OnSendError &errorCallback) {
+
+    if (!isValid()) {
+        errorCallback("AMQP is in error state");
+        return;
+    }
+
     m_sendLock.lock();
-    success = false;
 
     try {
         channel->startTransaction();
@@ -182,22 +195,21 @@ bool wss::event::AMQPTarget::send(const wss::MessagePayload &payload, std::strin
         );
 
         channel->commitTransaction()
-               .onError([this, &error](const char *msg) {
-                 error = std::string(msg);
+               .onError([this, &errorCallback](const char *msg) {
+                 errorCallback(std::string(msg));
                  m_sendLock.unlock();
                })
-               .onSuccess([this]() {
-                 success = true;
+               .onSuccess([this, &successCallback]() {
+                 successCallback();
                  m_sendLock.unlock();
                });
 
     } catch (const std::exception &e) {
-        error = e.what();
+        errorCallback(e.what());
         m_sendLock.unlock();
     }
-
-    return success;
 }
+
 std::string wss::event::AMQPTarget::getType() {
     return "amqp";
 }

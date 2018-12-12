@@ -114,6 +114,9 @@ class EventNotifier : public virtual wss::StandaloneService {
     /// \param hasSent is recipient online and recieved websocket frame
     void onMessage(wss::MessagePayload &&payload);
 
+    /// \brief Call target method "send"
+    void executeOnTarget(wss::event::EventNotifier::SendStatus);
+
     /// \brief Calling when can't send message to main target
     void onErrorSending(wss::event::EventNotifier::SendStatus &&status);
 

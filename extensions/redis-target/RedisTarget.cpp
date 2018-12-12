@@ -52,29 +52,31 @@ wss::event::RedisTarget::RedisTarget(const nlohmann::json &config) :
     client.sync_commit();
 }
 
-bool wss::event::RedisTarget::send(const wss::MessagePayload &msg, std::string &err) {
-    const std::string jsonMsg = msg.toJson();
+void wss::event::RedisTarget::send(const wss::MessagePayload &payload,
+                                   const wss::event::Target::OnSendSuccess &successCallback,
+                                   const wss::event::Target::OnSendError &errorCallback) {
+    const std::string jsonMsg = payload.toJson();
 
-    bool success = true;
-
-    const auto result = [&success, &err](const cpp_redis::reply &reply) {
+    const auto result = [&errorCallback, &successCallback](const cpp_redis::reply &reply) {
       if (reply.is_error()) {
-          success = false;
-          err = reply.error();
+          errorCallback(reply.error());
+      } else {
+          successCallback();
       }
     };
 
     switch (mode) {
-        case Queue:client.rpush(modeTargetName, {msg.toJson()}, result);
+        case Queue:client.rpush(modeTargetName, {jsonMsg}, result);
             break;
-        case Channel:client.publish(modeTargetName, msg.toJson(), result);
+        case Channel:client.publish(modeTargetName, jsonMsg, result);
             break;
     }
 
-    client.sync_commit();
-
-    return success;
+    // async commit
+    client.commit();
 }
+
+
 std::string wss::event::RedisTarget::getType() {
     return "redis";
 }

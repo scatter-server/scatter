@@ -9,7 +9,9 @@
 #include "PostbackTarget.h"
 #include <type_traits>
 
-bool wss::event::PostbackTarget::send(const wss::MessagePayload &payload, std::string &error) {
+void wss::event::PostbackTarget::send(const wss::MessagePayload &payload,
+                                      const wss::event::Target::OnSendSuccess &successCallback,
+                                      const wss::event::Target::OnSendError &errorCallback) {
     const std::string out = payload.toJson();
     if (out.length() < 1000) {
         //L_DEBUG_F("Event-Send", "Request body: %s", out.c_str());
@@ -26,10 +28,11 @@ bool wss::event::PostbackTarget::send(const wss::MessagePayload &payload, std::s
     std::stringstream ss;
     ss << response.statusMessage << "\n" << response.data;
     if (!success) {
-        error = ss.str();
+        errorCallback(ss.str());
+        return;
     }
 
-    return success;
+    successCallback();
 }
 
 std::string wss::event::PostbackTarget::getType() {

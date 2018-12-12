@@ -26,7 +26,9 @@ class RedisTarget : public wss::event::Target {
     RedisTarget(const nlohmann::json &config);
     ~RedisTarget();
 
-    bool send(const wss::MessagePayload &payload, std::string &error) override;
+    void send(const wss::MessagePayload &payload,
+              const OnSendSuccess &successCallback,
+              const OnSendError &errorCallback) override;
     std::string getType() override;
 
  private:

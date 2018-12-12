@@ -127,24 +127,125 @@ void wss::event::EventNotifier::onStop() {
     m_threadGroup.interrupt_all();
 }
 
+void wss::event::EventNotifier::executeOnTarget(wss::event::EventNotifier::SendStatus s) {
+    // prepare timer, we must receive callback, for 3*3 seconds, otherwise break trying to send and re-enqueue message
+    // in any case, we must deliver message, event if it will be sent in a next hours
+    // todo: persistency (again, i thing about it again, very bad idea to store all undelivered messages in memory)
+    std::mutex waitMutex;
+    std::unique_lock<std::mutex> lock(waitMutex);
+    std::condition_variable cv;
+    // maximum wait for receve callbacks = 3 times by 3 seconds
+    // see below cv.wait_for(lock, std::chrono::seconds(3))
+    const int maxTries = 3;
+    int tries = 0;
+
+    SendStatus status = s;
+    bool complete = false;
+
+    // sending
+    status.target->send(
+        status.payload,
+        // success callback
+        [this, &status, &complete]() {
+          Logger::get().debug(__FILE__,
+                              __LINE__,
+                              "Event::Send",
+                              fmt::format("Message has sent to target: {0}", status.target->getType()));
+
+          status.hasSent = true;
+          complete = true;
+          // waking up main loop
+          // see handleMessageQueue
+          m_readCondition.notify_one();
+        },
+        // error callback
+        [this, &status, &complete](const std::string errorMessage) {
+          status.hasSent = false;
+          if (m_enableRetry) {
+              Logger::get().debug(__FILE__,
+                                  __LINE__,
+                                  "Event::Send",
+                                  fmt::format("Can't send message to target {0}: {1}",
+                                              status.target->getType(),
+                                              errorMessage));
+
+              // if tries < maxRetries
+              if (status.sendTries < m_maxRetries) {
+                  status.sendTries++;
+                  status.sendTime = std::time(nullptr);
+                  m_sendQueue.enqueue(status);
+              } else {
+                  // can't send over maxTries times
+                  // notify listeners
+                  for (auto &listener: m_sendErrorListeners) {
+                      listener(std::move(status));
+                  }
+              }
+          } else {
+              // our target is in error state, probably some target server unavailable,
+              // add to queue, wait for target be in ready-state
+              if (!status.target->isValid()) {
+                  m_sendQueue.enqueue(status);
+                  Logger::get().debug(__FILE__,
+                                      __LINE__,
+                                      "Event::Send",
+                                      fmt::format(
+                                          "Can't send message to target {0}: {1} - Target is in error state, re-enqueue message.",
+                                          status.target->getType(),
+                                          status.sendResult));
+              } else {
+                  // everything is bad, but don't do anything with it
+                  Logger::get().debug(__FILE__,
+                                      __LINE__,
+                                      "Event::Send",
+                                      fmt::format("Can't send message to target {0}: {1}",
+                                                  status.target->getType(),
+                                                  status.sendResult));
+              }
+          }
+
+          complete = true;
+          m_readCondition.notify_one();
+        });
+
+    // spurious wake protection with simple bool variable
+    while (!complete) {
+        cv.wait_for(lock, std::chrono::seconds(3));
+        tries++;
+        if (tries >= maxTries) {
+            // re-enqueue undelivered
+            m_sendQueue.enqueue(status);
+            break;
+        }
+    }
+}
+
 void wss::event::EventNotifier::handleMessageQueue() {
     std::unique_lock<std::mutex> lock(m_readMutex);
     const auto &ready = [this](SendStatus status) {
+      // don't send to target, which is feeling bad
+      if (!status.target->isValid()) {
+          return false;
+      }
       if (!m_enableRetry) return true;
 
       const long diff = abs(std::time(nullptr) - status.sendTime);
       return diff >= m_retryIntervalSeconds;
     };
 
+    // handle queue
     while (m_keepGoing) {
         // @TODO play around this time, check performance and cpu consumption
 
+        // wait for new messages or something else
+        // see EventNotifier::executeOnTarget
         m_readCondition.wait_for(lock, std::chrono::seconds(m_retryIntervalSeconds));
 
         std::vector<SendStatus> bulk;
 
         try {
             size_t extract;
+            // get portions size
             const size_t approxSize = m_sendQueue.size_approx();
             if (approxSize > m_maxParallelWorkers) {
                 // maximum connections per cycle
@@ -153,9 +254,11 @@ void wss::event::EventNotifier::handleMessageQueue() {
                 extract = approxSize;
             }
 
+            // prepare portion of messages to send
             bulk.resize(extract);
             m_sendQueue.try_dequeue_bulk(bulk.begin(), bulk.size());
         } catch (const std::exception &e) {
+            //@TODO test this case, i've never catched it
             L_DEBUG_F("Event::Send", "Can't dequeue bulk: %s", e.what());
             continue;
         }
@@ -167,40 +270,9 @@ void wss::event::EventNotifier::handleMessageQueue() {
                 continue;
             }
 
-            auto sender = boost::thread([this, s = std::move(it)]() {
-              SendStatus status = s;
-              status.hasSent = status.target->send(status.payload, status.sendResult);
-              if (m_enableRetry && !status.hasSent) {
-                  Logger::get().debug(__FILE__,
-                                      __LINE__,
-                                      "Event::Send",
-                                      fmt::format("Can't send message to target {0}: {1}",
-                                                  status.target->getType(),
-                                                  status.sendResult));
-
-                  m_readCondition.notify_one();
-
-                  // if tries < maxRetries
-                  if (status.sendTries < m_maxRetries) {
-                      status.sendTries++;
-                      status.sendTime = std::time(nullptr);
-                      m_sendQueue.enqueue(status);
-                  } else {
-                      // can't send over maxTries times
-                      // notify listeners
-                      for (auto &listener: m_sendErrorListeners) {
-                          listener(std::move(status));
-                      }
-                  }
-              } else {
-                  Logger::get().debug(__FILE__,
-                                      __LINE__,
-                                      "Event::Send",
-                                      fmt::format("Message has sent to target: {0}", status.target->getType()));
-              }
-            });
+            auto st = boost::thread(boost::bind(&EventNotifier::executeOnTarget, this, it));
             // we don't need to join this thread back, we just need to send, and if not, re-enqueue payload
-            sender.detach();
+            st.detach();
 
             i++;
         }

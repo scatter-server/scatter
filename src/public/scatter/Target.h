@@ -12,6 +12,8 @@
 #include <string>
 #include <dlfcn.h>
 #include <sys/stat.h>
+#include <functional>
+#include <atomic>
 #include <nlohmann/json.hpp>
 #include "Message.h"
 
@@ -30,6 +32,8 @@ class Target {
     // DEFS
     typedef Target *(CreateFunc)(const nlohmann::json &);
     typedef void    (ReleaseFunc)(Target *);
+    using OnSendSuccess = std::function<void()>;
+    using OnSendError = std::function<void(const std::string error)>;
 
     /// \brief Accept json config of entire target object
     /// \param config
@@ -41,17 +45,21 @@ class Target {
 
     virtual ~Target() = default;
 
-    /// \brief Send event to entire target
+    /// \brief Send event to entire target. This method called from separate thread, always!
+    /// Don't use unsupported (non-thread-safe) shared references for whole object, create them instantly instead.
     /// \param payload Payload to send
-    /// \param error if method returned false, error will contains error message
-    /// \return true if sending complete
-    virtual bool send(const wss::MessagePayload &payload, std::string &error) = 0;
+    /// \param successCallback This callback MUST be called when sent event is success
+    /// \param errorCallback The same, but when error occurred
+    /// If no one method has been called, EventNotifier can be broken (for now, in the future, i'll make some timer)
+    virtual void send(const wss::MessagePayload &payload,
+                      const OnSendSuccess &successCallback,
+                      const OnSendError &errorCallback) = 0;
     virtual std::string getType() = 0;
 
     virtual /// \brief Check target is in valid state
     /// \return valid state of target object
     bool isValid() const {
-        return m_validState;
+        return m_validState.load();
     }
 
     virtual /// \brief If target is not valid, message will be available
@@ -96,10 +104,10 @@ class Target {
         m_errorMessage = fmt::format("{0}\n{1}", m_errorMessage, msg);
     }
 
-    virtual /// \brief Appends to existing message new message separated by new line. If message did not set before, it will be a single message.
+    /// \brief Appends to existing message new message separated by new line. If message did not set before, it will be a single message.
     /// Mark object as in invalid state/
     /// \param msg lvalue error message
-    void appendErrorMessage(const std::string &msg) {
+    virtual void appendErrorMessage(const std::string &msg) {
         m_validState = false;
         if (m_errorMessage.empty()) {
             setErrorMessage(msg);
@@ -108,9 +116,13 @@ class Target {
 
         m_errorMessage = fmt::format("{0}\n{1}", m_errorMessage, msg);
     }
+
+    virtual void setValidState(bool isInValidState) {
+        m_validState = isInValidState;
+    }
  private:
     nlohmann::json m_config;
-    bool m_validState;
+    std::atomic_bool m_validState;
     std::string m_errorMessage;
     std::vector<std::shared_ptr<wss::event::Target>> fallbackTargets;
 };
@@ -144,8 +156,10 @@ class TargetLoader final : public Target {
         return m_target;
     }
 
-    bool send(const wss::MessagePayload &payload, std::string &error) override {
-        return m_target->send(payload, error);
+    void send(const wss::MessagePayload &payload,
+              const OnSendSuccess &successCallback,
+              const OnSendError &errorCallback) override {
+        m_target->send(payload, successCallback, errorCallback);
     }
     std::string getType() override {
         return m_target->getType();
@@ -224,6 +238,9 @@ class TargetLoader final : public Target {
     }
     void appendErrorMessage(const std::string &msg) override {
         m_target->appendErrorMessage(msg);
+    }
+    void setValidState(bool isInValidState) override {
+        m_target->setValidState(isInValidState);
     }
 
  private:

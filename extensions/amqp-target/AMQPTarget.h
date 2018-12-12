@@ -129,11 +129,12 @@ class AMQPTarget : public wss::event::Target {
     explicit AMQPTarget(const json &config);
     virtual ~AMQPTarget();
 
-    bool send(const wss::MessagePayload &payload, std::string &error) override;
+    void send(const wss::MessagePayload &payload,
+              const OnSendSuccess &successCallback,
+              const OnSendError &errorCallback) override;
     std::string getType() override;
 
  private:
-    bool success;
     std::mutex m_sendLock;
 
     amqp::AMQPConfig *cfg;
@@ -144,6 +145,7 @@ class AMQPTarget : public wss::event::Target {
     boost::thread *publishService;
 
     void stop();
+    void start();
 };
 
 extern "C" SCATTER_EXPORT Target *target_create(const nlohmann::json &config);

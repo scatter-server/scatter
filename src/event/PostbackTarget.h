@@ -25,7 +25,10 @@ class PostbackTarget : public Target {
     /// \param config
     explicit PostbackTarget(const json &config);
 
-    bool send(const wss::MessagePayload &payload, std::string &error) override;
+    void send(const wss::MessagePayload &payload,
+              const OnSendSuccess &successCallback,
+              const OnSendError &errorCallback) override;
+
     std::string getType() override;
 
  protected:
