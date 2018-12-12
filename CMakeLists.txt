@@ -130,3 +130,17 @@ if (ENABLE_AMQP_TARGET)
 endif ()
 
 
+###################################
+# Libevent
+###################################
+
+find_library(LIBEVENT_LIB event)
+
+#message("LIBEVENT: ${LIBEVENT_LIB}")
+add_executable(amqpcpp_libevent_example libs/amqp-cpp/examples/libevent.cpp)
+add_dependencies(amqpcpp_libevent_example amqpcpp)
+target_link_libraries(amqpcpp_libevent_example amqpcpp ${LIBEVENT_LIB} pthread dl)
+linkdeps(TARGET amqpcpp_libevent_example DEPENDENCIES openssl)
+target_include_directories(amqpcpp_libevent_example PUBLIC /usr/local/include)
+
+

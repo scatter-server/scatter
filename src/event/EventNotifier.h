@@ -54,7 +54,6 @@ class EventNotifier : public virtual wss::StandaloneService {
       int sendTries;
       int sendRetryIndex;
       bool hasSent = false;
-      std::string sendResult;
       std::queue<std::shared_ptr<wss::event::Target>> fallbackQueue;
 
       SendStatus(std::shared_ptr<wss::event::Target> target,

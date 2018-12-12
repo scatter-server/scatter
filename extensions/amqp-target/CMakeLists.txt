@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(SRC_FILES
     AMQPTarget.cpp
     AMQPTarget.h
-    )
+    ScatterBoostAsioHandler.h)
 
 add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
 target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)

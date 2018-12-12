@@ -9,6 +9,7 @@
 
 #include <atomic>
 #include <openssl/ssl.h>
+#include <boost/chrono.hpp>
 #include "AMQPTarget.h"
 
 const std::unordered_map<std::string, AMQP::ExchangeType> wss::event::amqp::AMQP_EXCHANGE_TYPE_MAP = {
@@ -80,93 +81,132 @@ void wss::event::amqp::from_json(const nlohmann::json &j, wss::event::amqp::AMQP
 
 wss::event::AMQPTarget::AMQPTarget(const nlohmann::json &config) :
     Target(config),
-    cfg(new amqp::AMQPConfig),
-    service(2),
-    handler(service) {
-    *cfg = config;
+    m_onError(std::bind(&AMQPTarget::onConnectionError, this, std::placeholders::_1, std::placeholders::_2)),
+    m_running(true),
+    m_cfg() {
 
+    m_cfg = config;
 
     // https://github.com/CopernicaMarketingSoftware/AMQP-CPP/tree/v4.0.1
 
-    if (cfg->ssl) {
+    if (m_cfg.ssl) {
         OPENSSL_init_ssl(0, NULL);
     }
-    // make a connection
-    connection = std::make_unique<AMQP::TcpConnection>(&handler, cfg->buildAddress());
 
-    // we need a channel too
-    channel = std::make_unique<AMQP::TcpChannel>(connection.get());
+    m_heartbeatThread = new boost::thread([this]() {
+      while (m_running) {
+          if (m_connection && m_connection->usable()) {
+              m_connection->heartbeat();
+          }
+
+          boost::this_thread::sleep_for(boost::chrono::seconds(10));
+      }
+    });
 
     start();
 }
 wss::event::AMQPTarget::~AMQPTarget() {
     stop();
-    delete cfg;
+    if (m_workerThread) {
+        m_workerThread.interrupt();
+    }
+    delete m_workerThread;
+    m_running = false;
+    m_heartbeatThread->join();
+}
+
+void wss::event::AMQPTarget::onConnectionError(AMQP::TcpConnection */*conn*/, const char *errorMessage) {
+    wss::Logger::get().warning(__FILE__, __LINE__, "AMQP", fmt::format("AMQP connection error: {0}", errorMessage));
+    boost::this_thread::sleep_for(boost::chrono::seconds(5));
+
+    try {
+        {
+            wss::Logger::get().debug(__FILE__, __LINE__, "AMQP", "Reconnecting...");
+            stop();
+            start();
+        }
+
+    } catch (const std::exception &e) {
+        wss::Logger::get()
+            .warning(__FILE__, __LINE__, "AMQP", fmt::format("Unable to restart AMQP connection: {0}", e.what()));
+        throw std::runtime_error(fmt::format("Unable to restart AMQP connection: {0}", e.what()));
+    }
 }
 
 void wss::event::AMQPTarget::start() {
-    channel->declareExchange(cfg->exchange.name, cfg->exchange.getType(), cfg->exchange.getFlags())
-           .onSuccess([this]() {
-             wss::Logger::get().info(__FILE__,
-                                     __LINE__,
-                                     "AMQP",
-                                     fmt::format("Declare: exchange={0}, type={1}, flags={2}",
-                                                 cfg->exchange.name,
-                                                 cfg->exchange.type,
-                                                 cfg->exchange.flags)
-             );
-           })
-           .onError([this](const char *msg) {
-             appendErrorMessage(std::string(msg));
-             wss::Logger::get()
-                 .debug(__FILE__, __LINE__, "AMQP", fmt::format("Unable to declare exchange: {0}", msg));
-           });
+    m_connectionService = new boost::asio::io_service(2);
+    m_handler = new amqp::ScatterBoostAsioHandler(*m_connectionService);
+    m_handler->setOnErrorListener(m_onError);
+
+    // make a connection
+    m_connection = std::make_unique<AMQP::TcpConnection>(m_handler, m_cfg.buildAddress());
+
+    // we need a channel too
+    m_channel = std::make_unique<AMQP::TcpChannel>(m_connection.get());
+
+    m_channel->declareExchange(m_cfg.exchange.name, m_cfg.exchange.getType(), m_cfg.exchange.getFlags())
+             .onSuccess([this]() {
+               wss::Logger::get().info(__FILE__,
+                                       __LINE__,
+                                       "AMQP",
+                                       fmt::format("Declare: exchange={0}, type={1}, flags={2}",
+                                                   m_cfg.exchange.name,
+                                                   m_cfg.exchange.type,
+                                                   m_cfg.exchange.flags)
+               );
+             })
+             .onError([this](const char *msg) {
+               appendErrorMessage(std::string(msg));
+               wss::Logger::get()
+                   .debug(__FILE__, __LINE__, "AMQP", fmt::format("Unable to declare exchange: {0}", msg));
+             });
 
     // create a temporary queue
-    channel->declareQueue(cfg->queue.name, cfg->queue.getFlags())
-           .onSuccess([this](const std::string &name, uint32_t messagecount, uint32_t consumercount) {
-             wss::Logger::get().info(__FILE__,
-                                     __LINE__,
-                                     "AMQP",
-                                     fmt::format("Declare: queue={0}, flags={1}, consumer_tag={2}, mcnt={3}, cc={4}",
-                                                 cfg->queue.name,
-                                                 cfg->queue.flags,
-                                                 name, messagecount, consumercount));
-           })
-           .onError([this](const char *msg) {
-             appendErrorMessage(std::string(msg));
-             wss::Logger::get()
-                 .error(__FILE__, __LINE__, "AMQP", fmt::format("Unable to declare queue: {0}", msg));
-           });
+    m_channel->declareQueue(m_cfg.queue.name, m_cfg.queue.getFlags())
+             .onSuccess([this](const std::string &name, uint32_t messagecount, uint32_t consumercount) {
+               wss::Logger::get().info(__FILE__,
+                                       __LINE__,
+                                       "AMQP",
+                                       fmt::format("Declare: queue={0}, flags={1}, consumer_tag={2}, mcnt={3}, cc={4}",
+                                                   m_cfg.queue.name,
+                                                   m_cfg.queue.flags,
+                                                   name, messagecount, consumercount));
+             })
+             .onError([this](const char *msg) {
+               appendErrorMessage(std::string(msg));
+               wss::Logger::get()
+                   .error(__FILE__, __LINE__, "AMQP", fmt::format("Unable to declare queue: {0}", msg));
+             });
 
-    channel->bindQueue(cfg->exchange.name, cfg->queue.name, cfg->routingKey)
-           .onSuccess([this]() {
-             wss::Logger::get().info(__FILE__,
-                                     __LINE__,
-                                     "AMQP",
-                                     fmt::format("Bind: queue={0}, exchange={1}, routing_key={2}",
-                                                 cfg->queue.name, cfg->exchange.name, cfg->routingKey));
+    m_channel->bindQueue(m_cfg.exchange.name, m_cfg.queue.name, m_cfg.routingKey)
+             .onSuccess([this]() {
+               wss::Logger::get().info(__FILE__,
+                                       __LINE__,
+                                       "AMQP",
+                                       fmt::format("Bind: queue={0}, exchange={1}, routing_key={2}",
+                                                   m_cfg.queue.name, m_cfg.exchange.name, m_cfg.routingKey));
 
-             setValidState(true);
-           })
-           .onError([this](const char *err) {
-             appendErrorMessage(std::string(err));
-             wss::Logger::get()
-                 .error(__FILE__, __LINE__, "AMQP", fmt::format("Unable to bind queue: {0}", err));
-           });
+               setValidState(true);
+             })
+             .onError([this](const char *err) {
+               appendErrorMessage(std::string(err));
+               wss::Logger::get()
+                   .error(__FILE__, __LINE__, "AMQP", fmt::format("Unable to bind queue: {0}", err));
+             });
 
-    publishService = new boost::thread([this]() {
-      // run the handler
-      // a t the moment, one will need SIGINT to stop.  In time, should add signal handling through boost API.
-      service.run();
+    m_workerThread = new boost::thread([this]() {
+      m_connectionService->run();
     });
 }
 
 void wss::event::AMQPTarget::stop() {
-    connection->close();
-    service.stop();
-    publishService->join();
-    delete publishService;
+    m_connection->close();
+    m_channel = nullptr;
+    m_connection = nullptr;
+    delete m_handler;
+    m_connectionService->stop();
+    m_connectionService = nullptr;
+
     setValidState(false);
 }
 
@@ -176,33 +216,31 @@ void wss::event::AMQPTarget::send(const wss::MessagePayload &payload,
                                   const wss::event::Target::OnSendSuccess &successCallback,
                                   const wss::event::Target::OnSendError &errorCallback) {
 
-    if (!isValid()) {
-        errorCallback("AMQP is in error state");
-        return;
-    }
-
     m_sendLock.lock();
 
     try {
-        channel->startTransaction();
+        m_channel->startTransaction();
         const std::string pl = payload.toJson();
         const char *message = pl.c_str();
-        channel->publish(
-            cfg->exchange.name,
-            cfg->routingKey,
+        m_channel->publish(
+            m_cfg.exchange.name,
+            m_cfg.routingKey,
             message,
-            cfg->getMessageFlags()
+            m_cfg.getMessageFlags()
         );
 
-        channel->commitTransaction()
-               .onError([this, &errorCallback](const char *msg) {
-                 errorCallback(std::string(msg));
-                 m_sendLock.unlock();
-               })
-               .onSuccess([this, &successCallback]() {
-                 successCallback();
-                 m_sendLock.unlock();
-               });
+        m_channel->commitTransaction()
+                 .onError([this, &errorCallback](const char *msg) {
+                   errorCallback(std::string(msg));
+                   if (m_connection->closed()) {
+                       setValidState(false);
+                   }
+                   m_sendLock.unlock();
+                 })
+                 .onSuccess([this, &successCallback]() {
+                   successCallback();
+                   m_sendLock.unlock();
+                 });
 
     } catch (const std::exception &e) {
         errorCallback(e.what());

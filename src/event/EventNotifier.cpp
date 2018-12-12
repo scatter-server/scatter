@@ -143,6 +143,13 @@ void wss::event::EventNotifier::executeOnTarget(wss::event::EventNotifier::SendS
     bool complete = false;
 
     // sending
+
+    if (!status.target->isValid()) {
+
+        m_sendQueue.enqueue(status);
+        return;
+    }
+
     status.target->send(
         status.payload,
         // success callback
@@ -192,7 +199,7 @@ void wss::event::EventNotifier::executeOnTarget(wss::event::EventNotifier::SendS
                                       fmt::format(
                                           "Can't send message to target {0}: {1} - Target is in error state, re-enqueue message.",
                                           status.target->getType(),
-                                          status.sendResult));
+                                          errorMessage));
               } else {
                   // everything is bad, but don't do anything with it
                   Logger::get().debug(__FILE__,
@@ -200,7 +207,7 @@ void wss::event::EventNotifier::executeOnTarget(wss::event::EventNotifier::SendS
                                       "Event::Send",
                                       fmt::format("Can't send message to target {0}: {1}",
                                                   status.target->getType(),
-                                                  status.sendResult));
+                                                  errorMessage));
               }
           }
 

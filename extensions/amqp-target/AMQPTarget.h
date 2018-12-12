@@ -25,6 +25,7 @@
 #include <unordered_map>
 #include <toolboxpp.h>
 #include <mutex>
+#include "ScatterBoostAsioHandler.h"
 
 namespace wss {
 namespace event {
@@ -120,7 +121,7 @@ struct AMQPConfig {
       return AMQP::Address(ss.str());
   }
 
-  friend void from_json(const nlohmann::json &j, AMQPConfig &cfg);
+  friend void from_json(const nlohmann::json &j, AMQPConfig &);
 };
 }
 
@@ -135,14 +136,18 @@ class AMQPTarget : public wss::event::Target {
     std::string getType() override;
 
  private:
+    amqp::ScatterBoostAsioHandler::OnConnectionError m_onError;
     std::mutex m_sendLock;
+    std::atomic_bool m_running;
+    amqp::AMQPConfig m_cfg;
+    boost::asio::io_service *m_connectionService;
+    amqp::ScatterBoostAsioHandler *m_handler;
+    std::unique_ptr<AMQP::TcpConnection> m_connection;
+    std::unique_ptr<AMQP::TcpChannel> m_channel;
+    boost::thread *m_workerThread;
+    boost::thread *m_heartbeatThread;
 
-    amqp::AMQPConfig *cfg;
-    boost::asio::io_service service;
-    AMQP::LibBoostAsioHandler handler;
-    std::unique_ptr<AMQP::TcpConnection> connection;
-    std::unique_ptr<AMQP::TcpChannel> channel;
-    boost::thread *publishService;
+    void onConnectionError(AMQP::TcpConnection *conn, const char *errorMessage);
 
     void stop();
     void start();
@@ -152,8 +157,5 @@ extern "C" SCATTER_EXPORT Target *target_create(const nlohmann::json &config);
 extern "C" SCATTER_EXPORT void target_release(Target *target);
 }
 }
-
-void from_json(const nlohmann::json &j, wss::event::amqp::AMQPConfig &cfg);
-void to_json(nlohmann::json &j, const wss::event::amqp::AMQPConfig &cfg);
 
 #endif //SCATTER_SERVER_AMQPTARGET_H

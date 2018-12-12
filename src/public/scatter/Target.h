@@ -204,8 +204,8 @@ class TargetLoader final : public Target {
             return false;
         }
 
-        auto *f_init = (Target::CreateFunc *) dlsym(m_imageHandle, "target_create");
-        if (f_init == nullptr) {
+        m_createFunc = (Target::CreateFunc *) dlsym(m_imageHandle, "target_create");
+        if (m_createFunc == nullptr) {
             loadErrorRef = dlerror();
             return false;
         }
@@ -217,7 +217,7 @@ class TargetLoader final : public Target {
         }
 
         try {
-            m_target = f_init(m_config);
+            m_target = m_createFunc(m_config);
         } catch (const std::exception &e) {
             loadErrorRef = e.what();
             return false;
@@ -249,6 +249,7 @@ class TargetLoader final : public Target {
     std::string m_targetLib;
     void *m_imageHandle;
     Target::ReleaseFunc *m_releaseFunc;
+    Target::CreateFunc *m_createFunc;
 
     bool fileExists(const std::string &path) {
         struct stat s;
