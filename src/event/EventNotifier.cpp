@@ -201,6 +201,11 @@ void wss::event::EventNotifier::executeOnTarget(wss::event::EventNotifier::SendS
                                           status.target->getType(),
                                           errorMessage));
               } else {
+                  // can't send via current target, move to listeners and fallback targets (if they're exists)
+                  // notify listeners
+                  for (auto &listener: m_sendErrorListeners) {
+                      listener(std::move(status));
+                  }
                   // everything is bad, but don't do anything with it
                   Logger::get().debug(__FILE__,
                                       __LINE__,
