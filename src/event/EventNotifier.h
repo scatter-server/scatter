@@ -32,7 +32,11 @@ namespace event {
 
 using toolboxpp::Logger;
 
+class TargetExecutor;
+
 class EventNotifier : public virtual wss::StandaloneService {
+    friend class TargetExecutor;
+
  private:
     /// \brief Creates event target instance from global server config file.
     /// \param json Part of config.
@@ -52,8 +56,6 @@ class EventNotifier : public virtual wss::StandaloneService {
       wss::MessagePayload payload;
       std::time_t sendTime;
       int sendTries;
-      int sendRetryIndex;
-      bool hasSent = false;
       std::queue<std::shared_ptr<wss::event::Target>> fallbackQueue;
 
       SendStatus(std::shared_ptr<wss::event::Target> target,
@@ -113,11 +115,11 @@ class EventNotifier : public virtual wss::StandaloneService {
     /// \param hasSent is recipient online and recieved websocket frame
     void onMessage(wss::MessagePayload &&payload);
 
-    /// \brief Call target method "send"
-    void executeOnTarget(wss::event::EventNotifier::SendStatus);
-
     /// \brief Calling when can't send message to main target
     void onErrorSending(wss::event::EventNotifier::SendStatus &&status);
+
+    /// \brief Call target method "send"
+    void executeOnTarget(wss::event::EventNotifier::SendStatus);
 
     /// \brief Calling after event in separate thread (io_service.post)
     /// Adds message to send queue

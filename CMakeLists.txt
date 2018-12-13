@@ -3,7 +3,10 @@ cmake_minimum_required(VERSION 3.12)
 
 set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(PROJECT_LIBS_DIR ${PROJECT_ROOT}/libs)
+
+# c++14 - minimum, we're using generalized lambda capturing
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmakes/dependencies.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmakes/opts.cmake)
@@ -14,13 +17,6 @@ include_directories(src/public)
 if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Debug")
 endif ()
-
-### Configuration
-if (NOT CMAKE_INSTALL_PREFIX)
-	set(CMAKE_INSTALL_PREFIX /usr)
-endif ()
-message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
-
 
 if (APPLE)
 	add_definitions(-DSCATTER_LIB_SUFFIX="dylib")
@@ -101,8 +97,8 @@ else ()
 	set(CMAKE_CXX_LINKER_FLAGS "")
 endif ()
 
-
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -g3 -O0 -pedantic") #-fsanitize=thread -fno-omit-frame-pointer
+set(WARN_FLAGS "-pedantic -Werror -Wall -Wno-documentation-unknown-command -Wno-documentation -Wno-padded -Wno-switch-enum -Wno-undef -Wno-reserved-id-macro")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -g3 -O0 ${WARN_FLAGS}") #-fsanitize=thread -fno-omit-frame-pointer
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS} -O3")
 
 
@@ -130,17 +126,17 @@ if (ENABLE_AMQP_TARGET)
 endif ()
 
 
-###################################
-# Libevent
-###################################
-
-find_library(LIBEVENT_LIB event)
-
-#message("LIBEVENT: ${LIBEVENT_LIB}")
-add_executable(amqpcpp_libevent_example libs/amqp-cpp/examples/libevent.cpp)
-add_dependencies(amqpcpp_libevent_example amqpcpp)
-target_link_libraries(amqpcpp_libevent_example amqpcpp ${LIBEVENT_LIB} pthread dl)
-linkdeps(TARGET amqpcpp_libevent_example DEPENDENCIES openssl)
-target_include_directories(amqpcpp_libevent_example PUBLIC /usr/local/include)
+####################################
+## Libevent
+####################################
+#
+#find_library(LIBEVENT_LIB event)
+#
+##message("LIBEVENT: ${LIBEVENT_LIB}")
+#add_executable(amqpcpp_libevent_example libs/amqp-cpp/examples/libevent.cpp)
+#add_dependencies(amqpcpp_libevent_example amqpcpp)
+#target_link_libraries(amqpcpp_libevent_example amqpcpp ${LIBEVENT_LIB} pthread dl)
+#linkdeps(TARGET amqpcpp_libevent_example DEPENDENCIES openssl)
+#target_include_directories(amqpcpp_libevent_example PUBLIC /usr/local/include)
 
 

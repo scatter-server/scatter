@@ -56,15 +56,15 @@ class Target {
                       const OnSendError &errorCallback) = 0;
     virtual std::string getType() = 0;
 
-    virtual /// \brief Check target is in valid state
+    /// \brief Check target is in valid state
     /// \return valid state of target object
-    bool isValid() const {
+    virtual bool isValid() const {
         return m_validState.load();
     }
 
-    virtual /// \brief If target is not valid, message will be available
+    /// \brief If target is not valid, message will be available
     /// \return error message
-    std::string getErrorMessage() const {
+    virtual std::string getErrorMessage() const {
         return m_errorMessage;
     }
 
@@ -77,24 +77,24 @@ class Target {
     }
 
  protected:
-    virtual /// \brief Set error message to read when object is invalid state. Mark object as in invalid state/
+    /// \brief Set error message to read when object is invalid state. Mark object as in invalid state/
     /// \param msg
-    void setErrorMessage(const std::string &msg) {
+    virtual void setErrorMessage(const std::string &msg) {
         m_validState = false;
         m_errorMessage = msg;
     }
 
-    virtual /// \brief Set error message to read when object is invalid state. Mark object as in invalid state/
+    /// \brief Set error message to read when object is invalid state. Mark object as in invalid state/
     /// \param msg rvalue string
-    void setErrorMessage(std::string &&msg) {
+    virtual void setErrorMessage(std::string &&msg) {
         m_validState = false;
         m_errorMessage = std::move(msg);
     }
 
-    virtual /// \brief Appends to existing message new message separated by new line. If message did not set before, it will be a single message.
+    /// \brief Appends to existing message new message separated by new line. If message did not set before, it will be a single message.
     /// Mark object as in invalid state/
     /// \param msg rvalue error message
-    void appendErrorMessage(std::string &&msg) {
+    virtual void appendErrorMessage(std::string &&msg) {
         m_validState = false;
         if (m_errorMessage.empty()) {
             setErrorMessage(std::move(msg));

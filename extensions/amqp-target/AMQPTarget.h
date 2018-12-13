@@ -67,7 +67,7 @@ struct AMQPQueue {
       return stringToAmqpFlags(flags);
   }
 
-  friend void from_json(const nlohmann::json &j, AMQPQueue &cfg);
+  friend void from_json(const nlohmann::json &j, wss::event::amqp::AMQPQueue &cfg);
 };
 
 struct AMQPExchange {
@@ -82,7 +82,7 @@ struct AMQPExchange {
       return stringToExchangeType(type);
   }
 
-  friend void from_json(const nlohmann::json &j, AMQPExchange &cfg);
+  friend void from_json(const nlohmann::json &j, wss::event::amqp::AMQPExchange &cfg);
 };
 
 struct AMQPConfig {
@@ -121,9 +121,8 @@ struct AMQPConfig {
       return AMQP::Address(ss.str());
   }
 
-  friend void from_json(const nlohmann::json &j, AMQPConfig &);
+  friend void from_json(const nlohmann::json &j, wss::event::amqp::AMQPConfig &);
 };
-}
 
 class AMQPTarget : public wss::event::Target {
  public:
@@ -137,7 +136,7 @@ class AMQPTarget : public wss::event::Target {
 
  private:
     amqp::ScatterBoostAsioHandler::OnConnectionError m_onError;
-    std::mutex m_sendLock;
+    std::mutex m_connectionMutex;
     std::atomic_bool m_running;
     amqp::AMQPConfig m_cfg;
     boost::asio::io_service *m_connectionService;
@@ -153,8 +152,13 @@ class AMQPTarget : public wss::event::Target {
     void start();
 };
 
+void from_json(const nlohmann::json &j, wss::event::amqp::AMQPQueue &cfg);
+void from_json(const nlohmann::json &j, wss::event::amqp::AMQPExchange &cfg);
+void from_json(const nlohmann::json &j, wss::event::amqp::AMQPConfig &);
+
 extern "C" SCATTER_EXPORT Target *target_create(const nlohmann::json &config);
 extern "C" SCATTER_EXPORT void target_release(Target *target);
+}
 }
 }
 

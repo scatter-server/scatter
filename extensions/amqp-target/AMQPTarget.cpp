@@ -79,7 +79,7 @@ void wss::event::amqp::from_json(const nlohmann::json &j, wss::event::amqp::AMQP
     exchange.type = j.value("type", "direct");
 }
 
-wss::event::AMQPTarget::AMQPTarget(const nlohmann::json &config) :
+wss::event::amqp::AMQPTarget::AMQPTarget(const nlohmann::json &config) :
     Target(config),
     m_onError(std::bind(&AMQPTarget::onConnectionError, this, std::placeholders::_1, std::placeholders::_2)),
     m_running(true),
@@ -95,8 +95,11 @@ wss::event::AMQPTarget::AMQPTarget(const nlohmann::json &config) :
 
     m_heartbeatThread = new boost::thread([this]() {
       while (m_running) {
-          if (m_connection && m_connection->usable()) {
-              m_connection->heartbeat();
+          {
+              std::lock_guard<std::mutex> lock(m_connectionMutex);
+              if (m_connection && m_connection->usable()) {
+                  m_connection->heartbeat();
+              }
           }
 
           boost::this_thread::sleep_for(boost::chrono::seconds(10));
@@ -105,18 +108,16 @@ wss::event::AMQPTarget::AMQPTarget(const nlohmann::json &config) :
 
     start();
 }
-wss::event::AMQPTarget::~AMQPTarget() {
+wss::event::amqp::AMQPTarget::~AMQPTarget() {
     stop();
-    if (m_workerThread) {
-        m_workerThread.interrupt();
-    }
-    delete m_workerThread;
     m_running = false;
     m_heartbeatThread->join();
+    delete m_heartbeatThread;
 }
 
-void wss::event::AMQPTarget::onConnectionError(AMQP::TcpConnection */*conn*/, const char *errorMessage) {
+void wss::event::amqp::AMQPTarget::onConnectionError(AMQP::TcpConnection */*conn*/, const char *errorMessage) {
     wss::Logger::get().warning(__FILE__, __LINE__, "AMQP", fmt::format("AMQP connection error: {0}", errorMessage));
+    setValidState(false);
     boost::this_thread::sleep_for(boost::chrono::seconds(5));
 
     try {
@@ -133,7 +134,9 @@ void wss::event::AMQPTarget::onConnectionError(AMQP::TcpConnection */*conn*/, co
     }
 }
 
-void wss::event::AMQPTarget::start() {
+void wss::event::amqp::AMQPTarget::start() {
+    std::lock_guard<std::mutex> lock(m_connectionMutex);
+
     m_connectionService = new boost::asio::io_service(2);
     m_handler = new amqp::ScatterBoostAsioHandler(*m_connectionService);
     m_handler->setOnErrorListener(m_onError);
@@ -199,7 +202,8 @@ void wss::event::AMQPTarget::start() {
     });
 }
 
-void wss::event::AMQPTarget::stop() {
+void wss::event::amqp::AMQPTarget::stop() {
+    std::lock_guard<std::mutex> lock(m_connectionMutex);
     m_connection->close();
     m_channel = nullptr;
     m_connection = nullptr;
@@ -207,16 +211,21 @@ void wss::event::AMQPTarget::stop() {
     m_connectionService->stop();
     m_connectionService = nullptr;
 
+    if (m_workerThread) {
+        m_workerThread->interrupt();
+    }
+    delete m_workerThread;
+
     setValidState(false);
 }
 
 // now, only sequantially
 // @TODO make parallel send, probably batched
-void wss::event::AMQPTarget::send(const wss::MessagePayload &payload,
-                                  const wss::event::Target::OnSendSuccess &successCallback,
-                                  const wss::event::Target::OnSendError &errorCallback) {
+void wss::event::amqp::AMQPTarget::send(const wss::MessagePayload &payload,
+                                        const wss::event::Target::OnSendSuccess &successCallback,
+                                        const wss::event::Target::OnSendError &errorCallback) {
 
-    m_sendLock.lock();
+    m_connectionMutex.lock();
 
     try {
         m_channel->startTransaction();
@@ -235,27 +244,27 @@ void wss::event::AMQPTarget::send(const wss::MessagePayload &payload,
                    if (m_connection->closed()) {
                        setValidState(false);
                    }
-                   m_sendLock.unlock();
+                   m_connectionMutex.unlock();
                  })
                  .onSuccess([this, &successCallback]() {
                    successCallback();
-                   m_sendLock.unlock();
+                   m_connectionMutex.unlock();
                  });
 
     } catch (const std::exception &e) {
         errorCallback(e.what());
-        m_sendLock.unlock();
+        m_connectionMutex.unlock();
     }
 }
 
-std::string wss::event::AMQPTarget::getType() {
+std::string wss::event::amqp::AMQPTarget::getType() {
     return "amqp";
 }
 
-wss::event::Target *wss::event::target_create(const nlohmann::json &config) {
+wss::event::Target *wss::event::amqp::target_create(const nlohmann::json &config) {
     return new AMQPTarget(config);
 }
 
-void wss::event::target_release(wss::event::Target *target) {
+void wss::event::amqp::target_release(wss::event::Target *target) {
     delete target;
 }
