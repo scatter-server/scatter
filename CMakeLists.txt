@@ -97,8 +97,8 @@ else ()
 	set(CMAKE_CXX_LINKER_FLAGS "")
 endif ()
 
-set(WARN_FLAGS "-pedantic -Werror -Wall -Wno-documentation-unknown-command -Wno-documentation -Wno-padded -Wno-switch-enum -Wno-undef -Wno-reserved-id-macro")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -g3 -O0 ${WARN_FLAGS}") #-fsanitize=thread -fno-omit-frame-pointer
+set(WARN_FLAGS "-pedantic -Wall -Wno-padded -Wno-switch-enum -Wno-undef")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_FLAGS} -g3 -O0 ${WARN_FLAGS} -fno-omit-frame-pointer") #-fsanitize=thread -fno-omit-frame-pointer
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS} -O3")
 
 

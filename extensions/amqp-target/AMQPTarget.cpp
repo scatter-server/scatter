@@ -225,8 +225,8 @@ void wss::event::amqp::AMQPTarget::send(const wss::MessagePayload &payload,
                                         const wss::event::Target::OnSendSuccess &successCallback,
                                         const wss::event::Target::OnSendError &errorCallback) {
 
-    m_connectionMutex.lock();
-
+    std::lock_guard<std::mutex> lock(m_connectionMutex);
+    std::cout << "Begin send" << std::endl;
     try {
         m_channel->startTransaction();
         const std::string pl = payload.toJson();
@@ -239,22 +239,20 @@ void wss::event::amqp::AMQPTarget::send(const wss::MessagePayload &payload,
         );
 
         m_channel->commitTransaction()
-                 .onError([this, &errorCallback](const char *msg) {
-                   errorCallback(std::string(msg));
-                   if (m_connection->closed()) {
-                       setValidState(false);
-                   }
-                   m_connectionMutex.unlock();
+                 .onError([cb = std::move(errorCallback)](const char *msg) {
+                   std::cout << msg << std::endl;
+                   cb(std::string(msg));
                  })
-                 .onSuccess([this, &successCallback]() {
-                   successCallback();
-                   m_connectionMutex.unlock();
+                 .onSuccess([cb = std::move(successCallback)] {
+                   std::cout << "Sent" << std::endl;
+                   cb();
                  });
+
 
     } catch (const std::exception &e) {
         errorCallback(e.what());
-        m_connectionMutex.unlock();
     }
+    std::cout << "End send" << std::endl;
 }
 
 std::string wss::event::amqp::AMQPTarget::getType() {

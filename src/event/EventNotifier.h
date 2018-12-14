@@ -19,6 +19,8 @@
 #include <deque>
 #include <algorithm>
 #include <boost/thread.hpp>
+#include <boost/thread/condition_variable.hpp>
+#include <boost/atomic.hpp>
 #include <cmath>
 #include <boost/asio/io_service.hpp>
 #include "../chat/ChatServer.h"
@@ -129,9 +131,9 @@ class EventNotifier : public virtual wss::StandaloneService {
     /// \brief Running in separate thread with sleep timer. Handling queued messages and trying to send them
     void handleMessageQueue();
 
-    std::atomic_bool m_keepGoing;
-    std::condition_variable m_readCondition;
-    std::mutex m_readMutex;
+    boost::atomic_bool m_keepGoing;
+    boost::condition_variable m_readCondition;
+    boost::mutex m_readMutex;
 
     std::shared_ptr<wss::ChatServer> m_ws;
     const bool m_enableRetry;

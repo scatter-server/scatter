@@ -131,16 +131,16 @@ void wss::event::EventNotifier::executeOnTarget(wss::event::EventNotifier::SendS
     // prepare timer, we must receive callback, for 3*3 seconds, otherwise break trying to send and re-enqueue message
     // in any case, we must deliver message, event if it will be sent in a next hours
     // todo: persistency (again, i thing about it again, very bad idea to store all undelivered messages in memory)
-    std::mutex waitMutex;
-    std::unique_lock<std::mutex> lock(waitMutex);
-    std::condition_variable cv;
+    boost::mutex waitMutex;
+    boost::unique_lock<boost::mutex> lock(waitMutex);
+    boost::condition_variable cv;
     // maximum wait for receve callbacks = 3 times by 3 seconds
     // see below cv.wait_for(lock, std::chrono::seconds(3))
     const int maxTries = 3;
     int tries = 0;
 
     SendStatus status = std::move(s);
-    std::atomic_bool complete;
+    boost::atomic_bool complete;
     complete = false;
 
     // sending
@@ -157,21 +157,21 @@ void wss::event::EventNotifier::executeOnTarget(wss::event::EventNotifier::SendS
         return;
     }
 
+    const std::string typeName = status.target->getType();
     status.target->send(
         status.payload,
         // success callback
-        [this, &status, &complete]() {
+        [typeName, &complete, &cv]() {
           Logger::get().info(__FILE__,
                              __LINE__,
                              "Event::Send",
-                             fmt::format("Message has sent to target: {0}", status.target->getType()));
+                             fmt::format("Message has sent to target: {0}", typeName));
+
           complete = true;
-          // waking up main loop
-          // see handleMessageQueue
-          m_readCondition.notify_one();
+          cv.notify_one();
         },
         // error callback
-        [this, &status, &complete](const std::string errorMessage) {
+        [this, &status, &complete, &cv](const std::string errorMessage) {
           if (m_enableRetry) {
               Logger::get().warning(__FILE__,
                                     __LINE__,
@@ -221,24 +221,22 @@ void wss::event::EventNotifier::executeOnTarget(wss::event::EventNotifier::SendS
               }
           }
 
+
           complete = true;
-          m_readCondition.notify_one();
+          cv.notify_one();
         });
 
     // spurious wake protection with simple bool variable
     while (!complete) {
-        cv.wait_for(lock, std::chrono::seconds(3));
-        tries++;
-        if (tries >= maxTries) {
-            // re-enqueue undelivered
-            m_sendQueue.enqueue(std::move(status));
-            break;
-        }
+        cv.wait(lock);
     }
+
+    m_readCondition.notify_one();
+    std::cout << "Done" << std::endl;
 }
 
 void wss::event::EventNotifier::handleMessageQueue() {
-    std::unique_lock<std::mutex> lock(m_readMutex);
+    boost::unique_lock<boost::mutex> lock(m_readMutex);
     const auto &ready = [this](SendStatus status) {
       // don't send to target, which is feeling bad
       if (!status.target->isValid()) {
@@ -256,7 +254,7 @@ void wss::event::EventNotifier::handleMessageQueue() {
 
         // wait for new messages or something else
         // see EventNotifier::executeOnTarget
-        m_readCondition.wait_for(lock, std::chrono::seconds(m_retryIntervalSeconds));
+        m_readCondition.wait_for(lock, boost::chrono::seconds(m_retryIntervalSeconds));
 
         std::vector<SendStatus> bulk;
 
@@ -287,9 +285,7 @@ void wss::event::EventNotifier::handleMessageQueue() {
                 continue;
             }
 
-            auto st = boost::thread([this, it] {
-              executeOnTarget(it);
-            });
+            auto st = boost::thread(boost::bind(&EventNotifier::executeOnTarget, this, it));
             // we don't need to join this thread back, we just need to send, and if not, re-enqueue payload
             st.detach();
 
