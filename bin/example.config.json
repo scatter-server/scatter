@@ -8,8 +8,9 @@
     "timezone": "Europe/Moscow",
     "enableSecure": false,
     "secure": {
-      "crtPath": "../certs/debug.crt",
-      "keyPath": "../certs/pdebug.key"
+      "enabled": true,
+      "crtPath": "../../certs/server.crt",
+      "keyPath": "../../certs/server.key"
     },
     "watchdog": {
       "enabled": true,
@@ -36,9 +37,9 @@
     "address": "*",
     "port": 8092,
     "secure": {
-      "enabled": false,
-      "crtPath": "../certs/server.crt",
-      "keyPath": "../certs/server.key"
+      "enabled": true,
+      "crtPath": "../../certs/server.crt",
+      "keyPath": "../../certs/server.key"
     },
     "auth": {
       "type": "noauth",
