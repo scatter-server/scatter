@@ -142,6 +142,7 @@ void wss::event::amqp::AMQPTarget::start() {
     std::lock_guard<std::mutex> lock(m_connectionMutex);
 
     m_connectionService = new boost::asio::io_service();
+    m_work = new boost::asio::io_context::work(*m_connectionService);
     m_handler = new amqp::ScatterBoostAsioHandler(*m_connectionService);
     m_handler->setOnErrorListener(m_onError);
 
@@ -214,6 +215,7 @@ void wss::event::amqp::AMQPTarget::stop() {
     delete m_handler;
     m_connectionService->stop();
     m_connectionService = nullptr;
+    delete m_work;
 
     if (m_workerThread) {
         m_workerThread->interrupt();

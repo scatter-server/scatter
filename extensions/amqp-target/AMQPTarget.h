@@ -142,6 +142,7 @@ class AMQPTarget : public wss::event::Target {
     std::atomic_bool m_waitForHeartbeat;
     amqp::AMQPConfig m_cfg;
     boost::asio::io_service *m_connectionService;
+    boost::asio::io_context::work *m_work;
     amqp::ScatterBoostAsioHandler *m_handler;
     std::unique_ptr<AMQP::TcpConnection> m_connection;
     std::unique_ptr<AMQP::TcpChannel> m_channel;

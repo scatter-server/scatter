@@ -138,6 +138,7 @@ class EventNotifier : public virtual wss::StandaloneService {
     std::shared_ptr<wss::ChatServer> m_ws;
     const bool m_enableRetry;
     const uint32_t m_maxParallelWorkers;
+    std::atomic<uint32_t> m_runningWorkers;
     int m_maxRetries;
     int m_retryIntervalSeconds;
     boost::asio::io_service m_ioService;

@@ -15,6 +15,7 @@ wss::event::EventNotifier::EventNotifier(std::shared_ptr<wss::ChatServer> &ws) :
     m_ws(ws),
     m_enableRetry(wss::Settings::get().event.enableRetry),
     m_maxParallelWorkers(wss::Settings::get().event.maxParallelWorkers),
+    m_runningWorkers(0),
     m_maxRetries(3),
     m_retryIntervalSeconds(10),
     m_ioService(),
