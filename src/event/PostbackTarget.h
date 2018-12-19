@@ -26,8 +26,8 @@ class PostbackTarget : public Target {
     explicit PostbackTarget(const json &config);
 
     void send(const wss::MessagePayload &payload,
-              const OnSendSuccess &successCallback,
-              const OnSendError &errorCallback) override;
+              OnSendSuccess successCallback,
+              OnSendError errorCallback) const override;
 
     std::string getType() override;
 
@@ -35,7 +35,7 @@ class PostbackTarget : public Target {
     /// \brief Return http client
     /// \see wss::web::HttpClient
     /// \return
-    wss::web::HttpClient &getClient();
+    wss::web::HttpClient &getClient() const;
 
     /// \brief Return auth object for authentication while sending event
     /// \see wss::WebAuth
@@ -48,7 +48,7 @@ class PostbackTarget : public Target {
 
     wss::web::Request::Method m_httpMethod;
     std::unique_ptr<wss::Auth> m_auth;
-    wss::web::HttpClient m_client;
+    mutable wss::web::HttpClient m_client;
     std::string m_url;
 
 };

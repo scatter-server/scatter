@@ -93,7 +93,7 @@ elseif (MSVC)
 
 	#gnu only
 else ()
-	set(CMAKE_CXX_FLAGS "-rdynamic ${CMAKE_CXX_FLAGS} -Wl,-rpath=${CMAKE_INSTALL_PREFIX}/lib   ")
+	set(CMAKE_CXX_FLAGS "-rdynamic ${CMAKE_CXX_FLAGS}    ") #-Wl,-rpath=${CMAKE_INSTALL_PREFIX}/lib
 	set(CMAKE_CXX_LINKER_FLAGS "")
 endif ()
 

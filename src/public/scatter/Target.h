@@ -52,8 +52,8 @@ class Target {
     /// \param errorCallback The same, but when error occurred
     /// If no one method has been called, EventNotifier can be broken (for now, in the future, i'll make some timer)
     virtual void send(const wss::MessagePayload &payload,
-                      const OnSendSuccess &successCallback,
-                      const OnSendError &errorCallback) = 0;
+                      OnSendSuccess successCallback,
+                      OnSendError errorCallback) const = 0;
     virtual std::string getType() = 0;
 
     /// \brief Check target is in valid state
@@ -157,8 +157,8 @@ class TargetLoader final : public Target {
     }
 
     void send(const wss::MessagePayload &payload,
-              const OnSendSuccess &successCallback,
-              const OnSendError &errorCallback) override {
+              OnSendSuccess successCallback,
+              OnSendError errorCallback) const override {
         m_target->send(payload, successCallback, errorCallback);
     }
     std::string getType() override {
