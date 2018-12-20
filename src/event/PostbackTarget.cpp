@@ -10,7 +10,7 @@
 
 void wss::event::PostbackTarget::send(const wss::MessagePayload &payload,
                                       wss::event::Target::OnSendSuccess successCallback,
-                                      wss::event::Target::OnSendError errorCallback) const {
+                                      wss::event::Target::OnSendError errorCallback) {
     const std::string out = payload.toJson();
     if (out.length() < 1000) {
         //L_DEBUG_F("Event-Send", "Request body: %s", out.c_str());
@@ -34,7 +34,7 @@ void wss::event::PostbackTarget::send(const wss::MessagePayload &payload,
     successCallback();
 }
 
-std::string wss::event::PostbackTarget::getType() {
+std::string wss::event::PostbackTarget::getType() const {
     return "postback";
 }
 
@@ -66,7 +66,7 @@ void wss::event::PostbackTarget::setAuth(T &&auth) {
     static_assert(std::is_base_of<Auth, T>::value, "Only subclass of Base can be passed");
     this->m_auth = std::make_unique<T>(auth);
 }
-wss::web::HttpClient &wss::event::PostbackTarget::getClient() const {
+wss::web::HttpClient &wss::event::PostbackTarget::getClient() {
     return m_client;
 }
 std::unique_ptr<wss::Auth> &wss::event::PostbackTarget::getAuth() {

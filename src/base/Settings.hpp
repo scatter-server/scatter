@@ -80,13 +80,20 @@ struct Chat {
   Message message = Message();
   bool enableUndeliveredQueue = false;
 };
+
+struct Workers {
+  uint32_t maxParallel = 8;
+  bool hardLimit = false;
+};
+
 struct Event {
   bool enabled = false;
   bool enableRetry = false;
   bool sendBotMessages = false;
   int retryIntervalSeconds = 10;
   int retryCount = 3;
-  uint32_t maxParallelWorkers = 8;
+//  uint32_t maxParallelWorkers = 8;
+  Workers workers;
   std::vector<std::string> ignoreTypes;
   nlohmann::json targets;
 };
@@ -194,7 +201,14 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
             setConfigDef(in.event.sendBotMessages, event, "sendBotMessages", false);
             setConfigDef(in.event.retryIntervalSeconds, event, "retryIntervalSeconds", 10);
             setConfigDef(in.event.retryCount, event, "retryCount", 3);
-            setConfigDef(in.event.maxParallelWorkers, event, "maxParallelWorkers", (uint32_t) (nativeThreadsMax * 2));
+
+            if (event.find("workers") != event.end()) {
+                setConfigDef(in.event.workers.maxParallel,
+                             event["workers"],
+                             "maxParallel",
+                             (uint32_t) (nativeThreadsMax * 2));
+                setConfigDef(in.event.workers.hardLimit, event["workers"], "hardLimit", false);
+            }
 
             if (event.find("ignoreTypes") != event.end() && event.at("ignoreTypes").is_array()) {
                 in.event.ignoreTypes = event.at("ignoreTypes").get<std::vector<std::string>>();

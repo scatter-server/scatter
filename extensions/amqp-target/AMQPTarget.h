@@ -131,13 +131,13 @@ class AMQPTarget : public wss::event::Target {
 
     void send(const wss::MessagePayload &payload,
               OnSendSuccess successCallback,
-              OnSendError errorCallback) const override;
-    std::string getType() override;
+              OnSendError errorCallback) override;
+    std::string getType() const override;
 
  private:
-    amqp::ScatterBoostAsioHandler::OnConnectionError m_onError;
-    mutable std::mutex m_connectionMutex;
-    mutable std::mutex m_waitMutex;
+    amqp::ScatterBoostAsioHandler::OnConnectionErrorFunc m_onError;
+    std::mutex m_connectionMutex;
+    std::mutex m_waitMutex;
     std::atomic_bool m_running;
     std::atomic_bool m_waitForHeartbeat;
     amqp::AMQPConfig m_cfg;

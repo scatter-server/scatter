@@ -519,7 +519,8 @@ class ScatterBoostAsioHandler : public virtual AMQP::TcpHandler {
     */
 
  public:
-    using OnConnectionError = std::function<void(AMQP::TcpConnection *, const char *)>;
+    using OnConnectionErrorFunc = std::function<void(AMQP::TcpConnection *, const char *)>;
+    using OnHeartbeatFunc = std::function<void(AMQP::TcpConnection *)>;
 
     /**
      *  Handler cannot be default constructed.
@@ -561,6 +562,12 @@ class ScatterBoostAsioHandler : public virtual AMQP::TcpHandler {
      */
     ~ScatterBoostAsioHandler() override = default;
 
+    void onHeartbeat(AMQP::TcpConnection *connection) override {
+        if (m_onHeartbeat) {
+            m_onHeartbeat(connection);
+        }
+    }
+
     void onError(AMQP::TcpConnection *connection, const char *message) override {
         TcpHandler::onError(connection, message);
         if (m_onError) {
@@ -568,13 +575,19 @@ class ScatterBoostAsioHandler : public virtual AMQP::TcpHandler {
         }
     }
 
-    ScatterBoostAsioHandler &setOnErrorListener(const OnConnectionError &f) {
+    ScatterBoostAsioHandler &setOnHeartbeatListener(const OnHeartbeatFunc &f) {
+        m_onHeartbeat = f;
+        return *this;
+    }
+
+    ScatterBoostAsioHandler &setOnErrorListener(const OnConnectionErrorFunc &f) {
         m_onError = f;
         return *this;
     }
 
  private:
-    OnConnectionError m_onError;
+    OnConnectionErrorFunc m_onError;
+    OnHeartbeatFunc m_onHeartbeat;
 };
 
 

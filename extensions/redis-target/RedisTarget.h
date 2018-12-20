@@ -29,7 +29,7 @@ class RedisTarget : public wss::event::Target {
     void send(const wss::MessagePayload &payload,
               const OnSendSuccess &successCallback,
               const OnSendError &errorCallback) override;
-    std::string getType() override;
+    std::string getType() const override;
 
  private:
     cpp_redis::client client;

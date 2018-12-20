@@ -27,15 +27,15 @@ class PostbackTarget : public Target {
 
     void send(const wss::MessagePayload &payload,
               OnSendSuccess successCallback,
-              OnSendError errorCallback) const override;
+              OnSendError errorCallback) override;
 
-    std::string getType() override;
+    std::string getType() const override;
 
  protected:
     /// \brief Return http client
     /// \see wss::web::HttpClient
     /// \return
-    wss::web::HttpClient &getClient() const;
+    wss::web::HttpClient &getClient();
 
     /// \brief Return auth object for authentication while sending event
     /// \see wss::WebAuth
@@ -48,7 +48,7 @@ class PostbackTarget : public Target {
 
     wss::web::Request::Method m_httpMethod;
     std::unique_ptr<wss::Auth> m_auth;
-    mutable wss::web::HttpClient m_client;
+    wss::web::HttpClient m_client;
     std::string m_url;
 
 };

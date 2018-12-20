@@ -96,11 +96,9 @@ wss::event::amqp::AMQPTarget::AMQPTarget(const nlohmann::json &config) :
     m_heartbeatThread = new boost::thread([this]() {
       while (m_running) {
           {
-              wss::Logger::get().warning(__FILE__, __LINE__, "AMQP", "Wait for heartbeat...");
               m_waitForHeartbeat = true;
               std::lock_guard<std::mutex> lock(m_connectionMutex);
               if (m_connection && m_connection->usable()) {
-                  wss::Logger::get().warning(__FILE__, __LINE__, "AMQP", "Heartbeating!");
                   m_connection->heartbeat();
                   m_waitForHeartbeat = false;
               }
@@ -115,8 +113,8 @@ wss::event::amqp::AMQPTarget::AMQPTarget(const nlohmann::json &config) :
 wss::event::amqp::AMQPTarget::~AMQPTarget() {
     stop();
     m_running = false;
-    m_heartbeatThread->join();
-    delete m_heartbeatThread;
+//    m_heartbeatThread->join();
+//    delete m_heartbeatThread;
 }
 
 void wss::event::amqp::AMQPTarget::onConnectionError(AMQP::TcpConnection */*conn*/, const char *errorMessage) {
@@ -145,6 +143,12 @@ void wss::event::amqp::AMQPTarget::start() {
     m_work = new boost::asio::io_context::work(*m_connectionService);
     m_handler = new amqp::ScatterBoostAsioHandler(*m_connectionService);
     m_handler->setOnErrorListener(m_onError);
+    m_handler->setOnHeartbeatListener([this](AMQP::TcpConnection *conn) {
+      m_waitForHeartbeat = true;
+      std::lock_guard<std::mutex> lock(m_connectionMutex);
+      conn->heartbeat();
+      m_waitForHeartbeat = false;
+    });
 
     // make a connection
     m_connection = std::make_unique<AMQP::TcpConnection>(m_handler, m_cfg.buildAddress());
@@ -213,9 +217,9 @@ void wss::event::amqp::AMQPTarget::stop() {
     m_channel = nullptr;
     m_connection = nullptr;
     delete m_handler;
-    m_connectionService->stop();
-    m_connectionService = nullptr;
     delete m_work;
+    m_connectionService->stop();
+    delete m_connectionService;
 
     if (m_workerThread) {
         m_workerThread->interrupt();
@@ -229,19 +233,17 @@ void wss::event::amqp::AMQPTarget::stop() {
 // @TODO make parallel send, probably batched
 void wss::event::amqp::AMQPTarget::send(const wss::MessagePayload &payload,
                                         wss::event::Target::OnSendSuccess successCallback,
-                                        wss::event::Target::OnSendError errorCallback) const {
+                                        wss::event::Target::OnSendError errorCallback) {
 
-    int maxTries = 3;
-    int tries = 0;
-
-//    std::lock_guard<std::mutex> lock(m_connectionMutex);
-//    m_connectionMutex.lock();
-
-    std::unique_lock<std::mutex> cvLock(m_waitMutex);
+    std::unique_lock<std::mutex> cvLock(m_connectionMutex);
     std::condition_variable cv;
     std::atomic_bool complete;
     complete = false;
 
+    const int maxTries = 3;
+    int tries = 0;
+
+    AMQP::Deferred *defered = nullptr;
     try {
         m_channel->startTransaction();
         const std::string pl = payload.toJson();
@@ -253,15 +255,22 @@ void wss::event::amqp::AMQPTarget::send(const wss::MessagePayload &payload,
             m_cfg.getMessageFlags()
         );
 
-        m_channel->commitTransaction()
-                 .onSuccess(successCallback)
-                 .onError(errorCallback)
-                 .onFinalize([&cv, &complete, this] {
-                   std::unique_lock<std::mutex> cvLock(m_waitMutex);
+        defered = &(m_channel->commitTransaction()
+                             .onSuccess(successCallback)
+                             .onError([this, &errorCallback, &cv, &complete](const char *msg) {
+                               {
+                                   std::unique_lock<std::mutex> lock(m_connectionMutex);
+                                   errorCallback(msg);
+                                   complete = true;
+                                   cv.notify_one();
+                               }
+                               onConnectionError(m_connection.get(), msg);
+                             })
+                             .onFinalize([&cv, &complete, this] {
+                               std::unique_lock<std::mutex> lock(m_connectionMutex);
                    complete = true;
                    cv.notify_one();
-                 });
-
+                             }));
 
     } catch (const std::exception &e) {
         errorCallback(e.what());
@@ -269,23 +278,28 @@ void wss::event::amqp::AMQPTarget::send(const wss::MessagePayload &payload,
     }
 
     while (!complete) {
-        cv.wait_for(cvLock, std::chrono::seconds(2));
+        cv.wait_for(cvLock, std::chrono::seconds(5));
         tries++;
         if (tries >= maxTries) {
+            if (defered) {
+                onConnectionError(nullptr, "Timed out (15 seconds)");
+                // cleanup callbacks to avoid using out-of-scope variables
+                defered->onSuccess([] { });
+                defered->onError([this](const char *msg) {
+                  onConnectionError(nullptr, msg);
+                });
+                defered->onFinalize([] { });
+            }
             complete = true;
             errorCallback("Timed out (15 seconds)");
         }
     }
     if (m_waitForHeartbeat) {
         m_connection->heartbeat();
-        wss::Logger::get().warning(__FILE__, __LINE__, "AMQP", "Heartbeating (while sending)!");
     }
-
-    Logger::get().debug(__FILE__, __LINE__, "AMQP", "Send complete");
-
 }
 
-std::string wss::event::amqp::AMQPTarget::getType() {
+std::string wss::event::amqp::AMQPTarget::getType() const {
     return "amqp";
 }
 

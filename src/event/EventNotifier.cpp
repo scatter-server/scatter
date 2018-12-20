@@ -14,7 +14,8 @@ wss::event::EventNotifier::EventNotifier(std::shared_ptr<wss::ChatServer> &ws) :
     m_readCondition(),
     m_ws(ws),
     m_enableRetry(wss::Settings::get().event.enableRetry),
-    m_maxParallelWorkers(wss::Settings::get().event.maxParallelWorkers),
+    m_maxParallelWorkers(wss::Settings::get().event.workers.maxParallel),
+    m_hardWorkersLimit(wss::Settings::get().event.workers.hardLimit),
     m_runningWorkers(0),
     m_maxRetries(3),
     m_retryIntervalSeconds(10),
@@ -129,6 +130,11 @@ void wss::event::EventNotifier::onStop() {
 }
 
 void wss::event::EventNotifier::executeOnTarget(wss::event::EventNotifier::SendStatus s) {
+    if (m_hardWorkersLimit) {
+        m_runningWorkers++;
+    }
+
+
     // prepare timer, we must receive callback, for 3*3 seconds, otherwise break trying to send and re-enqueue message
     // in any case, we must deliver message, event if it will be sent in a next hours
     // todo: persistency (again, i thing about it again, very bad idea to store all undelivered messages in memory)
@@ -152,7 +158,7 @@ void wss::event::EventNotifier::executeOnTarget(wss::event::EventNotifier::SendS
     status.target->send(
         status.payload,
         // success callback
-        [this, status]() mutable -> void {
+        [this, status] {
           Logger::get().info(__FILE__,
                              __LINE__,
                              "Event::Send",
@@ -160,6 +166,9 @@ void wss::event::EventNotifier::executeOnTarget(wss::event::EventNotifier::SendS
 
           boost::unique_lock<boost::mutex> lock(m_readMutex);
           m_readCondition.notify_one();
+          if (m_hardWorkersLimit) {
+              m_runningWorkers--;
+          }
         },
         // error callback
         [this, status](const std::string errorMessage) mutable -> void {
@@ -211,6 +220,10 @@ void wss::event::EventNotifier::executeOnTarget(wss::event::EventNotifier::SendS
                   }
               }
           }
+
+          if (m_hardWorkersLimit) {
+              m_runningWorkers++;
+          }
           boost::unique_lock<boost::mutex> lock(m_readMutex);
           m_readCondition.notify_one();
         });
@@ -235,20 +248,40 @@ void wss::event::EventNotifier::handleMessageQueue() {
 
         // wait for new messages or something else
         // see EventNotifier::executeOnTarget
-//        m_readCondition.wait_for(lock, boost::chrono::seconds(m_retryIntervalSeconds));
-        m_readCondition.wait(lock);
+        m_readCondition.wait_for(lock, boost::chrono::seconds(m_retryIntervalSeconds));
+
+        const uint32_t runningWorkers = m_runningWorkers.load(std::memory_order_relaxed);
+
+        // wait for unfinished workers
+        if (m_hardWorkersLimit && m_runningWorkers >= m_maxParallelWorkers) {
+            Logger::get().info(__FILE__,
+                               __LINE__,
+                               "Event::Send",
+                               fmt::format("Wait for unfinished workers {0}", runningWorkers));
+            continue;
+        }
 
         std::vector<SendStatus> bulk;
-        size_t approxSize;
+        size_t approxQueueSize;
+
         try {
             size_t extract;
             // get portions size
-            approxSize = m_sendQueue.size_approx();
-            if (approxSize > m_maxParallelWorkers) {
-                // maximum connections per cycle
-                extract = m_maxParallelWorkers;
+            approxQueueSize = m_sendQueue.size_approx();
+
+            // max elements is portion
+            size_t maxWorkers;
+            if (m_hardWorkersLimit) {
+                maxWorkers = m_maxParallelWorkers - runningWorkers;
             } else {
-                extract = approxSize;
+                maxWorkers = m_maxParallelWorkers;
+            }
+
+            if (approxQueueSize > maxWorkers) {
+                // maximum connections per cycle
+                extract = maxWorkers;
+            } else {
+                extract = approxQueueSize;
             }
 
             // prepare portion of messages to send
@@ -276,7 +309,8 @@ void wss::event::EventNotifier::handleMessageQueue() {
 
         bulk.clear();
         if (i > 0) {
-            L_DEBUG("Event::Send", fmt::format("Prepared {0} messages, left {1}", i, approxSize - i));
+            L_DEBUG("Event::Send",
+                    fmt::format("Send {0} messages, left {1}, running {2}", i, approxQueueSize - i, runningWorkers));
         }
     }
 }

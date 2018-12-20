@@ -76,8 +76,7 @@ void wss::event::RedisTarget::send(const wss::MessagePayload &payload,
     client.commit();
 }
 
-
-std::string wss::event::RedisTarget::getType() {
+std::string wss::event::RedisTarget::getType() const {
     return "redis";
 }
 wss::event::RedisTarget::~RedisTarget() {
