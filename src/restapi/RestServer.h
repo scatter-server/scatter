@@ -25,7 +25,7 @@
 #include "../helpers/helpers.h"
 #include "../base/Settings.hpp"
 
-#define ACTION_DEFINE(name) void name(HttpResponse response, HttpRequest request)
+#define ACTION_DEFINE(name) void name(wss::HttpResponse response, wss::HttpRequest request)
 #define ACTION_BIND(cName, mName) std::bind(&cName::mName, this, std::placeholders::_1, std::placeholders::_2)
 
 namespace wss {
@@ -63,10 +63,15 @@ class RestServer : public virtual StandaloneService {
         const std::string endpoint = "^/" + path + "$";
         L_INFO_F("HttpServer", "Endpoint: %s /%s", methodName.c_str(), path.c_str());
 
+        if (!(m_auth)) {
+            m_auth = std::make_unique<wss::Auth>();
+        }
+
         m_server->resource[endpoint][toolboxpp::strings::toUpper(methodName)] =
             [this, callback](wss::HttpResponse response, wss::HttpRequest request) {
-              const wss::web::Request verifyRequest(request);
               response->close_connection_after_response = true;
+              const httb::request verifyRequest = request->toHttbRequest();
+
               if (!m_auth->validateAuth(verifyRequest)) {
 
                   if (m_auth->getType() == "basic") {
@@ -116,7 +121,8 @@ class RestServer : public virtual StandaloneService {
     void setError(HttpResponse &response, HttpStatus status, int code, const std::string &message);
     void setError(HttpResponse &response, HttpStatus status, int code, std::string &&message);
     std::string buildResponse(const std::vector<std::pair<std::string, std::string>> &parts);
- private:
+
+// private:
     std::unique_ptr<Auth> m_auth;
     std::unique_ptr<HttpBase> m_server;
     std::unique_ptr<std::thread> m_workerThread;

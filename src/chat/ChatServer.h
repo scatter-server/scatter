@@ -147,7 +147,7 @@ class ChatServer : public virtual StandaloneService {
     ChatServer(const std::string &host, unsigned short port, const std::string &regexPath);
 
     /// \brief Stops io_service
-    ~ChatServer();
+    virtual ~ChatServer();
 
     void joinThreads() override;
     void detachThreads() override;

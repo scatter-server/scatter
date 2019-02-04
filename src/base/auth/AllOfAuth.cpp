@@ -14,7 +14,7 @@ wss::AllOfAuth::AllOfAuth(std::vector<std::unique_ptr<wss::Auth>> &&types) : One
 std::string wss::AllOfAuth::getType() {
     return "allOf";
 }
-bool wss::AllOfAuth::validateAuth(const wss::web::Request &request) const {
+bool wss::AllOfAuth::validateAuth(const httb::request &request) const {
     for (auto &type: types) {
         if (!type->validateAuth(request)) {
             return false;

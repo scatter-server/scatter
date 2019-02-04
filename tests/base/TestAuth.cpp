@@ -11,15 +11,22 @@
 #include <string>
 #include <sstream>
 #include <memory>
-#include <src/server/web/HttpClient.h>
-#include <src/server/base/Auth.h>
-#include <src/server/helpers/base64.h>
+#include <web/HttpClient.h>
+#include <base/auth/Auth.h>
+#include <base/auth/BasicAuth.h>
+#include <base/auth/HeaderAuth.h>
+#include <base/auth/BearerAuth.h>
+#include <base/auth/CookieAuth.h>
+#include <base/auth/OneOfAuth.h>
+#include <base/auth/AllOfAuth.h>
+#include <base/auth/RemoteAuth.h>
+#include <helpers/base64.h>
 
 #include "gtest/gtest.h"
 
 TEST(AuthTest, NoAuthTest) {
     wss::web::Request request;
-    wss::WebAuth webAuth;
+wss::Auth webAuth;
 
     ASSERT_STREQ(webAuth.getType().c_str(), "noauth");
     webAuth.performAuth(request);
@@ -42,7 +49,7 @@ TEST(AuthTest, BasicAuthTest) {
     std::stringstream ss;
     ss << username << ":" << password;
     const std::string glued = ss.str();
-    const std::string encoded = wss::helpers::base64_encode(
+const std::string encoded = wss::utils::base64_encode(
         reinterpret_cast<const unsigned char *>(glued.c_str()),
         static_cast<unsigned int>(glued.length())
     );
@@ -109,19 +116,19 @@ TEST(AuthTest, BearerAuthTest) {
 
 TEST(AuthTest, CreateAuthFromConfig) {
     // NO Auth
-    std::unique_ptr<wss::WebAuth> noAuth;
+    std::unique_ptr<wss::Auth> noAuth;
 
-    noAuth = wss::auth::createFromConfig({{"type", "noauth"}});
+noAuth = wss::auth::registry::createFromConfig({{"type", "noauth"}});
     ASSERT_STREQ(noAuth->getType().c_str(), "noauth");
 
 
     // basic auth
-    std::unique_ptr<wss::WebAuth> basicAuth;
+    std::unique_ptr<wss::Auth> basicAuth;
 
     bool basicHasError = false;
 
     try {
-        basicAuth = wss::auth::createFromConfig({
+basicAuth = wss::auth::registry::createFromConfig({
                                                     {"type", "basic"},
                                                 });
     } catch (const nlohmann::detail::out_of_range &e) {
@@ -130,7 +137,7 @@ TEST(AuthTest, CreateAuthFromConfig) {
 
     ASSERT_TRUE(basicHasError);
 
-    basicAuth = wss::auth::createFromConfig({
+basicAuth = wss::auth::registry::createFromConfig({
                                                 {"type", "basic"},
                                                 {"user", "username"},
                                                 {"password", "password"}
@@ -141,7 +148,7 @@ TEST(AuthTest, CreateAuthFromConfig) {
 
     // header auth
     wss::web::Request headerRequest;
-    std::unique_ptr<wss::WebAuth> headerAuth = wss::auth::createFromConfig(
+std::unique_ptr<wss::Auth> headerAuth = wss::auth::registry::createFromConfig(
         {
             {"type", "header"},
             {"name", "header-name"},
@@ -155,7 +162,7 @@ TEST(AuthTest, CreateAuthFromConfig) {
 
     // bearer auth
     wss::web::Request bearerRequest;
-    std::unique_ptr<wss::WebAuth> bearerAuth = wss::auth::createFromConfig(
+std::unique_ptr<wss::Auth> bearerAuth = wss::auth::registry::createFromConfig(
         {
             {"type", "bearer"},
             {"value", "value"},
@@ -167,11 +174,11 @@ TEST(AuthTest, CreateAuthFromConfig) {
     ASSERT_STREQ(bearerRequest.getHeader("Authorization").c_str(), "Bearer value");
 
     // empty config == noauth
-    std::unique_ptr<wss::WebAuth> emptyAuth = wss::auth::createFromConfig({});
+    std::unique_ptr<wss::Auth> emptyAuth = wss::auth::registry::createFromConfig({});
     ASSERT_STREQ(emptyAuth->getType().c_str(), "noauth");
 
     // also support pass single object
-    std::unique_ptr<wss::WebAuth> emptyAnotherAuth = wss::auth::createFromConfig(
+    std::unique_ptr<wss::Auth> emptyAnotherAuth = wss::auth::registry::createFromConfig(
         {
             {"auth", nlohmann::json {
                 {"type", "noauth"},

@@ -34,11 +34,11 @@ class BasicAuth : public Auth {
     /// \brief Auth type
     /// \return string: basic
     std::string getType() override;
-    void performAuth(wss::web::Request &) const override;
-    bool validateAuth(const wss::web::Request &) const override;
+    void performAuth(httb::request &) const override;
+    bool validateAuth(const httb::request &) const override;
 
     std::string getLocalValue() const override;
-    std::string getRemoteValue(const wss::web::Request &request) const override;
+    std::string getRemoteValue(const httb::request &request) const override;
  private:
     std::string m_username, password;
 };

@@ -10,9 +10,9 @@
 #define WSSERVER_POSTBACKTARGET_H
 
 #include <string>
-#include "json.hpp"
+#include <httb/httb.h>
+#include <json.hpp>
 #include "Target.hpp"
-#include "../web/HttpClient.h"
 #include "../chat/ChatServer.h"
 #include "../base/auth/Auth.h"
 
@@ -30,9 +30,9 @@ class PostbackTarget : public Target {
 
  protected:
     /// \brief Return http client
-    /// \see wss::web::HttpClient
+    /// \see httb::client
     /// \return
-    wss::web::HttpClient &getClient();
+    httb::client &getClient();
 
     /// \brief Return auth object for authentication while sending event
     /// \see wss::WebAuth
@@ -43,9 +43,9 @@ class PostbackTarget : public Target {
     template<class T>
     void setAuth(T &&auth);
 
-    wss::web::Request::Method m_httpMethod;
+    httb::request::method m_httpMethod;
     std::unique_ptr<wss::Auth> m_auth;
-    wss::web::HttpClient m_client;
+    httb::client m_client;
     std::string m_url;
 
 };

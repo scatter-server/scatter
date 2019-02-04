@@ -111,7 +111,7 @@ if (WITH_BENCHMARK)
 	linkdeps(wssbench all)
 endif ()
 
-if (WITH_TEST)
+if (WS_ENABLE_TEST)
 	include(cmakes/testing.cmake)
 endif ()
 

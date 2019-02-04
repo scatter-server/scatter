@@ -11,8 +11,6 @@ set(SERVER_SRC
     src/restapi/ChatRestServer.h
     src/helpers/helpers.h
     src/helpers/helpers.cpp
-    src/web/HttpClient.cpp
-    src/web/HttpClient.h
     src/event/EventNotifier.h
     src/event/PostbackTarget.cpp
     src/event/PostbackTarget.h

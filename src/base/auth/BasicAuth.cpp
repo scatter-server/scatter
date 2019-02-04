@@ -20,10 +20,10 @@ wss::BasicAuth::BasicAuth(const std::string &username, const std::string &passwo
 std::string wss::BasicAuth::getType() {
     return "basic";
 }
-void wss::BasicAuth::performAuth(wss::web::Request &request) const {
+void wss::BasicAuth::performAuth(httb::request &request) const {
     request.setHeader({"Authorization", getLocalValue()});
 }
-bool wss::BasicAuth::validateAuth(const wss::web::Request &request) const {
+bool wss::BasicAuth::validateAuth(const httb::request &request) const {
     return request.compareHeaderValue("Authorization", getLocalValue());
 }
 std::string wss::BasicAuth::getLocalValue() const {
@@ -36,6 +36,6 @@ std::string wss::BasicAuth::getLocalValue() const {
     );
     return "Basic " + encoded;
 }
-std::string wss::BasicAuth::getRemoteValue(const wss::web::Request &request) const {
+std::string wss::BasicAuth::getRemoteValue(const httb::request &request) const {
     return request.getHeader("Authorization");
 }

@@ -23,7 +23,7 @@ wss::RemoteAuth::RemoteAuth(const nlohmann::json &data, std::unique_ptr<Auth> &&
     }
 
     m_url = data.value("url", "");
-    m_method = wss::web::Request::methodFromString(data.value("method", "POST"));
+    m_method = httb::request::methodFromString(data.value("method", "POST"));
 
     std::vector<nlohmann::json> headers = data.value("headers", std::vector<nlohmann::json>(0));
     for (auto &obj: headers) {
@@ -38,18 +38,20 @@ wss::RemoteAuth::RemoteAuth(const nlohmann::json &data, std::unique_ptr<Auth> &&
 std::string wss::RemoteAuth::getType() {
     return "remote";
 }
-void wss::RemoteAuth::performAuth(wss::web::Request &) const {
+void wss::RemoteAuth::performAuth(httb::request &) const {
     // do nothing
 }
-bool wss::RemoteAuth::validateAuth(const wss::web::Request &request) const {
+bool wss::RemoteAuth::validateAuth(const httb::request &request) const {
     const std::string value = m_source->getRemoteValue(request);
     if (value.empty()) {
         // is this make sense to try auth with empty value?
         return false;
     }
 
-    wss::web::Request r(m_url, m_method);
-    r.setHeaders(m_headers);
+    httb::request r(m_url, m_method);
+    for (const auto &kv: m_headers) {
+        r.addHeader(kv);
+    }
 
     std::string outData;
     if (!m_data.empty()) {
@@ -63,8 +65,8 @@ bool wss::RemoteAuth::validateAuth(const wss::web::Request &request) const {
         r.setBody(outData);
     }
 
-    wss::web::HttpClient client;
-    client.enableVerbose(false);
+    httb::client client;
+    client.setEnableVerbose(false);
     auto resp = client.execute(r);
 
     return resp.isSuccess();
@@ -72,6 +74,6 @@ bool wss::RemoteAuth::validateAuth(const wss::web::Request &request) const {
 std::string wss::RemoteAuth::getLocalValue() const {
     return Auth::getLocalValue();
 }
-std::string wss::RemoteAuth::getRemoteValue(const wss::web::Request &request) const {
+std::string wss::RemoteAuth::getRemoteValue(const httb::request &request) const {
     return Auth::getRemoteValue(request);
 }

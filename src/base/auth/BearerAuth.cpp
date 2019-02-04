@@ -18,15 +18,15 @@ wss::BearerAuth::BearerAuth(const std::string &value) :
 std::string wss::BearerAuth::getType() {
     return "bearer";
 }
-bool wss::BearerAuth::validateAuth(const wss::web::Request &response) const {
+bool wss::BearerAuth::validateAuth(const httb::request &response) const {
     return HeaderAuth::validateAuth(response);
 }
 std::string wss::BearerAuth::getLocalValue() const {
     return HeaderAuth::getLocalValue();
 }
-void wss::BearerAuth::performAuth(wss::web::Request &request) const {
+void wss::BearerAuth::performAuth(httb::request &request) const {
     HeaderAuth::performAuth(request);
 }
-std::string wss::BearerAuth::getRemoteValue(const wss::web::Request &request) const {
+std::string wss::BearerAuth::getRemoteValue(const httb::request &request) const {
     return HeaderAuth::getRemoteValue(request);
 }

@@ -45,7 +45,7 @@ class ServerStarter {
 
  public:
     ServerStarter(int argc, const char **argv);
-    ~ServerStarter();
+    virtual ~ServerStarter();
 
     /// \brief Stop all services
     void stop();

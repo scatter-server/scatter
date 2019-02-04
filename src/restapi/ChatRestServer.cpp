@@ -45,7 +45,7 @@ void wss::ChatRestServer::createEndpoints() {
 }
 
 void wss::ChatRestServer::actionCheckOnline(wss::HttpResponse response, wss::HttpRequest request) {
-    wss::web::Request req(request);
+    httb::request req = request->toHttbRequest();
     if (!req.hasParam("id")) {
         setError(response, HttpStatus::client_error_bad_request, 400, "Id required");
         return;
@@ -73,7 +73,7 @@ void wss::ChatRestServer::actionCheckOnline(wss::HttpResponse response, wss::Htt
 }
 
 void wss::ChatRestServer::actionStat(wss::HttpResponse response, wss::HttpRequest request) {
-    wss::web::Request req(request);
+    httb::request req = request->toHttbRequest();
     if (!req.hasParam("id")) {
         setError(response, HttpStatus::client_error_bad_request, 400, "Id required");
         return;

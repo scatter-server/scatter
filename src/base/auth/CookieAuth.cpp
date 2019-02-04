@@ -5,6 +5,7 @@
  * \link https://github.com/edwardstock
  */
 
+#include <toolboxpp.h>
 #include "CookieAuth.h"
 #include "fmt/format.h"
 
@@ -21,10 +22,10 @@ wss::CookieAuth::CookieAuth(std::string &&cookieName, std::string &&cookieValue)
 std::string wss::CookieAuth::getType() {
     return "cookie";
 }
-void wss::CookieAuth::performAuth(wss::web::Request &request) const {
+void wss::CookieAuth::performAuth(httb::request &request) const {
     request.setHeader({"Cookie", fmt::format("{0}={1}", m_name, m_value)});
 }
-bool wss::CookieAuth::validateAuth(const wss::web::Request &request) const {
+bool wss::CookieAuth::validateAuth(const httb::request &request) const {
     if (!request.hasHeader("cookie")) {
         return false;
     }
@@ -53,7 +54,7 @@ bool wss::CookieAuth::validateAuth(const wss::web::Request &request) const {
 std::string wss::CookieAuth::getLocalValue() const {
     return m_value;
 }
-std::string wss::CookieAuth::getRemoteValue(const wss::web::Request &request) const {
+std::string wss::CookieAuth::getRemoteValue(const httb::request &request) const {
     if (!request.hasHeader("cookie")) {
         return "";
     }

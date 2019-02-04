@@ -28,6 +28,8 @@
 #include <algorithm>
 #include <openssl/ssl.h>
 #include <boost/asio/ssl.hpp>
+#include <httb/request.h>
+#include <httb/response.h>
 
 namespace wss {
 namespace server {
@@ -165,7 +167,7 @@ class ServerBase : public BaseServer {
             return streambuf.size();
         }
         /// Convenience function to return std::string. The stream buffer is consumed.
-        std::string string() noexcept {
+        std::string string() const noexcept {
             try {
                 std::stringstream ss;
                 ss << rdbuf();
@@ -211,6 +213,18 @@ class ServerBase : public BaseServer {
             catch (...) {
                 return std::string();
             }
+        }
+
+        httb::request toHttbRequest() const {
+            httb::request out;
+            out.setBody(content.string());
+            out.parseParamsString(query_string);
+            for (const auto &kv: header) {
+                out.addHeader(kv);
+            }
+//            out.setHeaders(header);
+
+            return out;
         }
 
         unsigned short remote_endpoint_port() noexcept {
@@ -318,26 +332,28 @@ class ServerBase : public BaseServer {
     Config config;
 
  public:
+    using DefaultResourceEndpoint = std::map<std::string,
+                                             std::function<void(std::shared_ptr<typename ServerBase::Response>,
+                                                                std::shared_ptr<typename ServerBase::Request>)>>;
     using ResourceEndpoint = std::map<
         RegexOrderable,
-        std::map<std::string,
-                 std::function<void(std::shared_ptr<typename ServerBase::Response>,
-                                    std::shared_ptr<typename ServerBase::Request>)>>
+        DefaultResourceEndpoint
     >;
+    using OnErrorFunc = std::function<void(std::shared_ptr<typename ServerBase::Request>, const error_code &)>;
+    using OnUpgradeFunc = std::function<void(std::unique_ptr<SocketLayerWrapper> &,
+                                             std::shared_ptr<typename ServerBase::Request>)>;
     /// Warning: do not add or remove resources after start() is called
     ResourceEndpoint resource;
+    DefaultResourceEndpoint default_resource;
 
-    std::map<std::string,
-             std::function<void(std::shared_ptr<typename ServerBase::Response>,
-                                std::shared_ptr<typename ServerBase::Request>)>> default_resource;
-    std::function<void(std::shared_ptr<typename ServerBase::Request>, const error_code &)> on_error;
-    std::function<void(std::unique_ptr<SocketLayerWrapper> &, std::shared_ptr<typename ServerBase::Request>)>
-        on_upgrade;
+    OnErrorFunc on_error;
+    OnUpgradeFunc on_upgrade;
 
     /// If you have your own asio::io_service, store its pointer here before running start().
     std::shared_ptr<asio::io_service> io_service;
 
     void start() override {
+        on_error = [](std::shared_ptr<typename ServerBase::Request>, const error_code &) { };
         if (!io_service) {
             io_service = std::make_shared<asio::io_service>();
             internal_io_service = true;

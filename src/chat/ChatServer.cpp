@@ -7,6 +7,7 @@
  */
 
 #include <fmt/format.h>
+#include <httb/request.h>
 #include "ChatServer.h"
 #include "../helpers/helpers.h"
 #include "../base/Settings.hpp"
@@ -250,9 +251,11 @@ void wss::ChatServer::onMessageSent(wss::MessagePayload &&payload, std::size_t b
 }
 
 void wss::ChatServer::onConnected(WsConnectionPtr connection) {
-    wss::web::Request request;
+    httb::request request;
     request.parseParamsString(connection->queryString);
-    request.setHeaders(connection->header);
+    for (const auto &kv: connection->header) {
+        request.addHeader(kv);
+    }
 
     if (request.getParams().empty()) {
         L_DEBUG_F("Chat::Connect::Error", "Invalid request: %s", connection->queryString.c_str());

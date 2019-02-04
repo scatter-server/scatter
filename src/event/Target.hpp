@@ -10,12 +10,9 @@
 #define WSSERVER_EVENTCONFIG_H
 
 #include <string>
-#include <curl/curl.h>
 #include "../helpers/base64.h"
 #include "../chat/Message.h"
-#include "../web/HttpClient.h"
 #include "../base/Settings.hpp"
-//#include "EventNotifier.h"
 
 namespace wss {
 namespace event {
@@ -32,6 +29,8 @@ class Target {
         m_validState(true),
         m_errorMessage("") {
     }
+
+    virtual ~Target() { }
 
     /// \brief Send event to entire target
     /// \param payload Payload to send

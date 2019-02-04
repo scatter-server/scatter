@@ -39,10 +39,10 @@ class OneOfAuth : public Auth {
     /// \return string type used by json config
     std::string getType() override;
     /// \brief Set required auth data to request
-    void performAuth(wss::web::Request &request) const override;
+    void performAuth(httb::request &request) const override;
     /// \brief Validate responsed auth data
     /// \return true if validated
-    bool validateAuth(const wss::web::Request &request) const override;
+    bool validateAuth(const httb::request &request) const override;
 
     /// \brief Dummy value
     /// \return for this auth type, values is not required

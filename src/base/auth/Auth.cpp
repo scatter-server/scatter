@@ -6,6 +6,7 @@
  * @link https://github.com/edwardstock
  */
 #include <fmt/format.h>
+#include <toolboxpp.h>
 #include <vector>
 #include <memory>
 #include "Auth.h"
@@ -21,16 +22,16 @@
 std::string wss::Auth::getType() {
     return "noauth";
 }
-void wss::Auth::performAuth(wss::web::Request &) const {
+void wss::Auth::performAuth(httb::request &) const {
     //do nothing
 }
-bool wss::Auth::validateAuth(const wss::web::Request &) const {
+bool wss::Auth::validateAuth(const httb::request &) const {
     return true;
 }
 std::string wss::Auth::getLocalValue() const {
     return std::string();
 }
-std::string wss::Auth::getRemoteValue(const wss::web::Request &) const {
+std::string wss::Auth::getRemoteValue(const httb::request &) const {
     return std::string();
 }
 

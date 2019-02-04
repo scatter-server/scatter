@@ -19,7 +19,7 @@ class AllOfAuth : public OneOfAuth {
  public:
     AllOfAuth(std::vector<std::unique_ptr<Auth>> &&types);
     std::string getType() override;
-    bool validateAuth(const wss::web::Request &request) const override;
+    bool validateAuth(const httb::request &request) const override;
 };
 
 }

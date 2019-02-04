@@ -12,8 +12,8 @@
 #include <string>
 #include <sstream>
 #include <memory>
+#include <httb/httb.h>
 #include "json.hpp"
-#include "../../web/HttpClient.h"
 
 namespace wss {
 
@@ -44,16 +44,17 @@ namespace wss {
 ///
 class Auth {
  public:
+    virtual ~Auth() = default;
     /// \brief Auth type
     /// \return string type used by json config
     virtual std::string getType();
 
     /// \brief Set required auth data to request
-    virtual void performAuth(wss::web::Request &) const;
+    virtual void performAuth(httb::request &) const;
 
     /// \brief Validate responsed auth data
     /// \return true if validated
-    virtual bool validateAuth(const wss::web::Request &) const;
+    virtual bool validateAuth(const httb::request &) const;
 
     /// \brief Value setled in config
     /// \return
@@ -61,7 +62,7 @@ class Auth {
 
     /// \brief Value fetched from connected client
     /// \return
-    virtual std::string getRemoteValue(const wss::web::Request &) const;
+    virtual std::string getRemoteValue(const httb::request &) const;
 };
 
 namespace auth {

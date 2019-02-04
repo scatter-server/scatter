@@ -26,11 +26,11 @@ class CookieAuth : public Auth {
     CookieAuth(std::string &&cookieName, std::string &&cookieValue);
 
     std::string getType() override;
-    void performAuth(wss::web::Request &request) const override;
-    bool validateAuth(const wss::web::Request &request) const override;
+    void performAuth(httb::request &request) const override;
+    bool validateAuth(const httb::request &request) const override;
 
     std::string getLocalValue() const override;
-    std::string getRemoteValue(const wss::web::Request &request) const override;
+    std::string getRemoteValue(const httb::request &request) const override;
  private:
     std::string m_name, m_value;
 };

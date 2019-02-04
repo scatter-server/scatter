@@ -10,19 +10,21 @@ elseif (APPLE)
 	add_definitions(-D__GLIBCXX__)
 endif ()
 
-add_executable(${PROJECT_NAME_TEST} ${SERVER_EXEC_SRCS}
-               tests/base/TestAuth.cpp
-               )
+#add_executable(${PROJECT_NAME_TEST} ${SERVER_EXEC_SRCS}
+##               tests/base/TestAuth.cpp
+#
+#               )
+target_compile_options(${PROJECT_NAME_TEST} PUBLIC -Wno-unused-parameter)
 
 linkdeps(${PROJECT_NAME_TEST})
 
-include_directories(../src/server)
-target_include_directories(${PROJECT_NAME_TEST} PUBLIC ../src/server)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(${PROJECT_NAME_TEST} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 target_link_libraries(${PROJECT_NAME_TEST} gtest gtest_main)
 
-include(cmakes/CodeCoverage.cmake)
-append_coverage_compiler_flags()
+#include(cmakes/CodeCoverage.cmake)
+#append_coverage_compiler_flags()
 
 set(COVERAGE_TARGET_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src/server)
 
@@ -36,9 +38,9 @@ set(COVERAGE_EXCLUDES
     'v1'
     )
 
-setup_target_for_coverage(
-	NAME ws_coverage
-	EXECUTABLE ${PROJECT_NAME_TEST}
-	DEPENDENCIES ${PROJECT_NAME_TEST}
-)
+#setup_target_for_coverage(
+#	NAME ws_coverage
+#	EXECUTABLE ${PROJECT_NAME_TEST}
+#	DEPENDENCIES ${PROJECT_NAME_TEST}
+#)
 

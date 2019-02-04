@@ -42,17 +42,17 @@ class RemoteAuth : public Auth {
  public:
     RemoteAuth(const nlohmann::json &data, std::unique_ptr<Auth> &&source);
     std::string getType() override;
-    void performAuth(wss::web::Request &request) const override;
-    bool validateAuth(const wss::web::Request &request) const override;
+    void performAuth(httb::request &request) const override;
+    bool validateAuth(const httb::request &request) const override;
 
     std::string getLocalValue() const override;
-    std::string getRemoteValue(const wss::web::Request &request) const override;
+    std::string getRemoteValue(const httb::request &request) const override;
  private:
     std::unique_ptr<wss::Auth> m_source;
     std::string m_data;
     std::unordered_map<std::string, std::string> m_headers;
     std::string m_url;
-    wss::web::Request::Method m_method;
+    httb::request::method m_method;
 };
 
 }
