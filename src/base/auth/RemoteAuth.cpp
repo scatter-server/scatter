@@ -8,7 +8,7 @@
 #include <fmt/format.h>
 #include <vector>
 #include <string>
-#include <toolboxpp.h>
+#include <toolboxpp.hpp>
 #include "RemoteAuth.h"
 
 // REMOTE AUTH

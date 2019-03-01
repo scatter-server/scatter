@@ -23,7 +23,7 @@
 #include <memory>
 #include <stdexcept>
 #include <fmt/format.h>
-#include <toolboxpp.h>
+#include <toolboxpp.hpp>
 
 namespace wss {
 namespace utils {

@@ -9,10 +9,12 @@ set(CMAKE_CXX_STANDARD 14)
 set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(PROJECT_LIBS_DIR ${PROJECT_ROOT}/libs)
 
-## Build type
-if (NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE "Debug")
-endif ()
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmakes)
+include(ConanInit)
+
+add_conan_remote(bincrafters https://api.bintray.com/conan/bincrafters/public-conan)
+add_conan_remote(scatter https://api.bintray.com/conan/edwardstock/scatter)
+
 
 ### Configuration
 if (NOT CMAKE_INSTALL_PREFIX)

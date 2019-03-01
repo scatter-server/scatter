@@ -15,5 +15,7 @@ if ("${BUILD_TYPE}" STREQUAL "debug")
 	endif ()
 endif ()
 
+check_include_file_cxx("string_view" HAS_STRING_VIEW)
+
 
 option(ENABLE_REDIS_TARGET "Enables redis target in event notifier" OFF)

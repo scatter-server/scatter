@@ -7,6 +7,7 @@
  */
 
 #include "ConnectionStorage.h"
+#include <toolboxpp.hpp>
 #include <fmt/format.h>
 
 wss::ConnectionStorage::~ConnectionStorage() {

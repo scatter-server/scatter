@@ -1,15 +1,11 @@
 # vim:set ft=dockerfile:
 
-FROM debian:stretch-slim
+FROM edwardstock/cpp-dev:deb-stretch-latest
 # use this line to install libcurl4 instead of deprecated libcurl3
 #RUN echo deb http://ftp.us.debian.org/debian testing main contrib non-free >> /etc/apt/sources.list
 RUN apt-get -y update;
 
-RUN apt-get -y install git \
-    wget make curl apt-utils \
-    build-essential \
-    libboost1.62-all-dev \
-    libcurl4-openssl-dev;
+RUN apt-get -y install apt-utils;
 
 COPY . /server
 ENV USER root
@@ -20,9 +16,7 @@ RUN ls -lsah /server/_build
 WORKDIR /server/_build
 
 # cmake
-RUN sh /server/packaging/init_build.sh
-
-
+#RUN sh /server/packaging/init_build.sh
 
 WORKDIR /server/_build
 

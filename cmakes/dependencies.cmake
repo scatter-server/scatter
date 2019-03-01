@@ -1,77 +1,9 @@
 # Threads
 find_package(Threads REQUIRED)
 
-# Boost
-set(Boost_DEBUG OFF)
-set(Boost_USE_STATIC_LIBS ON)
-set(Boost_USE_MULTITHREADED ON)
-find_package(Boost 1.54.0 COMPONENTS system thread random filesystem REQUIRED)
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
-	find_package(Boost 1.54.0 COMPONENTS regex REQUIRED)
-endif ()
-
-
-# fmt
-add_subdirectory(${PROJECT_LIBS_DIR}/fmt)
-
-
-# OpenSSL (libssl/libcrypto)
-string(TOLOWER ${CMAKE_SYSTEM_NAME} SYSTEM_LOWER)
-if (NOT OPENSSL_ROOT_DIR)
-	set(OPENSSL_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/${SYSTEM_LOWER}_${CMAKE_SYSTEM_PROCESSOR}")
-endif ()
-set(OPENSSL_USE_STATIC_LIBS ON)
-find_package(OpenSSL 1.1.0 REQUIRED)
-
-
-# ToolBox++
-add_subdirectory(${PROJECT_LIBS_DIR}/toolboxpp)
-set_target_properties(
-	toolboxpp PROPERTIES
-	ENABLE_STATIC ON
-)
-
-# HTTB
-add_subdirectory(${PROJECT_LIBS_DIR}/httb)
-
 # Json nlohmann
 set(JSON_BuildTests OFF CACHE BOOL "Build json test" FORCE)
 add_subdirectory(${PROJECT_LIBS_DIR}/json)
-
-# Thread
-find_package(Threads REQUIRED)
-
-
-# cURL
-#if (CURL_ROOT_PATH)
-#	message(STATUS "Curl search path: ${CURL_ROOT_PATH}")
-#	find_library(CURL_LIBRARIES libcurl.a curl PATHS "${CURL_ROOT_PATH}" NO_DEFAULT_PATH)
-#	if (CURL_LIBRARIES-NOTFOUND)
-#		message(FATAL_ERROR "Curl not found in ${CURL_ROOT_PATH}/lib")
-#	endif ()
-#	set(CURL_VERSION_STRING "<unknown>")
-#	set(CURL_INCLUDE_DIRS ${CURL_ROOT_PATH}/include)
-#elseif (CURL_STATIC)
-#	find_library(CURL_LIBRARIES libcurl.a curl)
-#	if (CURL_LIBRARIES-NOTFOUND)
-#		message(FATAL_ERROR "Curl not found")
-#	endif ()
-#	set(CURL_VERSION_STRING "<unknown>")
-#	set(CURL_INCLUDE_DIRS ${CURL_ROOT_PATH}/include)
-#else ()
-#	find_package(CURL 7.26.0 REQUIRED)
-#endif ()
-
-
-# date lib
-add_subdirectory(${PROJECT_LIBS_DIR}/date)
-target_compile_options(tz PRIVATE -Wno-deprecated-declarations)
-set(USE_SYSTEM_TZ_DB ON CACHE BOOL "Enable system timezone DB" FORCE)
-set_target_properties(
-	tz PROPERTIES
-	USE_SYSTEM_TZ_DB On
-	BUILD_SHARED_LIBS Off
-)
 
 
 if (ENABLE_REDIS_TARGET)
@@ -92,32 +24,29 @@ function (linkdeps DEPS_PROJECT)
 
 	# Threads @TODO boost-only threads
 	target_link_libraries(${DEPS_PROJECT} ${CMAKE_THREAD_LIBS_INIT})
-	message(STATUS "\t- threads")
+	message(STATUS "\t threads")
 
 	# Boost
-	target_link_libraries(${DEPS_PROJECT} ${Boost_LIBRARIES})
-	target_include_directories(${DEPS_PROJECT} PUBLIC ${Boost_INCLUDE_DIR})
-	#	message(STATUS "Boost includes: ${Boost_INCLUDE_DIR}; libs: ${Boost_LIBRARIES}")
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
-		target_compile_definitions(${DEPS_PROJECT} INTERFACE USE_BOOST_REGEX)
-		target_link_libraries(${DEPS_PROJECT} ${Boost_LIBRARIES})
-		target_include_directories(${DEPS_PROJECT} PUBLIC ${Boost_INCLUDE_DIR})
-	endif ()
+	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_system)
+	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_regex)
+	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_asio)
+	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_thread)
+	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_random)
+	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_filesystem)
+	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_crc)
+	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_uuid)
 	message(STATUS "\t- boost")
 
 	# OpenSSL
-	target_link_libraries(${DEPS_PROJECT} ${OPENSSL_LIBRARIES})
-	target_include_directories(${DEPS_PROJECT} PUBLIC ${OPENSSL_INCLUDE_DIR})
-	message(STATUS "\t- openssl ${OPENSSL_VERSION} (${OPENSSL_LIBRARIES})")
+	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::OpenSSL)
+	message(STATUS "\t- openssl")
 
 	# Toolbox++
-	target_link_libraries(${DEPS_PROJECT} toolboxpp)
-	target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/toolboxpp/include)
+	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::toolboxpp)
 	message(STATUS "\t- toolbox++")
 
 	# http client
-	target_link_libraries(${DEPS_PROJECT} httb)
-	target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/httb/include)
+	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::httb)
 	message(STATUS "\t- httb")
 
 	# JSON
@@ -126,19 +55,12 @@ function (linkdeps DEPS_PROJECT)
 	target_include_directories(${DEPS_PROJECT} PUBLIC ${PROJECT_LIBS_DIR}/json/include)
 	message(STATUS "\t- JSON")
 
-	# CURL
-	#	target_link_libraries(${DEPS_PROJECT} ${CURL_LIBRARIES})
-	#	target_include_directories(${DEPS_PROJECT} PUBLIC ${CURL_INCLUDE_DIRS})
-	#	message(STATUS "\t- curl ${CURL_VERSION_STRING} (${CURL_LIBRARIES})")
-
 	# FMT
-	target_link_libraries(${DEPS_PROJECT} fmt::fmt)
-	target_include_directories(${DEPS_PROJECT} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libs/fmt)
+	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::fmt)
 	message(STATUS "\t- fmt")
 
 	# Date lib
-	target_link_libraries(${DEPS_PROJECT} tz)
-	target_include_directories(${DEPS_PROJECT} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libs/date/include)
+	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::date)
 	message(STATUS "\t- date & timezone lib")
 
 	# Threads

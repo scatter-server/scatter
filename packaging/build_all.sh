@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+set -e
 
-PLATFORMS=(stretch)
+#jessie stretch
+PLATFORMS=(buster)
 PLATFORM_PACKAGE=(deb)
 
 VM_PREFIX="wsserver_build_"

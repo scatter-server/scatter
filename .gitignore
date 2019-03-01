@@ -1,6 +1,6 @@
 .DS_Store
 .idea/
-bin/local.config.json
+bin/local*.config.json
 cmake-build-*/
 *.cpp.o
 .mainframer

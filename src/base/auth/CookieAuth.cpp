@@ -5,7 +5,7 @@
  * \link https://github.com/edwardstock
  */
 
-#include <toolboxpp.h>
+#include <toolboxpp.hpp>
 #include "CookieAuth.h"
 #include "fmt/format.h"
 

@@ -23,7 +23,7 @@
 #include <atomic>
 #include <ctime>
 #include <functional>
-#include <toolboxpp.h>
+#include <toolboxpp.hpp>
 #include <boost/thread.hpp>
 #include "json.hpp"
 #include "Message.h"

@@ -6,7 +6,7 @@
 #include <boost/asio/io_service.hpp>
 #include <unordered_set>
 #include <csignal>
-#include <toolboxpp.h>
+#include <toolboxpp.hpp>
 #include <client_wss.hpp>
 
 #include "client_ws.hpp"

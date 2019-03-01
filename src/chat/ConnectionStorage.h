@@ -15,7 +15,7 @@
 #include <vector>
 #include <string>
 #include <atomic>
-#include <toolboxpp.h>
+#include <toolboxpp.hpp>
 #include "../wsserver_core.h"
 
 using toolboxpp::Logger;

@@ -9,7 +9,7 @@
 #include "../helpers/helpers.h"
 
 #include <fmt/format.h>
-#include <toolboxpp.h>
+#include <toolboxpp.hpp>
 
 using namespace wss;
 using std::cout;

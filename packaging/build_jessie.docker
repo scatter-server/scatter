@@ -1,25 +1,19 @@
 # vim:set ft=dockerfile:
 
-FROM debian:jessie-slim
-RUN echo deb http://ftp.us.debian.org/debian testing main contrib non-free >> /etc/apt/sources.list
-RUN apt-get -y update;
+FROM edwardstock/cpp-dev:deb-jessie-latest
+ENV CC /usr/bin/gcc
+ENV CXX /usr/bin/g++
 
-RUN apt-get -y install git \
-    wget make curl apt-utils \
-    build-essential \
-    libboost1.67-all-dev \
-    libcurl4-openssl-dev;
+RUN apt-get -y install apt-utils;
 
 COPY . /server
 ENV USER root
 
 WORKDIR /server
 RUN mkdir -p /server/_build
-RUN ls -lsah /server/_build
 WORKDIR /server/_build
-RUN sh /server/packaging/init_build.sh
+#RUN sh /server/packaging/init_build.sh
 
-# workaround for date library, it won't work from first configuring
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_OS=debian-jessie
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_OS=debian-jessie
 RUN make
