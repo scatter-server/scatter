@@ -1,0 +1,42 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: edwardstock/cpp-dev:deb-buster-latest
+        environment:
+          CXX: /usr/bin/g++
+          CC: /usr/bin/gcc
+    steps:
+      - run: apt-get update
+      - run:
+          name: Cloning repo
+          command: git clone --recursive https://github.com/scatter/scatter .
+      - restore_cache:
+          keys:
+            - custom-pkgs-{{ checksum ".circleci/setup.sh" }}
+      - run:
+          name: Preparing
+          command: $(which bash) .circleci/setup.sh
+      - save_cache:
+          key: custom-pkgs-{{ checksum ".circleci/setup.sh" }}
+          paths:
+            - /tmp/pkgs
+      - run: conan user -p $BINTRAY_API_KEY -r scatter edwardstock
+      - run: mkdir -p _build
+      - restore_cache:
+          keys:
+            - conan-dir-{{ checksum "conanfile.txt" }}
+      - run:
+          name: Configuring
+          command: cd _build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_OS=debian-buster -DENABLE_REDIS_TARGET=Off
+      - save_cache:
+          key: conan-dir-{{ checksum "conanfile.txt" }}
+          paths:
+            - /root/.conan
+      - run: cmake --build ./_build --target scatter
+      - run:
+          name: Packaging
+          command: cd _build && make package
+      - run:
+          name: Deploy
+          command: $(which bash) .circleci/deploy.sh

@@ -91,6 +91,8 @@ add_definitions(-DWS_BIN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/bin")
 include(cmakes/sources_sets.cmake)
 include(cmakes/dependencies.cmake)
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/.circleci/debian_deploy.in.sh ${CMAKE_CURRENT_SOURCE_DIR}/.circleci/debian_deploy.sh)
+
 
 add_executable(${PROJECT_NAME} src/main.cpp ${SERVER_EXEC_SRCS})
 

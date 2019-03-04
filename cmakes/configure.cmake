@@ -1,6 +1,7 @@
 include(CheckIncludeFileCXX)
 include(CheckCXXSymbolExists)
 
+
 string(TOLOWER ${CMAKE_BUILD_TYPE} BUILD_TYPE)
 if ("${BUILD_TYPE}" STREQUAL "debug")
 	check_include_file_cxx("execinfo.h" HAVE_EXECINFO_H)
@@ -14,9 +15,5 @@ if ("${BUILD_TYPE}" STREQUAL "debug")
 		add_definitions(-DENABLE_BACKTRACE=1)
 	endif ()
 endif ()
-
-#check_include_file_cxx("string_view" HAS_STRING_VIEW)
-#unset(HAS_STRING_VIEW)
-
 
 option(ENABLE_REDIS_TARGET "Enables redis target in event notifier" OFF)
