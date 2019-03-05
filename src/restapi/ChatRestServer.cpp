@@ -172,14 +172,17 @@ void wss::ChatRestServer::actionStats(wss::HttpResponse response, wss::HttpReque
 
 void wss::ChatRestServer::actionSendMessage(wss::HttpResponse response, wss::HttpRequest request) {
     response->close_connection_after_response = true;
-    auto ctype = request->header.find("content-type");
 
-    if (ctype == request->header.end() || ctype->second != "application/json") {
+    const httb::request r = request->toHttbRequest();
+    auto ctype = r.getHeader("content-type");
+    auto another = r.getHeader("another");
+
+    if (ctype.empty() || ctype != "application/json") {
         setError(response, HttpStatus::client_error_bad_request, 400, "Content-Type must be application/json");
         return;
     }
 
-    const MessagePayload payload(request->content.string());
+    const MessagePayload payload(r.getBody());
     if (!payload.isValid()) {
         setError(response, HttpStatus::client_error_bad_request, 400, payload.getError());
         return;

@@ -164,21 +164,40 @@ class ServerBase : public BaseServer {
 
      public:
         std::size_t size() noexcept {
-            return streambuf.size();
+            if (!m_cacheInited) {
+                return streambuf.size();
+            }
+
+            return m_dataSize;
         }
+
         /// Convenience function to return std::string. The stream buffer is consumed.
+        /// UPD: stream buffer is consumed, BUT, cached. To consume cache, call consume()
         std::string string() const noexcept {
             try {
-                std::stringstream ss;
-                ss << rdbuf();
-                return ss.str();
-            }
-            catch (...) {
+                if (!m_cacheInited) {
+                    m_dataSize = streambuf.size();
+                    std::ostringstream os;
+                    os << rdbuf();
+                    m_cachedBuf = os.str();
+                    m_cacheInited = true;
+                }
+
+                return m_cachedBuf;
+            } catch (...) {
                 return std::string();
             }
         }
 
+        void consume() {
+            m_cachedBuf = "";
+            m_dataSize = 0;
+        }
+
      private:
+        mutable std::string m_cachedBuf;
+        mutable bool m_cacheInited = false;
+        mutable size_t m_dataSize;
         asio::streambuf &streambuf;
         Content(asio::streambuf &streambuf) noexcept : std::istream(&streambuf), streambuf(streambuf) { }
     };
@@ -222,7 +241,6 @@ class ServerBase : public BaseServer {
             for (const auto &kv: header) {
                 out.addHeader(kv);
             }
-//            out.setHeaders(header);
 
             return out;
         }
