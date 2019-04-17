@@ -89,6 +89,7 @@ int main(int argc, char **argv) {
 
 #ifdef ENABLE_BACKTRACE
     signal(SIGSEGV, handler);   // install segfault handler
+    signal(SIGABRT, handler);   // install exception handler
 #endif
 
     const auto **args = const_cast<const char **>(argv);

@@ -49,6 +49,10 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : m_args() {
     wss::Settings &settings = wss::Settings::get();
     settings = config;
 
+    if (settings.server.logLevel >= 0 && settings.server.logLevel <= 2) {
+        toolboxpp::Logger::get().setVerbosity(settings.server.logLevel);
+    }
+
     // CHAT
     if (settings.server.secure.enabled) {
         const std::string crtPath = settings.server.secure.crtPath;

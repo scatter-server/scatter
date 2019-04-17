@@ -1,5 +1,6 @@
 {
   "server": {
+    "logLevel": 2,
     "endpoint": "/chat",
     "address": "*",
     "port": 8085,

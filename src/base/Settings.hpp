@@ -52,6 +52,7 @@ struct Server {
   Watchdog watchdog;
   AuthSettings auth;
   std::string timezone;
+  uint16_t logLevel = 0xFFFF;
 };
 struct RestApi {
   bool enabled = false;
@@ -98,6 +99,7 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
     setConfigDef(in.server.endpoint, server, "endpoint", "/chat");
     setConfigDef(in.server.port, server, "port", (uint16_t) 8085);
     setConfigDef(in.server.timezone, server, "timezone", "UTC");
+    setConfigDef(in.server.logLevel, server, "logLevel", 0xFFFF);
 
 
     if (server.find("secure") != server.end()) {
