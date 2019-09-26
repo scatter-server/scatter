@@ -6,7 +6,8 @@
  * @link https://github.com/edwardstock
  */
 #include "Message.h"
-#include "../helpers/helpers.h"
+#include "helpers/helpers.h"
+#include "base/Settings.hpp"
 
 #include <fmt/format.h>
 #include <toolboxpp.hpp>
@@ -246,7 +247,8 @@ void wss::from_json(const wss::json &j, wss::MessagePayload &in) {
         in.m_data = json();
     }
 
-    if (j.find("timestamp") != j.end() && j.at("timestamp").is_string()) {
+    if (wss::Settings::get().chat.message.enableTimestampOverride && j.find("timestamp") != j.end()
+        && j.at("timestamp").is_string()) {
         in.m_timestamp = j.at("timestamp").get<std::string>();
     } else {
         in.m_timestamp = wss::utils::getNowISODateTimeFractionalConfigAware();

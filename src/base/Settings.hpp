@@ -66,6 +66,7 @@ struct Chat {
     std::string maxSize = "10M";
     bool enableDeliveryStatus = false;
     bool enableSendBack = false;
+    bool enableTimestampOverride = false;
     std::vector<std::string> ignoreTypesSendBack;
   };
   Message message = Message();
@@ -151,6 +152,7 @@ inline void from_json(const nlohmann::json &j, wss::Settings &in) {
             setConfigDef(in.chat.message.maxSize, chatMessage, "maxSize", "10M");
             setConfigDef(in.chat.enableUndeliveredQueue, chatMessage, "enableUndeliveredQueue", false);
             setConfigDef(in.chat.message.enableSendBack, chatMessage, "enableSendBack", false);
+            setConfigDef(in.chat.message.enableTimestampOverride, chatMessage, "enableTimestampOverride", true);
 
             if (chatMessage.find("ignoredTypesSendBack") != chatMessage.end()) {
                 in.chat.message.ignoreTypesSendBack =

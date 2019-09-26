@@ -67,9 +67,15 @@ bool wss::RemoteAuth::validateAuth(const httb::request &request) const {
 
     httb::client client;
     client.setEnableVerbose(false);
-    auto resp = client.execute(r);
 
-    return resp.isSuccess();
+    boost::asio::io_context ctx;
+    bool success = false;
+    client.executeInContext(ctx, r, [&success](httb::response resp) {
+      success = resp.isSuccess();
+    });
+    ctx.run();
+
+    return success;
 }
 std::string wss::RemoteAuth::getLocalValue() const {
     return Auth::getLocalValue();

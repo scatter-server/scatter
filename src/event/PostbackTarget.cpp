@@ -21,13 +21,19 @@ bool wss::event::PostbackTarget::send(const wss::MessagePayload &payload, std::s
     request.setHeader({"Content-Type", "application/json"});
 
     m_auth->performAuth(request);
-    httb::response response = getClient().execute(request);
-    bool success = response.isSuccess();
-    std::stringstream ss;
-    ss << response.statusMessage << "\n" << response.data;
-    if (!success) {
-        error = ss.str();
-    }
+    boost::asio::io_context ctx;
+
+    bool success;
+    getClient().executeInContext(ctx, request, [&success, &error](httb::response resp) {
+      success = resp.isSuccess();
+      std::stringstream ss;
+      ss << resp.statusMessage << "\n" << resp.data;
+      if (!success) {
+          error = ss.str();
+      }
+    });
+
+    ctx.run();
 
     return success;
 }

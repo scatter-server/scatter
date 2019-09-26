@@ -80,7 +80,7 @@ class SocketServerBase : public BaseServer {
               closed(false),
               id(0),
               timeoutIdle(0),
-              strand(this->socket->get_io_service()) { }
+              strand(this->socket->get_context()) { }
 
         std::string method, path, queryString, httpVersion;
         wss::utils::CaseInsensitiveMultimap header;
@@ -137,10 +137,10 @@ class SocketServerBase : public BaseServer {
                    wss::io_context_service &ioContext) noexcept
             : handlerRunner(std::move(handler_runner)),
               socket(std::make_unique<SocketLayerWrapper>(ioContext)),
-                     closed(false),
-                     uniqueId(0),
-                     timeoutIdle(timeout_idle),
-                     strand(socket->get_io_service()) { }
+              closed(false),
+              uniqueId(0),
+              timeoutIdle(timeout_idle),
+              strand(socket->get_context()) { }
 
         Connection(std::shared_ptr<ScopeRunner> handler_runner,
                    long timeout_idle,
@@ -151,7 +151,7 @@ class SocketServerBase : public BaseServer {
             closed(false),
             uniqueId(0),
             timeoutIdle(timeout_idle),
-            strand(socket->get_io_service()) { }
+            strand(socket->get_context()) { }
 
         std::shared_ptr<ScopeRunner> handlerRunner;
 
@@ -192,7 +192,7 @@ class SocketServerBase : public BaseServer {
                 return;
             }
 
-            timer = std::unique_ptr<asio::steady_timer>(new asio::steady_timer(socket->get_io_service()));
+            timer = std::unique_ptr<asio::steady_timer>(new asio::steady_timer(socket->get_context()));
             timer->expires_from_now(std::chrono::seconds(seconds));
             std::weak_ptr<Connection> connectionWeak
                 (this->shared_from_this()); // To avoid keeping Connection instance alive longer than needed

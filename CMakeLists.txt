@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 project(wsserver
-        VERSION 2.0.0
+        VERSION 2.0.1
         DESCRIPTION "WebSocket Open Messaging Server"
         HOMEPAGE_URL "https://github.com/wsserver"
         LANGUAGES CXX
@@ -95,6 +95,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/.circleci/debian_deploy.in.sh ${CMAKE
 
 
 add_executable(${PROJECT_NAME} src/main.cpp ${SERVER_EXEC_SRCS})
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # required for openssl, it has undefined symbol `dlclose`
 find_library(DL_LIBRARIES NAMES dl)

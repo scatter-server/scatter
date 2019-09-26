@@ -1,6 +1,6 @@
 # vim:set ft=dockerfile:
 
-FROM edwardstock/cpp-dev:deb-stretch-latest
+FROM gccdev:deb-stretch
 # use this line to install libcurl4 instead of deprecated libcurl3
 #RUN echo deb http://ftp.us.debian.org/debian testing main contrib non-free >> /etc/apt/sources.list
 RUN apt-get -y update;
@@ -21,8 +21,7 @@ WORKDIR /server/_build
 WORKDIR /server/_build
 
 # workaround for date library, it won't work from first configuring
-RUN cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_OS=debian-stretch -DENABLE_REDIS_TARGET=Off
-RUN cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_OS=debian-stretch -DENABLE_REDIS_TARGET=Off
+RUN cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_OS=debian-stretch -DENABLE_REDIS_TARGET=On
 RUN make
 RUN make install
 

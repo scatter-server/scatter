@@ -27,14 +27,7 @@ function (linkdeps DEPS_PROJECT)
 	message(STATUS "\t threads")
 
 	# Boost
-	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_system)
-	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_regex)
-	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_asio)
-	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_thread)
-	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_random)
-	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_filesystem)
-	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_crc)
-	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost_uuid)
+	target_link_libraries(${DEPS_PROJECT} CONAN_PKG::boost)
 	message(STATUS "\t- boost")
 
 	# OpenSSL

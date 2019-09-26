@@ -40,6 +40,7 @@ class SocketLayerWrapper {
  private:
     asio::ip::tcp::socket *m_insecure;
     asio::ssl::stream<asio::ip::tcp::socket> *m_secure;
+    wss::io_context_service *m_io_context;
 
  public:
     template<typename ...Args>
@@ -55,11 +56,13 @@ class SocketLayerWrapper {
 
     }
     SocketLayerWrapper(wss::io_context_service &ioContext) {
+        m_io_context = &ioContext;
         m_insecure = new asio::ip::tcp::socket(ioContext);
         m_secure = nullptr;
     }
 
     SocketLayerWrapper(wss::io_context_service &ioContext, asio::ssl::context &sslContext) {
+        m_io_context = &ioContext;
         m_secure = new asio::ssl::stream<asio::ip::tcp::socket>(ioContext, sslContext);
         m_insecure = nullptr;
     }
@@ -140,20 +143,20 @@ class SocketLayerWrapper {
         return m_insecure->lowest_layer();
     }
 
-    const wss::io_context_service &get_io_service() const {
+    asio::executor get_executor() const {
         if (isSecure()) {
-            return m_secure->get_io_service();
+            return m_secure->get_executor();
         }
 
-        return m_insecure->get_io_service();
+        return m_insecure->get_executor();
     }
 
-    wss::io_context_service &get_io_service() {
-        if (isSecure()) {
-            return m_secure->get_io_service();
-        }
+    const wss::io_context_service &get_context() const {
+        return *m_io_context;
+    }
 
-        return m_insecure->get_io_service();
+    wss::io_context_service &get_context() {
+        return *m_io_context;
     }
 
     ~SocketLayerWrapper() {
