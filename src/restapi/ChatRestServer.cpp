@@ -182,7 +182,7 @@ void wss::ChatRestServer::actionSendMessage(wss::HttpResponse response, wss::Htt
         return;
     }
 
-    const MessagePayload payload(r.getBody());
+    const MessagePayload payload(r.getBody(), wss::Settings::get().chat.message.enableTimestampOverrideAPI);
     if (!payload.isValid()) {
         setError(response, HttpStatus::client_error_bad_request, 400, payload.getError());
         return;

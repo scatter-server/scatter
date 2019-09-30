@@ -60,7 +60,7 @@ wss::MessagePayload::MessagePayload(user_id_t from, const std::vector<user_id_t>
     m_timestamp(wss::utils::getNowISODateTimeFractionalConfigAware()) {
     validate();
 }
-wss::MessagePayload::MessagePayload(const std::string &json) noexcept:
+wss::MessagePayload::MessagePayload(const std::string &json, bool overrideTimestamp) noexcept:
     m_id(wss::unid::generator()()) {
     if (json.length() == 0) {
         m_errorCause = "Empty message";
@@ -69,7 +69,12 @@ wss::MessagePayload::MessagePayload(const std::string &json) noexcept:
     }
     try {
         auto obj = json::parse(json);
-        fromJson(obj);
+        if (overrideTimestamp) {
+            fromJson(obj, overrideTimestamp);
+        } else {
+            fromJson(obj);
+        }
+
         validate();
     } catch (const std::exception &e) {
         handleJsonException(e, json);
@@ -92,6 +97,53 @@ void wss::MessagePayload::validate() {
 void wss::MessagePayload::fromJson(const json &obj) {
     from_json(obj, *this);
 }
+
+void wss::MessagePayload::fromJson(const json &j, bool overrideTimestamp) {
+    if (j.find("type") == j.end() || j.at("type").is_null()) {
+        throw InvalidPayloadException("$.type must be a string");
+    } else if (j.find("sender") == j.end() || j.at("sender").is_null() || !j.at("sender").is_number()) {
+        throw InvalidPayloadException("$.sender must be uint64_t");
+    } else if (j.find("recipients") == j.end() || j.at("recipients").is_null() || !j.at("recipients").is_array()) {
+        throw InvalidPayloadException("$.recipients[] must be uint64_t[]");
+    }
+
+    auto &in = *this;
+
+    in.m_type = j.value("type", std::string(TYPE_TEXT));
+
+    if (strcmp(in.m_type.c_str(), TYPE_TEXT) == 0) {
+        if (!j.at("text").is_string()) {
+            throw InvalidPayloadException("$.text must be string");
+        }
+        in.m_text = j.at("text").get<std::string>();
+    } else {
+        if (j.find("text") == j.end() || !j.at("text").is_string()) {
+            in.m_text = std::string();
+        } else {
+            in.m_text = j.value("text", "");
+        }
+    }
+
+    in.m_sender = j.at("sender").get<user_id_t>();
+    in.m_recipients = j.at("recipients").get<std::vector<user_id_t>>();
+    if (in.m_recipients.empty()) {
+        throw InvalidPayloadException("$.recipients[] must contains at least 1 value");
+    }
+
+    if (j.find("data") != j.end()) {
+        in.m_data = j.value("data", json());
+    } else {
+        in.m_data = json();
+    }
+
+    if (overrideTimestamp && j.find("timestamp") != j.end()
+        && j.at("timestamp").is_string()) {
+        in.m_timestamp = j.at("timestamp").get<std::string>();
+    } else {
+        in.m_timestamp = wss::utils::getNowISODateTimeFractionalConfigAware();
+    }
+}
+
 const unid_t MessagePayload::getId() const {
     return m_id;
 }
