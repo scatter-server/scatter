@@ -49,7 +49,7 @@ wss::ServerStarter::ServerStarter(int argc, const char **argv) : m_args() {
     wss::Settings &settings = wss::Settings::get();
     settings = config;
 
-    if (settings.server.logLevel >= 0 && settings.server.logLevel <= 2) {
+    if (settings.server.logLevel >= (uint16_t) 0 && settings.server.logLevel <= (uint16_t) 2) {
         toolboxpp::Logger::get().setVerbosity(settings.server.logLevel);
     }
 
