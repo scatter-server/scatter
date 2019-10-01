@@ -51,7 +51,6 @@ class MessagePayload {
     mutable std::string m_cachedJson;
     mutable bool m_isCached = false;
 
-    void fromJson(const json &json);
     void fromJson(const json &json, bool overrideTimestamp);
     void validate();
     void handleJsonException(const std::exception &e, const std::string &data);
@@ -80,8 +79,7 @@ class MessagePayload {
     MessagePayload &operator=(const MessagePayload &payload) = default;
     MessagePayload &operator=(MessagePayload &&payload) = default;
 
-    explicit MessagePayload(const std::string &json, bool overrideTimestamp) noexcept;
-    explicit MessagePayload(const nlohmann::json &obj) noexcept;
+    explicit MessagePayload(const std::string &json, bool overrideTimestamp = false) noexcept;
 
     bool operator==(wss::MessagePayload const &);
 

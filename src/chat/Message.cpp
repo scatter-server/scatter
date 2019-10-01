@@ -69,22 +69,11 @@ wss::MessagePayload::MessagePayload(const std::string &json, bool overrideTimest
     }
     try {
         auto obj = json::parse(json);
-        if (overrideTimestamp) {
-            fromJson(obj, overrideTimestamp);
-        } else {
-            fromJson(obj);
-        }
-
+        fromJson(obj, overrideTimestamp);
         validate();
     } catch (const std::exception &e) {
         handleJsonException(e, json);
     }
-}
-
-wss::MessagePayload::MessagePayload(const wss::json &obj) noexcept:
-    m_id(wss::unid::generator()()) {
-    fromJson(obj);
-    validate();
 }
 
 void wss::MessagePayload::validate() {
@@ -92,10 +81,6 @@ void wss::MessagePayload::validate() {
         m_validState = false;
         m_errorCause = "Recipients can't be empty";
     }
-}
-
-void wss::MessagePayload::fromJson(const json &obj) {
-    from_json(obj, *this);
 }
 
 void wss::MessagePayload::fromJson(const json &j, bool overrideTimestamp) {
